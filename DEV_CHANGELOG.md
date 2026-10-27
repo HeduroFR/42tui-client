@@ -56,6 +56,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - **2026-10-27 · no release required · Development tracking:** add this rolling
   changelog, require updates and release advice after every task, and document
   version decisions and resetting released entries after successful publication.
+- **2026-10-27 · no release required · User release notes:** populate CHANGELOG.md
+  Unreleased with onboarding, friend-search, website-link and user-documentation
+  changes. Remove CI/CD and internal release-process details from existing notes.
+  Require future user-facing changes in both logs, with internal work recorded
+  only in this development log.
 
 ## Validation and release readiness
 

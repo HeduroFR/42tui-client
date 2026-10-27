@@ -44,6 +44,13 @@ Record actual behavior and compatibility effects rather than copying commit titl
 Keep unreleased work visible even when it does not justify publishing a new version.
 Do not include private backend implementation details or credentials.
 
+CHANGELOG.md contains user-facing features, behavior changes, fixes and user
+documentation improvements. Update Unreleased as those changes are implemented,
+then move the included notes under the release version during preparation. Keep
+CI/CD, test-only, release tooling and internal architecture work in DEV_CHANGELOG.md;
+only describe a resulting user-visible change in the main changelog. This filter
+also applies to the release notes shown in the application.
+
 Use the highest accumulated release impact to suggest the next version:
 
 | Impact | When to use it | Example from 0.3.0 |
@@ -67,9 +74,9 @@ needed. Keep that advice distinct from verified readiness to publish.
 
 For a separately authorized clean release:
 
-1. Review all entries against the exact release candidate. Summarize the changes
-   included in that candidate under its version in CHANGELOG.md and prepare the
-   matching package version. Leave DEV_CHANGELOG.md intact during preparation.
+1. Review all entries against the exact release candidate. Summarize the user-facing
+   changes included in that candidate under its version in CHANGELOG.md and prepare
+   the matching package version. Leave DEV_CHANGELOG.md intact during preparation.
 2. Complete the existing release checks, required compatibility/deployment checks
    and approved publication. Verify the intended immutable version, artifacts and
    published GitHub release. A passing CI run, pushed tag, draft release or only

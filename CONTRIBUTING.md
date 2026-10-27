@@ -153,6 +153,11 @@ At task completion, review the accumulated log and advise whether a release is n
 worth preparing, its recommended version and why, and what still blocks publication.
 Documentation-only or internal work does not by itself require a release.
 
+Also update CHANGELOG.md under Unreleased for user-facing features, behavior
+changes, fixes and user documentation improvements. Explain the visible effect;
+keep CI/CD, tests, release tooling and internal restructuring in DEV_CHANGELOG.md.
+Use the same user-facing scope for published release notes.
+
 Use one-line English Conventional Commits matching the branch prefix, for example
 `feat: add club invitations` or `docs: document contributor workflows`. Stage only
 task files. PRs target `main` and explain the problem, resulting behavior, tests,

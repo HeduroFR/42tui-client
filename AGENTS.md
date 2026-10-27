@@ -19,6 +19,14 @@ result, release impact (patch, minor, major or no release required), and a commi
 reference when available. Record checks actually run and remaining release blockers;
 do not describe planned work or unverified deployments as complete.
 
+Keep CHANGELOG.md user-facing: update its Unreleased section alongside each
+implemented feature, behavior change or fix that affects users. Include user-facing
+documentation improvements. Describe the visible result and any required user
+action. Keep CI/CD upgrades, test-only changes, release tooling, repository
+restructuring and internal refactors exclusively in DEV_CHANGELOG.md unless they
+also change shipped behavior; in that case describe only the user-visible effect
+in CHANGELOG.md. Apply the same filter when preparing published release notes.
+
 Keep the baseline at the latest successfully published stable release, not the
 working package version. Reassess the suggested next version from the highest
 accumulated impact using [distribution operations](docs/distribution.md#development-changelog).
