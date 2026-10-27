@@ -29,18 +29,6 @@ less install-42tui.sh
 sh install-42tui.sh
 ```
 
-### Windows (experimental)
-
-In PowerShell, download and inspect the installer, then run it:
-
-```powershell
-Invoke-WebRequest https://tui.42wip.in/install.ps1 -OutFile install-42tui.ps1
-Get-Content .\install-42tui.ps1
-.\install-42tui.ps1
-```
-
-Use Windows Terminal. Native Windows support is experimental.
-
 ## Launch and connect
 
 Restart your terminal after installation, then launch:
@@ -177,7 +165,7 @@ maintain that installation with its original manager.
 - **`42tui` is not found:** restart your terminal. If it still fails, add the
   executable directory printed by the installer to your `PATH`.
 - **Icons appear as boxes:** select a Nerd Font in your terminal settings,
-  such as JetBrainsMono Nerd Font Mono. For SSH or WSL, configure the font on
+  such as JetBrainsMono Nerd Font Mono. For SSH, configure the font on
   the machine displaying the terminal.
 - **Account connection fails:** check your internet connection and retry from
   Settings. If the app reports that the OS credential store is unavailable,
