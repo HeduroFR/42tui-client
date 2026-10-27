@@ -400,10 +400,10 @@ class FortyTwoTuiApp(
             )
 
     async def _finish_onboarding(self, values: dict[str, str] | None) -> None:
-        """Persist first-run choices, or remember that the user skipped setup."""
-        self.startup_service.finish_onboarding(self.language, values)
-        if values is None:
+        """Persist first-run choices after connecting a 42 account."""
+        if values is None or not self.account_connected:
             return
+        self.startup_service.finish_onboarding(self.language, values)
         self.projects_root = values["projects_root"]
         self.favorite_editor = values["favorite_editor"]
         self.language = values["language"]

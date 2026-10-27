@@ -55,6 +55,36 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_onboarding_cannot_skip_or_complete_without_account_connection(self):
+        factory = make_session_factory("sqlite:///:memory:")
+        app = FortyTwoTuiApp(factory, None, oauth_client=FakeOAuthClient())
+        async with app.run_test() as pilot:
+            onboarding = app.screen
+            self.assertFalse(onboarding.query("#onboarding-skip"))
+            await pilot.press("escape")
+            self.assertIs(app.screen, onboarding)
+            await pilot.click("#onboarding-next")
+            self.assertEqual(onboarding.step, 0)
+            self.assertIn("Connect your 42 account", str(onboarding.query_one("#onboarding-error").render()))
+            onboarding._finish()
+            await app._finish_onboarding(None)
+            await app._finish_onboarding({})
+            with factory() as session:
+                self.assertNotEqual(get_setting(session, "onboarding_completed"), "true")
+
+            app.account_connected = True
+            await pilot.click("#onboarding-next")
+            await pilot.pause()
+            await pilot.click("#onboarding-next")
+            await pilot.pause()
+            self.assertEqual(onboarding.step, 2)
+            app.account_connected = False
+            await pilot.click("#onboarding-finish")
+            self.assertIs(app.screen, onboarding)
+            self.assertEqual(onboarding.step, 0)
+            with factory() as session:
+                self.assertNotEqual(get_setting(session, "onboarding_completed"), "true")
+
     async def test_connect_button_starts_pairing_and_reports_failed_browser_launch(self):
         from textual.app import App
         from ft_tui.features.accounts.views.connection import AccountConnectionScreen
@@ -304,7 +334,12 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(app.screen, onboarding)
             self.assertEqual(client.poll_calls, 1)
 
-            await pilot.click("#onboarding-skip")
+            app.account_connected = True
+            await pilot.click("#onboarding-next")
+            await pilot.pause()
+            await pilot.click("#onboarding-next")
+            await pilot.pause()
+            await pilot.click("#onboarding-finish")
             await pilot.pause()
             app.action_show_settings()
             await pilot.pause()
@@ -526,7 +561,11 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(session.query(ProjectCursus).count(), 1)
                     self.assertEqual(get_setting(session, "default_cursus_id"), "7")
 
-                await pilot.click("#onboarding-skip")
+                await pilot.click("#onboarding-next")
+                await pilot.pause()
+                await pilot.click("#onboarding-next")
+                await pilot.pause()
+                await pilot.click("#onboarding-finish")
                 await pilot.pause()
                 app.action_show_settings()
                 await pilot.pause()
