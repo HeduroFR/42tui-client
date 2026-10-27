@@ -3,8 +3,8 @@
 The client uses feature modules with explicit service, state, port, adapter and
 presentation boundaries. The app shell composes dependencies and coordinates
 lifecycle/routing. Screens, shortcuts, HTTP behavior and local data formats are
-preserved. Package version remains 0.3.0; separation and internal refactoring do
-not publish a release.
+preserved. Repository separation and internal refactoring do not themselves
+publish a release.
 
 ## Current ownership
 

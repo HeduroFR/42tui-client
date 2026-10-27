@@ -1,10 +1,10 @@
 # Development changelog
 
 Latest release: **0.3.0** (`v0.3.0` in the original repository).
-Package version: **0.3.0**; no new release has been prepared.
-Suggested next release: **0.4.0**, because first-run setup now requires a connected
+Package version: **0.4.0**, prepared but not published.
+Prepared next release: **0.4.0**, because first-run setup now requires a connected
 42 account. This changes the previously optional connection flow while the project
-is pre-1.0. This is a recommendation, not authorization to bump or publish.
+is pre-1.0. Preparation is authorized; tagging and publication are not.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -44,6 +44,12 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no additional release impact · Release preparation:** prepare
+  stable package 0.4.0 and its user-facing notes; preserve the 0.3.0 published
+  baseline and all pending development entries until publication is verified.
+  Require fetching origin before new branches in both repositories' AGENTS.md.
+  Reference: `feat/release-0.4.0`; backend documentation is on
+  `docs/fetch-before-branch`. Validation and publication blockers are below.
 - **2026-10-27 · no release required · Contributor checks:** require focused local
   checks for affected features and leave the full suite to PR CI; a full local
   run is optional. Keep relevant packaging and compatibility checks. Reference:
@@ -80,6 +86,17 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
+- 0.4.0 preparation: **6 focused release tests passed** after refreshing editable
+  package metadata. Tag/version validation, wheel/sdist contents, a wheel rebuilt
+  from the sdist, fresh installed-package entry points/resources, app-header
+  version and bundled upgrade notes passed. Installer helper hashes, shell syntax
+  and documentation diff checks passed. PyPI version 0.4.0 and remote tag v0.4.0
+  were absent during preparation. Artifacts are in ignored
+  `.local/release-0.4.0/dist/`; unrelated local files are excluded.
+- The merged source baseline `1782b27` passed all PR #8 CI checks. The new release
+  preparation still needs its own PR CI and review, then validation on the exact
+  merged release revision. The publication workflow remains disabled pending
+  publisher/ownership review; no tag, upload or deployment has been performed.
 - Cached UI lifecycle fix: **90 release-tooling scope tests, 9 project activity
   tests and 4 friend-project preview tests passed**. All 8 cache UI tests passed
   in **10 consecutive runs** after the original activity crash reproduced on

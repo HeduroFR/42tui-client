@@ -6,7 +6,7 @@ The existing protocol uses `/v1` data routes, device pairing/session routes,
 DPoP proofs, account-scoped payloads, pagination, idempotency keys for writes,
 and authenticated event streams. Repository separation changes none of these.
 
-Client package 0.3.0 and API major v1 are independent version identifiers.
+Client package versions and API major v1 are independent version identifiers.
 The backend owns the canonical OpenAPI documents. Publish a separately reviewed,
 implementation-free contract snapshot when sharing those documents publicly is
 approved. This client preview contains no server OpenAPI files or internal plans.

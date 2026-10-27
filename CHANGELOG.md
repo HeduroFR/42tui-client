@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+See [DEV_CHANGELOG.md](DEV_CHANGELOG.md) for the development record and release
+readiness. The 0.4.0 notes below are prepared for publication.
+
+## 0.4.0
+
 - Prevent activity-screen background updates from crashing while the screen is
   being removed during navigation.
 - Show the installed version in the app header instead of account connection
@@ -13,9 +20,6 @@
 - Direct the installation website's `/github` link to the new client repository.
 - Clarify installation, project navigation, editor integrations and platform
   support in the user documentation.
-
-See [DEV_CHANGELOG.md](DEV_CHANGELOG.md) for the full development record and
-release recommendation, including internal work.
 
 ## 0.3.0
 
