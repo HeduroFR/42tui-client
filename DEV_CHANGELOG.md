@@ -18,10 +18,18 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   down plus 30 minutes as the earliest start (10:18 → 10:45), consistently for
   calendar selection, Add availability, editor publication and pre-dispatch checks.
   Keep nearby existing availability deletable. Update French/Spanish messages.
-  Reference: `fix/correction-slot-start` (uncommitted).
+  Reference: client `82f583b`, backend `880ce27`.
   Requires the matching backend change deployed before releasing the client.
 
 ### Internal changes and documentation
+
+- **2026-10-27 · no release required · Release checklist:** track completed
+  correction-slot fixes and local checks in TODO.md, with separate remaining
+  review/CI, exact-pair compatibility, backend deployment, version preparation,
+  publication authorization and post-release verification tasks. Preserve the
+  existing distribution/documentation backlog. Reference:
+  `fix/correction-slot-start` (checklist update uncommitted).
+  Checks: documentation diff and relative links reviewed; no runtime tests rerun.
 
 - **2026-10-27 · no release required · Release record:** verify the published
   wheel/sdist against GitHub checksums and PyPI digests, install the published
