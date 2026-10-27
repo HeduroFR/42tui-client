@@ -1,11 +1,9 @@
 # Distribution operations
 
 The Python package is `ft-tui`; 0.4.0 is prepared but not yet published. The latest
-confirmed stable release remains 0.3.0. Keep published version/tag ownership
-with the original repository until an explicit release cutover is authorized.
-The copied workflow is `.github/workflows/release.yml.disabled`, deliberately
-inactive. Do not rename it until the Trusted Publisher and release ownership have
-been reviewed. Ordinary branch pushes must not publish packages.
+confirmed stable release remains 0.3.0. This client repository owns publication
+through `.github/workflows/release.yml`. Only explicitly authorized stable release
+tags publish packages; ordinary branch pushes do not publish.
 
 Client CI builds wheel/sdist, checks package contents, rebuilds from sdist, runs
 all 14 regression scopes and validates installers on supported platforms.
@@ -19,8 +17,12 @@ The `/github` path permanently redirects (HTTP 301) to `https://github.com/Hedur
 Change the repository binding only after the reviewed client tree is published;
 do not enable deployment as part of repository creation.
 
-A future release cutover must configure PyPI Trusted Publishing for GitHub owner
+PyPI Trusted Publishing must match GitHub owner
 `HeduroFR`, repository `42tui-client`, workflow `release.yml`, environment `pypi`.
+The maintainer confirmed the PyPI configuration during the release cutover.
+The GitHub `pypi` environment permits only tags matching `v*`; the workflow also
+checks the exact stable version, release notes and main ancestry before publishing.
+The first successful publish verifies the end-to-end OIDC authorization.
 Preserve PyPI package ownership, protect main and stable tags, and retain original
 release artifacts. Published versions are immutable: never republish 0.3.0 merely
 to populate the new repository. New backend deployments are independent.
@@ -30,7 +32,7 @@ confirmed stable release and all subsequent product changes. Update
 `project.version` and the matching CHANGELOG heading, integrate the reviewed
 change to main, and run `python release/check_version.py vX.Y.Z` from the exact
 commit intended for the tag. Creating/pushing a tag requires explicit permission;
-pushing that tag triggers package publication once the workflow is enabled.
+pushing that tag triggers package publication through the release workflow.
 
 Installer helper bytes and embedded SHA-256 checks are unchanged by the split.
 After any future helper edit, run `python release/installer_hashes.py --write`
@@ -89,6 +91,6 @@ For a separately authorized clean release:
    and “No unreleased changes.” Remove validation/blockers belonging to the old
    release; require fresh evidence for the next candidate. Preserve CHANGELOG.md.
 
-This reset is part of the release procedure; the disabled publication workflow
+This reset is part of the release procedure; the publication workflow
 does not automatically edit branches or erase the development log. Failed,
 cancelled or partial releases must leave pending entries available for retry.
