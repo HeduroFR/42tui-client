@@ -76,14 +76,70 @@ To work locally, skip account connection. Connecting is needed to load your
 | Project testers | Run supported project testers from the workspace. Some testers require Docker. |
 | Dev Log / Notes | Write and revisit notes linked to your projects. |
 | Time tracking | Record coding activity through local editor integrations for Vim, Neovim, VS Code, and Zed. |
+| `42goto` | Jump to a configured project folder directly from your shell, with project-name completion. |
 | Dashboard | See your project activity and account progress in one place. |
 | Correction Slots | View and manage correction availability with your connected account. |
 | Friends and clubs | Follow friends' progress and take part in club conversations, announcements, and events. |
 | Cluster Map | Explore campus workstations and their availability. |
 
 Account and campus features depend on your connection and the data available
-for your account. See [editor integrations](integrations/README.md) to set up
-activity tracking; configure each project's local path in 42TUI first.
+for your account.
+
+## Jump to projects with `42goto`
+
+`42goto` is installed alongside `42tui`. Configure each project's local folder
+in 42TUI, then enable the shell function so it can change your current directory.
+
+For Zsh, add this to `~/.zshrc`, after your completion setup (`compinit`):
+
+```zsh
+eval "$(command 42goto --shell-init zsh)"
+```
+
+For Bash, add this to `~/.bashrc`:
+
+```bash
+eval "$(command 42goto --shell-init bash)"
+```
+
+Restart your shell, then use a project name or slug:
+
+```sh
+42goto libft
+42goto "Born2beroot"
+42goto
+```
+
+With no argument, `42goto` chooses the project with active editor activity,
+then falls back to recent tracked activity or a single in-progress project.
+If it cannot choose, pass a project name. Press `Tab` to complete configured
+project slugs; their local folders must exist. Navigation uses local data and
+does not require an account connection.
+
+## Editor plugins and activity tracking
+
+The editor plugins send activity events to the local `42tui heartbeat` command
+when you open, edit, or save files. This records coding time against your
+configured projects without opening the TUI for each event.
+
+1. Configure the project's local folder in 42TUI.
+2. Install the integration for your editor using the guides below.
+3. Make sure the editor can find `42tui` on its `PATH`, or configure the
+   executable's absolute path in the integration.
+4. Open and work on files inside that project folder.
+
+| Editor | Setup |
+| --- | --- |
+| Vim | Copy the bundled plugin into your Vim plugin directory or source it from your `vimrc`. See the [Vim guide](integrations/README.md#vim). |
+| Neovim | Copy the bundled Lua module into your config and call `require("ft_tui").setup()`. See the [Neovim guide](integrations/README.md#neovim). |
+| VS Code | Build the bundled extension and launch it in an Extension Development Host. See the [VS Code guide](integrations/vscode/README.md). |
+| Zed | Install the bundled development extension, which uses the local `42tui-zed-lsp` command. See the [Zed guide](integrations/zed/README.md). |
+
+The plugin sources are in this repository's `integrations/` directory. VS Code
+and Zed currently use the development installation steps linked above.
+Activity tracking is local and requires no account connection. The CLI uses
+file paths to identify the project; it does not retain those paths or read
+file contents.
 
 ## Useful shortcuts
 
