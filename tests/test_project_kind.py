@@ -1,5 +1,5 @@
 import unittest
-from ft_tui.services.project_kind import project_kind
+from ft_tui.features.catalog.kind import project_kind
 from ft_tui.db.models import Project
 
 

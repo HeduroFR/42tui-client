@@ -14,7 +14,7 @@ from ft_tui.features.friends.adapters.storage import ongoing
 from ft_tui.app.read_cache import backend_origin
 from ft_tui.i18n import translate
 from ft_tui.features.cluster_map.adapters.factory import resolve_cluster_service
-from ft_tui.ui.cluster_portrait import ClusterPortrait
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
 
 
 class ClusterWorkstationModal(AppModal):

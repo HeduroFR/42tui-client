@@ -29,11 +29,11 @@ def child(root):
 
     from ft_tui.db.database import make_session_factory
     from ft_tui.db.models import Project
-    from ft_tui.services.tester_catalog import load_catalog
-    from ft_tui.services.tester_docker import TesterDocker
-    from ft_tui.services.user_settings import save_settings
+    from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+    from ft_tui.features.projects.adapters.tester_docker import TesterDocker
+    from ft_tui.features.settings.adapters.storage import save_settings
     from ft_tui.ui.app import FortyTwoTuiApp
-    from ft_tui.ui.project_testers import ProjectTesters, TesterAction
+    from ft_tui.features.projects.views.testers import ProjectTesters, TesterAction
 
     root.mkdir(parents=True, exist_ok=False)
     fixtures = root / 'projects'

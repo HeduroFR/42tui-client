@@ -5,7 +5,7 @@ import sys
 import tarfile
 import zipfile
 
-RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'cluster_map/layout.json')
+RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json')
 
 
 def check_archive(path: Path) -> str:

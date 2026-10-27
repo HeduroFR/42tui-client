@@ -13,7 +13,7 @@ import unittest
 import zipfile
 from unittest.mock import patch
 
-from ft_tui.services.installation import manage_installation
+from ft_tui.features.installation.adapters.maintenance import manage_installation
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -36,10 +36,10 @@ class MaintenanceTests(unittest.TestCase):
             calls.append(command)
             return subprocess.CompletedProcess(command, mutation_code if len(calls) > 1 else 0,
                                                str(directory or self.prefix.parent), '')
-        with patch('ft_tui.services.installation.sys.prefix', str(self.prefix)), \
-             patch('ft_tui.services.installation.metadata.distribution', return_value=self.distribution), \
-             patch('ft_tui.services.installation._manager_command', side_effect=lambda name: '/fake/'+name), \
-             patch('ft_tui.services.installation.subprocess.run', side_effect=run), \
+        with patch('ft_tui.features.installation.adapters.maintenance.sys.prefix', str(self.prefix)), \
+             patch('ft_tui.features.installation.adapters.maintenance.metadata.distribution', return_value=self.distribution), \
+             patch('ft_tui.features.installation.adapters.maintenance._manager_command', side_effect=lambda name: '/fake/'+name), \
+             patch('ft_tui.features.installation.adapters.maintenance.subprocess.run', side_effect=run), \
              redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             result = manage_installation(action)
         return result, calls
@@ -168,9 +168,8 @@ class RealMaintenanceTests(unittest.TestCase):
             # Package the actual maintenance entry point without unrelated TUI
             # dependencies, and install by package name to produce a uv receipt.
             files = {
-                'ft_tui/__init__.py': '', 'ft_tui/services/__init__.py': '',
+                'ft_tui/__init__.py': '',
                 'ft_tui/main.py': (ROOT/'src/ft_tui/main.py').read_text(),
-                'ft_tui/services/installation.py': (ROOT/'src/ft_tui/services/installation.py').read_text(),
                 info+'METADATA': 'Metadata-Version: 2.1\nName: ft-tui\nVersion: 0.2.2\n',
                 info+'WHEEL': 'Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n',
                 info+'entry_points.txt': '[console_scripts]\n42tui = ft_tui.main:main\n',

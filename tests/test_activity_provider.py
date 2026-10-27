@@ -1,13 +1,13 @@
 import unittest
 from copy import deepcopy
-from ft_tui.api.catalog_types import CatalogScope
-from ft_tui.api.activity_types import project_activity, team_evaluations
+from ft_tui.features.catalog.models import CatalogScope
+from ft_tui.features.projects.activity.models import project_activity, team_evaluations
 from ft_tui.api.http_client import HttpProjectProvider
 from activity_fixtures import history, evaluations
 
 class ActivityProviderTests(unittest.TestCase):
     def test_friend_activity_keeps_viewer_and_subject_separate_and_rejects_mismatches(self):
-        from ft_tui.api.activity_types import friend_activity,friend_evaluations
+        from ft_tui.features.projects.activity.models import friend_activity, friend_evaluations
         value=history();value.update(subject_user_id='50',attempt_id=72)
         for team in value['teams']:team['members']=[{'id':50,'login':'alice','leader':True}]
         self.assertEqual(friend_activity(value,1001,72,'50',self.scope,'42')['subject_user_id'],'50')

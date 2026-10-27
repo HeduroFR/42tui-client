@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from ft_tui.api.friends_types import friend_directory_page
+from ft_tui.features.friends.models import friend_directory_page
 from ft_tui.api.http_client import HttpProjectProvider
 from tests.friends_fixtures import directory_page
 

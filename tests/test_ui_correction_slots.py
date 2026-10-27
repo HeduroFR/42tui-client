@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from textual.app import App
 from textual.widgets import Static, TabbedContent, TabPane
 from unittest.mock import Mock
-from ft_tui.ui.correction_slots import CorrectionSlotsWorkspace, SlotEditor, SlotPicker, rounded_slot_time
+from ft_tui.features.corrections.views import CorrectionSlotsWorkspace, SlotEditor, SlotPicker, rounded_slot_time
 from ft_tui.ui.components import Input, Select
-from ft_tui.ui.slots_calendar import SlotsCalendar
-from ft_tui.slots.model import Slot, local_zone
+from ft_tui.features.corrections.calendar import SlotsCalendar
+from ft_tui.features.corrections.model import Slot, local_zone
 
 B = datetime.now(timezone.utc).replace(second=0, microsecond=0, minute=0) + timedelta(days=1)
 E = B + timedelta(hours=1)

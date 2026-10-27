@@ -7,16 +7,16 @@ from unittest.mock import patch
 
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Cursus, DevNote, Project, ProjectCursus, TimeLog
-from ft_tui.services.git_service import inspect_repository
-from ft_tui.services.project_checkout import CheckoutSetupError, setup_project_checkout
-from ft_tui.services.project_catalog import load_cursus_projects, sync_cursuses
-from ft_tui.services.time_tracking import record_heartbeat, tracked_seconds
+from ft_tui.features.projects.adapters.git import inspect_repository
+from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, setup_project_checkout
+from ft_tui.features.catalog.adapters.cursuses import load_cursus_projects, sync_cursuses
+from ft_tui.features.worklog.adapters.accounting import record_heartbeat, tracked_seconds
 from ft_tui.api.client_interface import CursusSnapshot
 
 
 class CheckoutTests(unittest.TestCase):
     def test_relative_path_is_rejected_before_git_runs(self):
-        with patch("ft_tui.services.project_checkout.subprocess.run") as run:
+        with patch("ft_tui.features.projects.adapters.checkout.subprocess.run") as run:
             with self.assertRaisesRegex(CheckoutSetupError, "must be absolute"):
                 setup_project_checkout("relative-project")
             run.assert_not_called()
@@ -100,7 +100,6 @@ class ProjectSyncPreservationTests(unittest.TestCase):
                 {"shared", "selected", "legacy"},
             )
 
-
     def test_sync_cursuses_upserts_metadata_without_removing_unreturned_cursus(self):
         factory = make_session_factory("sqlite:///:memory:")
         with factory() as session:
@@ -122,7 +121,7 @@ class ProjectSyncPreservationTests(unittest.TestCase):
 
 class DefaultCursusSelectionTests(unittest.TestCase):
     def test_prefers_the_active_membership_with_the_latest_begin_date(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         result = select_default_cursus(
             [
@@ -135,7 +134,7 @@ class DefaultCursusSelectionTests(unittest.TestCase):
         self.assertEqual(result.id, 9)
 
     def test_falls_back_to_latest_membership_when_all_memberships_ended(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         result = select_default_cursus(
             [
@@ -147,7 +146,7 @@ class DefaultCursusSelectionTests(unittest.TestCase):
         self.assertEqual(result.id, 7)
 
     def test_breaks_equal_and_null_begin_date_ties_by_lowest_numeric_id(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         tied = select_default_cursus(
             [
@@ -164,7 +163,7 @@ class DefaultCursusSelectionTests(unittest.TestCase):
         self.assertEqual(null_dates.id, 7)
 
     def test_null_begin_date_sorts_before_a_real_date(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         result = select_default_cursus(
             [
@@ -176,7 +175,7 @@ class DefaultCursusSelectionTests(unittest.TestCase):
         self.assertEqual(result.id, 21)
 
     def test_active_main_cursus_wins_over_piscine_with_missing_or_later_dates(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         for main_name in ("42cursus", "42 Cursus", "42"):
             for piscine_begin in (None, datetime(2026, 10, 1)):
@@ -189,7 +188,7 @@ class DefaultCursusSelectionTests(unittest.TestCase):
                     self.assertEqual(result.id, 21)
 
     def test_returns_none_for_empty_membership_list(self):
-        from ft_tui.services.cursus import select_default_cursus
+        from ft_tui.features.accounts.cursus import select_default_cursus
 
         self.assertIsNone(select_default_cursus([], today=date(2026, 10, 20)))
 

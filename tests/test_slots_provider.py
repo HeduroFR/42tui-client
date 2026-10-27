@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 from ft_tui.api.http_client import HttpProjectProvider
-from ft_tui.slots.model import Slot
+from ft_tui.features.corrections.model import Slot
 
 B = datetime(2026, 10, 26, 10, tzinfo=timezone.utc)
 E = datetime(2026, 10, 26, 11, tzinfo=timezone.utc)

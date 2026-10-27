@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime,timezone,timedelta
 from registration_fixtures import registration_state,operation
-from ft_tui.services.project_registration import registration_view
+from ft_tui.features.projects.registration.presentation import registration_view
 
 class RegistrationPresentationTests(unittest.TestCase):
  def test_completed_projects_hide_registration_eligibility(self):

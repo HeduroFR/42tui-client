@@ -10,8 +10,8 @@ from unittest.mock import patch
 from PIL import Image
 from textual.app import App
 
-from ft_tui.ui.dashboard import DashboardMixin
-from ft_tui.ui.profile_sections import ProfilePortrait
+from ft_tui.features.dashboard.views.home import DashboardMixin
+from ft_tui.features.profiles.views.profile_sections import ProfilePortrait
 
 
 class PortraitDashboard(DashboardMixin, App):
@@ -44,7 +44,7 @@ class DashboardPortraitTests(unittest.IsolatedAsyncioTestCase):
             return response
 
         app.provider = SimpleNamespace(get_student_portrait=profile)
-        with patch('ft_tui.services.user_profile.download_portrait', side_effect=AssertionError('Direct CDN access')):
+        with patch('ft_tui.features.profiles.adapters.portraits.download_portrait', side_effect=AssertionError('Direct CDN access')):
             async with app.run_test() as pilot:
                 app.image_mode = 'off'
                 app._refresh_dashboard_portrait()

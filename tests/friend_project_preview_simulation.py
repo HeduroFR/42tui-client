@@ -4,10 +4,10 @@ import os
 import httpx
 from textual.app import App
 from textual.widgets import Static
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.ui.button import Button
-from ft_tui.ui.friend_project import FriendProjectPreview
+from ft_tui.features.friends.views.project import FriendProjectPreview
 from tests.friends_fixtures import snapshot,attempt
 
 

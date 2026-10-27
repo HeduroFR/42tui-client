@@ -1,6 +1,5 @@
 """Subject atomic publication, metadata fencing and public aliases."""
 import ast
-from importlib import import_module
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,7 +8,7 @@ from unittest.mock import patch
 
 class SubjectBoundaryTests(unittest.TestCase):
     def test_stale_download_is_cleaned_without_replacing_existing_pdf(self):
-        from ft_tui.services.pdf_checker import synchronize_subject_pdf
+        from ft_tui.features.projects.subjects.adapters.files import synchronize_subject_pdf
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'subject.pdf';path.write_bytes(b'%PDF-1.4 old');active=True
             def download(slug,temporary):
@@ -33,12 +32,11 @@ class SubjectBoundaryTests(unittest.TestCase):
             with factory() as session:self.assertIsNone(session.get(Project,identity).subject_pdf_sha256)
         finally:factory.kw['bind'].dispose()
 
-    def test_pending_error_and_pdf_facade_have_one_owner(self):
+    def test_subject_error_and_view_have_one_owner(self):
         from ft_tui.api.http_client import SubjectPendingError
         from ft_tui.features.projects.subjects.models import SubjectPendingError as Canonical
         self.assertIs(SubjectPendingError,Canonical)
-        self.assertIs(import_module('ft_tui.services.pdf_checker'),import_module('ft_tui.features.projects.subjects.adapters.files'))
-        from ft_tui.ui.project_details import ProjectDetailsMixin
+        from ft_tui.features.projects.views.details import ProjectDetailsMixin
         from ft_tui.features.projects.views.subjects import SubjectMixin
         self.assertTrue(issubclass(ProjectDetailsMixin,SubjectMixin))
         self.assertEqual(ProjectDetailsMixin.SUBJECT_PENDING_POLL_SECONDS,2)
@@ -55,12 +53,12 @@ class SubjectBoundaryTests(unittest.TestCase):
     def test_missing_opener_is_distinct_from_a_failed_launch(self):
         from ft_tui.features.projects.subjects.adapters.files import SubjectFiles,SubjectViewerUnavailable
         files=SubjectFiles()
-        with patch('ft_tui.services.pdf_checker.platform.system',return_value='Linux'), \
-             patch('ft_tui.services.pdf_checker.shutil.which',return_value=None):
+        with patch('ft_tui.features.projects.subjects.adapters.files.platform.system',return_value='Linux'), \
+             patch('ft_tui.features.projects.subjects.adapters.files.shutil.which',return_value=None):
             with self.assertRaisesRegex(SubjectViewerUnavailable,'xdg-open was not found'):
                 files.open_system(Path('/tmp/fake.pdf'))
-        with patch('ft_tui.services.pdf_checker.platform.system',return_value='Linux'), \
-             patch('ft_tui.services.pdf_checker.shutil.which',return_value='/fake/open'), \
-             patch('ft_tui.services.pdf_checker.subprocess.Popen',side_effect=FileNotFoundError('missing')):
+        with patch('ft_tui.features.projects.subjects.adapters.files.platform.system',return_value='Linux'), \
+             patch('ft_tui.features.projects.subjects.adapters.files.shutil.which',return_value='/fake/open'), \
+             patch('ft_tui.features.projects.subjects.adapters.files.subprocess.Popen',side_effect=FileNotFoundError('missing')):
             with self.assertRaises(FileNotFoundError) as caught:files.open_system(Path('/tmp/fake.pdf'))
             self.assertNotIsInstance(caught.exception,SubjectViewerUnavailable)

@@ -1,11 +1,11 @@
 import unittest
 from ft_tui.db.database import make_session_factory,DatabaseResetRequired
 from ft_tui.db.models import Project,DevNote,TimeLog
-from ft_tui.services.catalog_cache import apply_catalog_page,save_account_data,load_context_projects
+from ft_tui.features.catalog.adapters.cache import apply_catalog_page, save_account_data, load_context_projects
 class CatalogStoreTests(unittest.TestCase):
  def test_offline_exam_projection_corrects_old_cache_without_changing_snapshot_or_payload(self):
   from ft_tui.db.models import CatalogCache
-  from ft_tui.services.catalog_cache import cache_key
+  from ft_tui.features.catalog.adapters.cache import cache_key
   f=make_session_factory('sqlite:///:memory:')
   try:
    with f() as s:
@@ -34,7 +34,7 @@ class CatalogStoreTests(unittest.TestCase):
   f.kw['bind'].dispose()
 
  def test_registration_ids_without_catalog_metadata_stay_representable(self):
-  from ft_tui.services.project_curriculum import curriculum_projects
+  from ft_tui.features.catalog.read_models import curriculum_projects
   f=make_session_factory('sqlite:///:memory:')
   with f() as s:
    c={'account_id':'42','cursus_id':21,'campus_id':31,'registration':{'project_ids':[999],'status':'available','stale':False}}
@@ -45,7 +45,7 @@ class CatalogStoreTests(unittest.TestCase):
   f.kw['bind'].dispose()
 
  def test_branches_restore_only_for_the_selected_campus_and_track(self):
-  from ft_tui.services.catalog_cache import save_cache,load_branches
+  from ft_tui.features.catalog.adapters.cache import save_cache, load_branches
   f=make_session_factory('sqlite:///:memory:')
   with f() as s:
    payload={'items':[{'branch_id':'branch','track':'old','project_ids':[1]}],'snapshot_id':'v','next_cursor':'next'}
@@ -56,7 +56,7 @@ class CatalogStoreTests(unittest.TestCase):
   f.kw['bind'].dispose()
 
  def test_offline_personal_sources_expire_without_an_online_refresh(self):
-  from ft_tui.services.catalog_cache import load_curriculum
+  from ft_tui.features.catalog.adapters.cache import load_curriculum
   f=make_session_factory('sqlite:///:memory:')
   with f() as s:
    source={'status':'available','stale':False,'collected_at':'2000-01-01T00:00:00Z'}

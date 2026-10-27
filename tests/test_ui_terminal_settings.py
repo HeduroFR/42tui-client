@@ -8,11 +8,11 @@ from PIL import Image
 from textual.app import App
 from textual.widgets import Static
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.user_settings import save_settings, get_setting
+from ft_tui.features.settings.adapters.storage import save_settings, get_setting
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.cluster_portrait import ClusterPortrait
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
 from ft_tui.ui.components import Button, Select
-from ft_tui.ui.settings import SettingsWorkspace
+from ft_tui.features.settings.views.workspace import SettingsWorkspace
 
 
 class PortraitHarness(App):
@@ -86,8 +86,8 @@ class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
                 factory.kw['bind'].dispose()
 
     async def test_native_portrait_can_switch_to_blocks_off_and_back(self):
-        with patch('ft_tui.ui.cluster_portrait.NATIVE_IMAGES', True), patch(
-            'ft_tui.ui.cluster_portrait.TerminalImage', FakeTerminalImage
+        with patch('ft_tui.features.cluster_map.views.portrait.NATIVE_IMAGES', True), patch(
+            'ft_tui.features.cluster_map.views.portrait.TerminalImage', FakeTerminalImage
         ):
             app = PortraitHarness()
             async with app.run_test() as pilot:

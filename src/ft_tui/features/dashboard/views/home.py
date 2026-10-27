@@ -56,7 +56,7 @@ class DashboardMixin:
     async def _load_dashboard_portrait(self, scope, provider):
         import asyncio
         import time
-        from ft_tui.ui.cluster_portrait import PortraitCache
+        from ft_tui.features.cluster_map.views.portrait import PortraitCache
         from ft_tui.features.profiles.views.profile_sections import ProfilePortrait
 
         def current():

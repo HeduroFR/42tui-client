@@ -10,7 +10,7 @@ from textual.widget import Widget
 from textual.widgets import DataTable, ProgressBar, TabbedContent
 
 from ft_tui.features.friends.models import LOGIN, friend_snapshot
-from ft_tui.services.fuzzy_search import fuzzy_score
+from ft_tui.shared.fuzzy_search import fuzzy_score
 from ft_tui.features.friends.adapters.storage import FriendIdentityChanged
 from ft_tui.features.friends.projections import (
     comparison, curriculum_rankings, ongoing, level_rankings, project_rankings,

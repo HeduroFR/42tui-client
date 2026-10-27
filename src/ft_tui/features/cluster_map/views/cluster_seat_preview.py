@@ -4,7 +4,7 @@ from ft_tui.features.cluster_map.state import session_label, status_label
 from textual.containers import Vertical
 from ft_tui.ui.components import Static
 from ft_tui.i18n import translate
-from ft_tui.ui.cluster_portrait import ClusterPortrait
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
 
 
 class ClusterSeatPreview(Vertical):

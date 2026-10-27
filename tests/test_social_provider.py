@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 import httpx
-from ft_tui.api.social_types import overview, poke
+from ft_tui.features.social.models import overview, poke
 from ft_tui.api.oauth_client import OAuthClient, DeviceCredentials
 from tests.test_oauth_client import MemoryStore
 from tests.test_ui_social import fixture

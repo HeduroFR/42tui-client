@@ -34,7 +34,7 @@ from ft_tui.features.worklog.views.notes import DevLogMixin
 from ft_tui.features.friends.views.workspace import FriendsMixin
 from ft_tui.ui.layout import MainLayoutMixin
 from ft_tui.ui.onboarding import OnboardingScreen
-from ft_tui.ui.project_browser import ProjectBrowserMixin
+from ft_tui.features.catalog.views.browser import ProjectBrowserMixin
 from ft_tui.features.catalog.views.controller import ProjectCatalogControllerMixin
 from ft_tui.features.projects.views.details import ProjectDetailsMixin
 from ft_tui.features.projects.views.registration import ProjectRegistrationMixin
@@ -543,11 +543,11 @@ class FortyTwoTuiApp(
         return super().notify(translate_renderable(message, self.language), *args, **kwargs)
 
     def action_toggle_clubs_dnd(self) -> None:
-        from ft_tui.ui.clubs import ClubsWorkspace
+        from ft_tui.features.clubs.views.workspace import ClubsWorkspace
         self.query_one(ClubsWorkspace).toggle_dnd()
 
     def action_focus_clubs_invitation(self) -> None:
-        from ft_tui.ui.clubs import ClubsInvitations
+        from ft_tui.features.clubs.views.workspace import ClubsInvitations
         if len(self.screen_stack) == 1:
             host = self.query_one(ClubsInvitations)
             if host.display:

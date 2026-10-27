@@ -1,6 +1,6 @@
 import unittest
 
-from ft_tui.cluster_map.experience import estimate_experience,THRESHOLDS
+from ft_tui.features.cluster_map.experience import estimate_experience, THRESHOLDS
 
 
 class ExperienceTests(unittest.TestCase):

@@ -3,7 +3,7 @@ import unittest
 from textual.app import App
 from textual.widgets import TabbedContent, TabPane, Tabs, Input, DataTable
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.project_navigation import ProjectNavigationMixin
+from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
 from ft_tui.ui.select import AppSelect
 
 PANES = ['dashboard', 'projects-tab', 'friends', 'dev-log', 'settings']
@@ -95,7 +95,7 @@ class FullAppNavigationTests(unittest.IsolatedAsyncioTestCase):
         from tempfile import TemporaryDirectory
         from ft_tui.db.database import make_session_factory
         from ft_tui.db.models import Project
-        from ft_tui.services.user_settings import save_settings
+        from ft_tui.features.settings.adapters.storage import save_settings
         from textual.widgets import ListView
         with TemporaryDirectory() as directory:
             factory=make_session_factory(f'sqlite:///{Path(directory)/"navigation.sqlite"}')

@@ -2,7 +2,7 @@
 import unittest
 from ft_tui.db.database import make_session_factory
 from ft_tui.features.social.adapters.sqlite import SqliteSocialRepository
-from ft_tui.services.friends import memberships
+from ft_tui.features.friends.adapters.storage import memberships
 
 
 class SocialRepositoryTests(unittest.TestCase):

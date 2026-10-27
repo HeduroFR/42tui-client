@@ -5,8 +5,8 @@ from textual.widgets import Input,TabbedContent
 from test_ui_cluster_map import MapHarness,Provider
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import FriendWatch
-from ft_tui.ui.cluster_map import ClusterMapWorkspace
-from ft_tui.ui.cluster_map_grid import ClusterMapGrid
+from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
 
 
 class JourneyTests(unittest.IsolatedAsyncioTestCase):
@@ -29,7 +29,7 @@ class JourneyTests(unittest.IsolatedAsyncioTestCase):
             factory=make_session_factory('sqlite:///'+directory+'/journey.sqlite')
             try:
                 with factory() as session:
-                    from ft_tui.services.friends import cache_mutual_friends
+                    from ft_tui.features.friends.adapters.storage import cache_mutual_friends
                     cache_mutual_friends(session, '1', [{'account_id': '99', 'login': 'friend42'}])
                 app=A();app.provider=P();app.session_factory=factory
                 async with app.run_test(size=(120,40)) as pilot:

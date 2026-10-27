@@ -424,7 +424,7 @@ class SettingsMixin:
         self.icon_mode = icons
         self.username_gradient = gradient
         if images_changed:
-            from ft_tui.ui.cluster_portrait import ClusterPortrait
+            from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
             from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
             for portrait in list(self.query(ClusterPortrait)):
                 await portrait.apply_terminal_settings()

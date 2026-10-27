@@ -23,7 +23,7 @@ from ft_tui.features.clubs.views.workspace import ClubsWorkspace, ClubsInvitatio
 from ft_tui.features.profiles.views.profile_sections import ProfilePortrait
 from ft_tui.ui.shortcuts import ShortcutsPanel
 from ft_tui.ui.navigation import MainTabbedContent
-from ft_tui.ui.project_testers import ProjectTesters
+from ft_tui.features.projects.views.testers import ProjectTesters
 
 
 class DashboardProfileCard(Vertical):

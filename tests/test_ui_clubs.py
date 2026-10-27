@@ -8,7 +8,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Input, TabbedContent, TabPane, DataTable
 from ft_tui.ui.button import Button
 from ft_tui.ui.select import Select
-from ft_tui.ui.clubs import ClubsWorkspace, ClubsInvitations, ClubForm
+from ft_tui.features.clubs.views.workspace import ClubsWorkspace, ClubsInvitations, ClubForm
 
 CLUB = str(uuid4())
 ACTIVITY = str(uuid4())
@@ -139,7 +139,7 @@ class ClubsTests(unittest.IsolatedAsyncioTestCase):
             def notification(sequence):
                 event = dict(fixture()['clubs'][0]['events'][0], sequence=sequence)
                 return {'club_id': CLUB, 'club_name': 'Babyfoot', 'event': event}
-            with patch.object(app, 'bell') as bell, patch('ft_tui.ui.clubs.monotonic', return_value=100) as now:
+            with patch.object(app, 'bell') as bell, patch('ft_tui.features.clubs.views.workspace.monotonic', return_value=100) as now:
                 host.enqueue([notification(1), notification(2)], 'account')
                 bell.assert_called_once()
                 host.enqueue([notification(1)], 'account')
@@ -341,7 +341,7 @@ class ClubsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(w.page, 'activities')
 
     async def test_activity_card_prioritizes_action_and_keeps_people_in_details(self):
-        from ft_tui.ui.clubs import ClubActivityDetails
+        from ft_tui.features.clubs.views.workspace import ClubActivityDetails
         app = Harness()
         async with app.run_test(size=(130, 40)) as pilot:
             await self.settle(app, pilot)
@@ -535,8 +535,8 @@ class ClubsTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('31', str(w.query_one('#club-summary').render()))
 
     async def test_add_member_reuses_fuzzy_dialog_and_centers_spaced_buttons(self):
-        from ft_tui.ui.friend_search import FriendSearchScreen
-        from ft_tui.ui.friend_suggestions import FriendSuggestions
+        from ft_tui.features.friends.views.search import FriendSearchScreen
+        from ft_tui.features.friends.views.suggestions import FriendSuggestions
         app = Harness()
         app.provider.data['clubs'][0]['my_role'] = 'creator'
         async with app.run_test(size=(100, 40)) as pilot:

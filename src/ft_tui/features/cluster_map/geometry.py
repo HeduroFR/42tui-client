@@ -7,7 +7,7 @@ import json
 
 @lru_cache(maxsize=4)
 def load_layout(view: str) -> tuple[tuple[str | None, ...], ...]:
-    data = json.loads(files('ft_tui.cluster_map').joinpath('layout.json').read_text())
+    data = json.loads(files('ft_tui.features.cluster_map').joinpath('layout.json').read_text())
     if view not in ('all', 'c1', 'c2', 'c3'):
         raise ValueError('Invalid cluster view')
     matrix = data['campus'] if view == 'all' else data['clusters'][int(view[1])-1]

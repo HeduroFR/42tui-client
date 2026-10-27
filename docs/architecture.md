@@ -38,29 +38,28 @@ The SQLite adapter stages all catalog scans in one transaction; partial or mixed
 snapshots leave the previous complete catalog intact. Sessions never cross await
 or thread boundaries. Persistence remains on the UI loop, as before.
 
-Compatibility modules under `api/`, `services/` and `ui/` point to canonical
-feature implementations during migration. Catalog/model/cache, keychain and
-account-view aliases preserve module/class identity. The read-cache compatibility
-module aliases the app integration module, which exposes the canonical shared
-types. Legacy factory/helper patches therefore affect the actual wiring. There is
-no duplicate implementation or copied state behind those aliases.
+## Shared code and feature ownership
 
-## Compatibility and intentional integration boundaries
+Feature implementations, DTOs and views live under `features/`.
+The former `services/`, `cluster_map/` and `slots/` packages and feature aliases
+in `api/` and `ui/` have been removed. Imports and mock patch targets must use
+the owning feature module. Old Python import paths are no longer supported;
+the CLI commands, HTTP contract, database schema and credential identifiers
+are unchanged.
 
-Textual presentation still uses mixins so existing methods, event routes and
-standalone test harnesses retain their call shapes. The app owns lifecycle,
-routing, timers and cross-feature composition; it opens no database sessions.
-Feature services/state own operations and data; adapters own persistence and I/O.
-Local catalog/project readers currently return eager existing ORM projections
-where views depend on them. Converting those projections is a separate change,
-not required to split the repositories or establish feature ownership.
+`api/` contains the common HTTP/OAuth transport and provider contract.
+`ui/` contains the Textual app shell, shared widgets, onboarding, commands,
+navigation and styles. `app/` composes services and adapters; `db/`, `config/`,
+`infrastructure/` and `shared/` contain cross-feature infrastructure and policies.
+Fuzzy matching belongs to `shared/fuzzy_search.py`. Project Git inspection,
+settings, technical details and tester views belong to projects; catalog browser,
+classification and evidence rendering belong to catalog. Cluster geometry loads
+`features/cluster_map/layout.json` through `importlib.resources`.
 
-Public compatibility modules remain canonical aliases for installed integrations
-and patch points. In-repository migrated code imports feature owners directly.
-The shared HTTP/OAuth provider implements the unchanged wire contract behind narrow
-ports. No speculative provider split or protocol revision is part of this work.
-Keep shared button/select/locales, cluster layout and tester resource paths stable.
-No database schema/version/keychain reset is introduced.
+Textual presentation retains mixin composition and existing event routes.
+Local catalog/project readers still return eager ORM projections where current
+views depend on them, and the catalog browser retains its local preference
+sessions. These are explicit integration boundaries, not compatibility facades.
 
 ## Tests
 
@@ -113,13 +112,12 @@ load, and saving a note retains its identity for subsequent edits.
 Projects owns safe Git checkout, navigation and tester adapters, ProjectService,
 its settings transaction adapter, and setup/navigation/details views. Changing
 a checkout path invalidates path-bound subject metadata exactly as before.
-Canonical legacy module aliases preserve patch/class identity. The later workflow stage owns subject refresh and registration/team/activity UI.
+Subject refresh and registration/team/activity UI belong to their project workflow modules.
 Existing shared project ORM projections remain transitional; not all project
 persistence has been converted to portable domain models. The settings adapter returns the
 existing eager-loaded project projection so current view callers retain behavior.
 
-Dashboard's old SQLite reader name is now an alias for the worklog-owned activity
-adapter. It no longer owns a duplicate set of local activity queries. Filesystem,
+The worklog-owned activity adapter supplies the dashboard with local activity queries. Filesystem,
 subprocess and Docker work stays in adapters or existing terminal presentation;
 the refactor does not run a user's real checkout setup or testers during tests.
 
@@ -142,18 +140,15 @@ inbox/poke/event views. Services check explicit current-context predicates befor
 dispatch and after responses; no retry or new operation UUID is introduced.
 Notification/bell/DND/sound/SSE timing stays in the Textual views.
 
-Legacy DTO and view modules alias canonical feature modules; the friends storage
-facade retains its canonical validator/persistence patch points. Pure ranking
-functions are the same exported objects, but tests patching their private helper
-globals should now target features.friends.projections, their single owner.
-No custom module-assignment forwarding is added for private helper patching.
+DTOs, views and storage are imported directly from their feature modules.
+Ranking helper patches target `features.friends.projections`, their single owner.
 
-The push-events view remains cross-feature presentation integration through the
-public UI facades; it is not presented as a headless event bus. Sender portrait
+The push-events view remains cross-feature presentation integration through
+feature view imports; it is not a headless event bus. Sender portrait
 loading and friend project preview still bridge existing profile/catalog UI.
 Unsupported in-place mutation of a provider origin retains its old scope limits;
-supported account/provider-generation transitions remain fenced. Remaining
-migration is final shell/facade retirement and shared transport composition.
+supported account/provider-generation transitions remain fenced. The common
+transport remains shared across feature ports.
 
 ## Cluster map and corrections stage
 
@@ -163,8 +158,8 @@ configured-cursus and portrait-cache path lookups. App bootstrap injects the
 service; legacy view harnesses compose the same adapter lazily. Profile reads pin
 the selected user identity and retain the existing main-cursus fallback. Current
 context checks fence queued reads and late responses. Issue submissions retain
-the caller's UUID and single dispatch. The packaged cluster layout stays at its
-existing resource path; shared portrait rendering stays in UI.
+the caller's UUID and single dispatch. The packaged cluster layout and terminal
+portrait widget belong to `features/cluster_map/`. Profile views reuse that widget.
 
 Corrections owns slot rules, DTOs, calendar/workspace presentation and a headless
 provider service. Bootstrap constructs a stateless service; each operation receives
@@ -173,9 +168,8 @@ Snapshot/save/delete operations check current context before queued dispatch and
 after responses. Delete batches are validated before mutation; booked slots stay
 protected and failures retain the completed count and original error. Optimistic
 rollback, uncertain-outcome refresh, timers and status messages stay in views.
-Neither feature adds automatic mutation retries. Legacy module aliases retain
-canonical identity, including existing test patch points. No schema, endpoint,
-keychain identifier or distributed package version changes.
+Neither feature adds automatic mutation retries. Test patch points use the
+feature modules. No schema, endpoint, keychain identifier or package version changes.
 
 ## Settings and installation stage
 
@@ -193,13 +187,12 @@ repository for this port. Its update view schedules network checks and changelog
 presentation without opening sessions. Pure stable release selection and notes
 parsing are separate from metadata HTTP, package-manager receipts, subprocesses,
 locking and installed resource access. The existing UpdateService construction
-class remains in the runtime adapter to retain legacy patch identity and managed
-installation detection. Explicit maintenance commands use the feature's separate
+class remains in the runtime adapter with managed installation detection. Explicit maintenance commands use the feature's separate
 adapter and still avoid loading the database or TUI.
 
-Legacy settings/update/maintenance modules alias canonical implementations. Existing
-public helper imports remain, while pure helper-global patches target their single
-feature model owner. The main CLI uses canonical installation adapters. The tiny
+Settings, update and maintenance callers import their feature implementations.
+Pure helper-global patches target their single feature model owner. The main CLI
+uses installation adapters. The tiny
 synthetic maintenance test wheel now includes these actual adapter package files;
 it still proves update/removal against a disposable uv installation. Distribution
 installers and website assets are unchanged. No real installed tool is upgraded or
@@ -228,16 +221,16 @@ StudentProfileService owns identity-pinned profile/attendance/project/goal reads
 and portrait dispatch. Profile DTOs, pure summaries and goals validation live in
 profiles; the CDN download adapter retains the existing URL allowlist, response
 size limit and redirect policy. Views retain the 32-entry memory cache, section
-workers, retry/poll limits, lifecycle and responsive rendering. Shared portrait
-widgets remain in UI. Bootstrap injects all workflow services; legacy view
-harnesses can compose the same defaults. Canonical aliases preserve public module,
-class and patch identities. Private helper globals target their feature owner.
+workers, retry/poll limits, lifecycle and responsive rendering. Portrait
+rendering is reused from the cluster-map portrait widget. Bootstrap injects all
+workflow services; standalone view harnesses can compose the same defaults.
+Private helper globals target their feature owner.
 
 The shared API provider still implements the wire protocol behind the feature
 ports; no endpoint or payload change is introduced. Local ORM projections and
 global shell startup/state/routing remain explicit transitional coupling. Feature
-extraction does not imply complete removal of the shell or all compatibility
-facades, and it does not authorize a release or any real-user mutation.
+ownership retains the shared app shell and does not authorize a release or any
+real-user mutation.
 
 ## Final shell pass
 
@@ -256,9 +249,8 @@ preferences, and offline owner rules remain. All former shell database sessions
 now belong to adapters. Settings/project mutable state each has one owner;
 StateField accessors keep legacy attribute names without duplicate state.
 
-Canonical imports replace internal facade traversal while public aliases retain
-module identity. Architecture tests enforce no direct shell database sessions,
-feature core dependency rules, view persistence boundaries and canonical import
-identity. Remaining extensions should respect these boundaries. This completed
-migration deliberately keeps the Textual mixin composition, shared wire provider
+All callers use feature imports directly. Architecture tests enforce no direct
+shell database sessions, feature core dependency rules, view persistence boundaries,
+existing import targets and the absence of legacy module aliases. Remaining
+extensions should respect these boundaries. This completed migration keeps the Textual mixin composition, shared wire provider
 and eager local catalog projections described above.

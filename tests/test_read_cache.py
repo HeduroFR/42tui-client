@@ -3,7 +3,7 @@ import unittest
 
 import httpx
 
-from ft_tui.services.read_cache import ReadCache, ReadDeferred, ReadInvalidated, normalize_origin
+from ft_tui.app.read_cache import ReadCache, ReadDeferred, ReadInvalidated, normalize_origin
 
 
 class ReadCacheTests(unittest.IsolatedAsyncioTestCase):

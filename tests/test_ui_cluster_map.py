@@ -4,8 +4,8 @@ import asyncio
 import threading
 from textual.app import App
 from textual.widgets import TabbedContent, TabPane, Input
-from ft_tui.ui.cluster_map import ClusterMapWorkspace
-from ft_tui.ui.cluster_map_grid import ClusterMapGrid
+from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
 from ft_tui.ui.styles.cluster_map import CLUSTER_MAP_CSS
 
 
@@ -35,7 +35,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import patch
         from PIL import Image
         for mode in ('halfcell','native'):
-            with self.subTest(mode=mode),patch('ft_tui.ui.cluster_map_grid.image_mode',return_value=mode):
+            with self.subTest(mode=mode),patch('ft_tui.features.cluster_map.views.cluster_map_grid.image_mode',return_value=mode):
                 app=MapHarness();app.account_connected=False
                 async with app.run_test(size=(180,60)) as pilot:
                     ws=app.query_one(ClusterMapWorkspace)
@@ -82,7 +82,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import patch
         from PIL import Image
         app=MapHarness();app.account_connected=False
-        with patch('ft_tui.ui.cluster_map_grid.image_mode',return_value='halfcell'):
+        with patch('ft_tui.features.cluster_map.views.cluster_map_grid.image_mode',return_value='halfcell'):
             async with app.run_test(size=(180,60)) as pilot:
                 ws=app.query_one(ClusterMapWorkspace)
                 ws.snapshot=Provider().get_cluster_map()
@@ -174,7 +174,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import patch
         from PIL import Image
         from textual_image.widget import SixelImage
-        from ft_tui.ui.cluster_portrait import ClusterPortrait
+        from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
         source='https://cdn.intra.42.fr/users/native.jpg'
         class P(Provider):
             def get_cluster_map(self):
@@ -185,7 +185,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
                     result['machines'].append({'hostname':host+'.42angouleme.fr','status':'up','login':login,
                         'person':{'login':login,'image_url':source},'issues':{'availability':'available','open_count':0}})
                 return result
-        with patch('ft_tui.ui.cluster_portrait.NATIVE_IMAGES',True),patch('ft_tui.ui.cluster_portrait.TerminalImage',SixelImage),patch('ft_tui.ui.cluster_map_grid.NATIVE_IMAGES',True):
+        with patch('ft_tui.features.cluster_map.views.portrait.NATIVE_IMAGES',True),patch('ft_tui.features.cluster_map.views.portrait.TerminalImage',SixelImage),patch('ft_tui.features.cluster_map.views.cluster_map_grid.NATIVE_IMAGES',True):
             app=MapHarness();app.provider=P()
             # Keep a preview corner inside a photo to exercise split fragments.
             async with app.run_test(size=(180,52)) as pilot:
@@ -360,7 +360,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_hover_enlarges_cached_seat_without_resizing_and_click_opens_details(self):
         from PIL import Image
-        from ft_tui.ui.cluster_portrait import ClusterPortrait
+        from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
         from ft_tui.ui.components import Static
         app=MapHarness()
         async with app.run_test(size=(180,50)) as pilot:
@@ -468,7 +468,6 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(lines[y].get_style_at_offset(app.console,region.x).bgcolor,background)
             self.assertEqual(grid.seat_regions(),regions)
 
-
     async def test_retry_after_blocks_repeated_manual_refresh(self):
         import httpx
         class Throttled(Provider):
@@ -549,7 +548,6 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
                     self.assertGreaterEqual(grid.region.x,menu.region.right)
                     for control in menu.query('AppSelect, Input, AppButton'):
                         self.assertLessEqual(control.region.bottom,menu.region.bottom)
-
 
     async def test_single_cluster_uses_sidebar_and_uniform_seats_without_splitting_room(self):
         app=MapHarness()
@@ -671,14 +669,13 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('1A1',grid.highlighted)
             grid.focus();grid.select_host('1A1')
             await pilot.press('enter');await pilot.pause()
-            from ft_tui.ui.cluster_workstation import ClusterWorkstationModal
+            from ft_tui.features.cluster_map.views.cluster_workstation import ClusterWorkstationModal
             self.assertIsInstance(app.screen,ClusterWorkstationModal)
             await pilot.press('escape');await pilot.pause()
             self.assertIs(app.focused,grid)
             self.assertIsNone(grid.selected_host)
             from ft_tui.ui.components import Static
             self.assertIn('Select a workstation',str(workspace.query_one('#cluster-focus',Static).render()))
-
 
     async def test_refresh_countdown_ticks_and_fetches_at_zero(self):
         from unittest.mock import patch
@@ -689,7 +686,7 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
                 self.calls+=1
                 return super().get_cluster_map()
         app=MapHarness();app.provider=CountingProvider()
-        with patch('ft_tui.ui.cluster_map.monotonic',return_value=100) as clock:
+        with patch('ft_tui.features.cluster_map.views.cluster_map.monotonic',return_value=100) as clock:
             async with app.run_test(size=(120,40)) as pilot:
                 ws=app.query_one(ClusterMapWorkspace);await ws.reload();await pilot.pause()
                 status=ws.query_one('#cluster-freshness',Static)
@@ -714,7 +711,6 @@ class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause(1.1)
                 self.assertIn('Presence unavailable.',str(status.render()))
                 self.assertIn('Auto refresh in 39s',str(status.render()))
-
 
     async def test_refresh_countdown_displays_every_second_with_real_clock(self):
         from time import monotonic

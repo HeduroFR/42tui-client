@@ -1,8 +1,8 @@
 import unittest
 from copy import deepcopy
 from datetime import date
-from ft_tui.api.user_profile_types import student_profile, student_attendance, student_goals, student_portrait
-from ft_tui.services.user_profile import weekly_attendance, latest_attempts
+from ft_tui.features.profiles.models import student_profile, student_attendance, student_goals, student_portrait
+from ft_tui.features.profiles.adapters.portraits import weekly_attendance, latest_attempts
 
 
 def profile():

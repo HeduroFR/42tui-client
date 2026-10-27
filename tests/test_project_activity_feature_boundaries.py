@@ -8,13 +8,10 @@ from activity_fixtures import history,evaluations
 
 
 class ActivityBoundaryTests(unittest.TestCase):
-    def test_legacy_validator_display_and_view_modules_are_aliases(self):
-        for old,new in [('api.activity_types','activity.models'),('services.project_activity','activity.presentation'),('ui.project_activity','views.activity')]:
-            self.assertIs(import_module('ft_tui.'+old),import_module('ft_tui.features.projects.'+new))
 
     def test_service_validates_history_identity_and_discards_unknown_fields(self):
         from ft_tui.features.projects.activity.service import ActivityService
-        from ft_tui.api.catalog_types import CatalogScope
+        from ft_tui.features.catalog.models import CatalogScope
         payload=history();payload['private_upstream']='discard'
         provider=SimpleNamespace(get_project_activity=lambda *args,**kwargs:payload)
         clean=ActivityService().history(provider,1001,CatalogScope(21,31),'42')
@@ -24,7 +21,7 @@ class ActivityBoundaryTests(unittest.TestCase):
 
     def test_service_rejects_evaluations_for_another_team(self):
         from ft_tui.features.projects.activity.service import ActivityService
-        from ft_tui.api.catalog_types import CatalogScope
+        from ft_tui.features.catalog.models import CatalogScope
         provider=SimpleNamespace(get_team_evaluations=lambda *args,**kwargs:evaluations(99))
         with self.assertRaises(ValueError):ActivityService().evaluations(provider,1001,8,CatalogScope(21,31),'42')
 

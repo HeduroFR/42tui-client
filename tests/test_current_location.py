@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from ft_tui.ui.friends import current_location
+from ft_tui.features.friends.views.workspace import current_location
 
 
 class CurrentLocationTests(unittest.TestCase):
@@ -15,9 +15,9 @@ class CurrentLocationTests(unittest.TestCase):
             data = {'login': 'alice', 'user_id': '50', 'location': '2A1', 'presence': presence}
             with self.subTest(presence=presence):
                 self.assertEqual(current_location(data), 'Unavailable')
-                with patch('ft_tui.ui.cluster_map.observed_seat', return_value=('1A1', now)):
+                with patch('ft_tui.features.cluster_map.views.cluster_map.observed_seat', return_value=('1A1', now)):
                     self.assertEqual(current_location(data, app=object()), '1A1')
-                with patch('ft_tui.ui.cluster_map.observed_seat', return_value=None):
+                with patch('ft_tui.features.cluster_map.views.cluster_map.observed_seat', return_value=None):
                     self.assertEqual(current_location(data, app=object()), 'Unavailable')
 
     def test_presence_freshness_and_map_precedence(self):
@@ -30,7 +30,7 @@ class CurrentLocationTests(unittest.TestCase):
             (0, None, 'available', 'No active session'),
             (0, '2A1', 'unavailable', 'Unavailable'),
         ]
-        with patch('ft_tui.ui.friends.datetime', wraps=datetime) as clock:
+        with patch('ft_tui.features.friends.views.workspace.datetime', wraps=datetime) as clock:
             clock.now.return_value = now
             for age, location, status, expected in cases:
                 data = {'location': location, 'presence': {'status': status,
@@ -39,6 +39,6 @@ class CurrentLocationTests(unittest.TestCase):
                     self.assertEqual(current_location(data), expected)
             data = {'location': '2A1', 'presence': {'status': 'available', 'cached_at': now.isoformat()}}
             for offset, expected in ((-1, '2A1'), (0, '1A1'), (1, '1A1')):
-                with self.subTest(map_offset=offset), patch('ft_tui.ui.cluster_map.observed_seat',
+                with self.subTest(map_offset=offset), patch('ft_tui.features.cluster_map.views.cluster_map.observed_seat',
                         return_value=('1A1', now + timedelta(seconds=offset))):
                     self.assertEqual(current_location(data, app=object()), expected)

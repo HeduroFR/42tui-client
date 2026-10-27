@@ -6,12 +6,12 @@ from types import SimpleNamespace
 from textual.widgets import Collapsible, DataTable, Static, TabbedContent
 from ft_tui.ui.button import Button
 
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.friends import cache_mutual_friends
-from ft_tui.services.read_cache import app_cache
-from ft_tui.ui.friends import FriendsWorkspace
-from ft_tui.ui.project_activity import ProjectActivityScreen
+from ft_tui.features.friends.adapters.storage import cache_mutual_friends
+from ft_tui.app.read_cache import app_cache
+from ft_tui.features.friends.views.workspace import FriendsWorkspace
+from ft_tui.features.projects.views.activity import ProjectActivityScreen
 from tests.manual.cache_profile import FriendsHarness, ActivityHarness, MeasuredProvider, wait_until
 
 
@@ -19,7 +19,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
     async def test_forbidden_friend_profile_keeps_other_friends_and_memberships(self):
         import httpx
         from tests.friends_fixtures import snapshot
-        from ft_tui.services.friends import memberships, cached_observations
+        from ft_tui.features.friends.adapters.storage import memberships, cached_observations
 
         class Restricted(MeasuredProvider):
             restricted = False
@@ -60,7 +60,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
                 factory.kw['bind'].dispose()
 
     async def test_closing_during_refresh_does_not_disable_refresh_on_reopen(self):
-        from ft_tui.ui.project_activity import open_project_activity
+        from ft_tui.features.projects.views.activity import open_project_activity
         provider = MeasuredProvider()
         app = ActivityHarness(provider)
         try:
@@ -89,7 +89,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
             provider.gate.set()
 
     async def test_project_entry_reuses_last_authorized_activity_screen(self):
-        from ft_tui.ui.project_details import ProjectDetailsMixin
+        from ft_tui.features.projects.views.details import ProjectDetailsMixin
         provider = MeasuredProvider()
         app = ActivityHarness(provider)
         app.projects = {'libft': SimpleNamespace(official_project_id=1001, name='Libft', slug='libft')}
@@ -124,7 +124,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNot(app.screen, replaced)
 
     async def test_retained_activity_reconciles_reads_completed_while_closed(self):
-        from ft_tui.ui.project_details import ProjectDetailsMixin
+        from ft_tui.features.projects.views.details import ProjectDetailsMixin
         provider = MeasuredProvider()
         app = ActivityHarness(provider)
         app.projects = {'libft': SimpleNamespace(official_project_id=1001, name='Libft', slug='libft')}

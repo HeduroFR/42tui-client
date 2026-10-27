@@ -5,7 +5,7 @@ from textual.widgets import Static, TabbedContent
 from rich.console import Console
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 
 
@@ -42,7 +42,7 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
 
     def test_deadline_summary_uses_current_rank_and_track(self):
         from types import SimpleNamespace
-        from ft_tui.ui.dashboard import DashboardMixin
+        from ft_tui.features.dashboard.views.home import DashboardMixin
 
         summary = Static()
         def project(name, rank, track, status):

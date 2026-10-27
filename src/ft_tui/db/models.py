@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from ft_tui.services.project_kind import project_kind
+from ft_tui.features.catalog.kind import project_kind
 
 
 class Base(DeclarativeBase):

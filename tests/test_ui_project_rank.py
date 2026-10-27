@@ -4,8 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.curriculum_selection import preference_key
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.catalog.preferences import preference_key
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import Input, ListView, ProjectEntry, ProjectRankHeader, Select, TabbedContent
 
@@ -292,7 +292,7 @@ class ProjectRankUiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(libft.catalog_data.get('rank'),0)
                     self.assertIn(0,[header.rank for header in app.query(ProjectRankHeader)])
                     with factory() as session:
-                        from ft_tui.services.catalog_cache import load_context_projects
+                        from ft_tui.features.catalog.adapters.cache import load_context_projects
                         saved=next(p for p in load_context_projects(session,21,31,'42') if p.official_project_id==1)
                         self.assertEqual(saved.catalog_data.get('rank'),0)
             finally:factory.kw['bind'].dispose()

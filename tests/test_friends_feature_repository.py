@@ -2,7 +2,7 @@
 import unittest
 from ft_tui.db.database import make_session_factory
 from ft_tui.features.friends.adapters.sqlite import SqliteFriendsRepository, Membership
-from ft_tui.services.friends import cache_mutual_friends
+from ft_tui.features.friends.adapters.storage import cache_mutual_friends
 from tests.friends_fixtures import snapshot
 
 class FriendsFeatureRepositoryTests(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
-from ft_tui.cluster_map.state import SeatState, seat_states, matching_hosts, session_label, status_label
+from ft_tui.features.cluster_map.state import SeatState, seat_states, matching_hosts, session_label, status_label
 from datetime import datetime, timezone
-from ft_tui.api.cluster_map_types import cluster_map_snapshot
+from ft_tui.features.cluster_map.models import cluster_map_snapshot
 
 
 class StateTests(unittest.TestCase):
@@ -52,14 +52,12 @@ class LockTimeTests(unittest.TestCase):
         machine['is_locked']=False
         self.assertIsNone(seat_states(snapshot,frozenset())['1A1'].lock_time)
 
-
     def test_status_display_is_capitalized_in_each_language(self):
         from ft_tui.i18n import translate
         for language,expected in (('en','Online'),('fr','En ligne'),('es','En línea')):
             self.assertEqual(status_label('online',lambda text:translate(text,language)),expected)
         for status in ('offline','unknown','locked','signed in','no active session'):
             self.assertEqual(status_label(status,str),status[0].upper()+status[1:])
-
 
     def test_elapsed_lock_time_uses_snapshot_age_and_survives_reprojection(self):
         machine={'hostname':'1a1.42angouleme.fr','status':'up','login':'abcdefgh','is_locked':True,'lock_time':'00:00:12'}

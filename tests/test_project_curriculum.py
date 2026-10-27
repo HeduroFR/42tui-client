@@ -1,6 +1,6 @@
 import unittest
 from ft_tui.db.models import Project
-from ft_tui.services.project_curriculum import curriculum_projects
+from ft_tui.features.catalog.read_models import curriculum_projects
 class CurriculumTests(unittest.TestCase):
  def test_exclusive_track_and_current_next_are_independent_from_registration(self):
   rows=[]

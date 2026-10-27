@@ -1,6 +1,5 @@
 """Installation core stays portable; historical patches keep one owner."""
 import ast
-import importlib
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -9,9 +8,6 @@ from unittest.mock import patch
 
 
 class InstallationBoundaryTests(unittest.TestCase):
-    def test_legacy_modules_are_canonical_aliases(self):
-        for legacy,target in [('services.updates','adapters.runtime'),('services.installation','adapters.maintenance'),('ui.updates','views.updates')]:
-            self.assertIs(importlib.import_module('ft_tui.'+legacy),importlib.import_module('ft_tui.features.installation.'+target))
 
     def test_core_imports_no_framework_or_external_io(self):
         from ft_tui.features.installation import service
@@ -37,9 +33,9 @@ class InstallationBoundaryTests(unittest.TestCase):
                  patch('ft_tui.__file__',str(package/'__init__.py')):
                 self.assertIn('source notes',runtime.release_notes('0.3.0','0.4.0'))
 
-    def test_runtime_factory_respects_legacy_detection_patch(self):
-        from ft_tui.services.updates import UpdateService
+    def test_runtime_factory_uses_detection_result(self):
+        from ft_tui.features.installation.adapters.runtime import UpdateService
         installation=object()
-        with patch('ft_tui.services.updates.detect_installation',return_value=installation), \
-             patch('ft_tui.services.updates.metadata.version',return_value='0.3.0'):
+        with patch('ft_tui.features.installation.adapters.runtime.detect_installation',return_value=installation), \
+             patch('ft_tui.features.installation.adapters.runtime.metadata.version',return_value='0.3.0'):
             self.assertIs(UpdateService.for_current_installation().installation,installation)

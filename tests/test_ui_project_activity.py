@@ -3,8 +3,8 @@ import threading
 import unittest
 from textual.app import App
 from textual.widgets import Static, ListView, Collapsible
-from ft_tui.api.catalog_types import CatalogScope
-from ft_tui.ui.project_activity import ProjectActivityScreen
+from ft_tui.features.catalog.models import CatalogScope
+from ft_tui.features.projects.views.activity import ProjectActivityScreen
 from activity_fixtures import history, evaluations
 
 class Provider:
@@ -141,7 +141,7 @@ class ActivityEntryTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import patch
         from ft_tui.db.database import make_session_factory
         from ft_tui.db.models import Project
-        from ft_tui.services.user_settings import save_settings
+        from ft_tui.features.settings.adapters.storage import save_settings
         from ft_tui.ui.app import FortyTwoTuiApp
         from textual.widgets import Button, TabbedContent
         with TemporaryDirectory() as directory:

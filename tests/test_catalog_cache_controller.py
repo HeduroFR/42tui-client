@@ -6,14 +6,12 @@ from types import SimpleNamespace
 
 from sqlalchemy import event
 
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.app.bootstrap import build_catalog_service
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import CatalogCache
-from ft_tui.services.catalog_cache import (
-    apply_catalog_page, cache_key, complete_catalog, load_context_projects, save_project_detail,
-)
-from ft_tui.ui.project_catalog_controller import ProjectCatalogControllerMixin
+from ft_tui.features.catalog.adapters.cache import apply_catalog_page, cache_key, complete_catalog, load_context_projects, save_project_detail
+from ft_tui.features.catalog.views.controller import ProjectCatalogControllerMixin
 from tests.test_ui_project_rank import RankProvider
 
 

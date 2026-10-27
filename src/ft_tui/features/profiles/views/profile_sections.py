@@ -7,7 +7,7 @@ from rich.style import Style
 from textual.widgets import Static
 
 from ft_tui.features.profiles.projections import weekly_attendance
-from ft_tui.ui.cluster_portrait import ClusterPortrait
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
 from ft_tui.ui.terminal_capabilities import image_mode
 
 

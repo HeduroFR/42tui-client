@@ -12,8 +12,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from ft_tui.services.tester_catalog import load_catalog, user_catalog_path
-from ft_tui.services.tester_docker import Host, TesterDocker, TesterError
+from ft_tui.features.projects.adapters.tester_catalog import load_catalog, user_catalog_path
+from ft_tui.features.projects.adapters.tester_docker import Host, TesterDocker, TesterError
 
 
 class TesterCatalogTests(unittest.TestCase):
@@ -271,16 +271,16 @@ class TesterDockerTests(unittest.TestCase):
                 self.assertTrue(all(command[0] == "sudo" for command in plan.commands))
         for architecture in ("amd64", "arm64"):
             service = TesterDocker(self.root, Host("darwin", architecture))
-            with patch("ft_tui.services.tester_docker.shutil.which", return_value=None):
+            with patch("ft_tui.features.projects.adapters.tester_docker.shutil.which", return_value=None):
                 plan = service.installation()
                 self.assertIn(f"/mac/main/{architecture}/Docker.dmg", plan.commands[0][-1])
                 self.assertEqual(plan.commands[-1][0], "open")
-            with patch("ft_tui.services.tester_docker.shutil.which", return_value="/opt/homebrew/bin/brew"):
+            with patch("ft_tui.features.projects.adapters.tester_docker.shutil.which", return_value="/opt/homebrew/bin/brew"):
                 self.assertEqual(service.installation().commands[0][1:], ("install", "--cask", "docker-desktop"))
 
     def test_mac_cli_discovery_without_path_changes(self):
         service = TesterDocker(self.root, Host("darwin", "arm64"))
-        with patch("ft_tui.services.tester_docker.shutil.which", return_value=None), \
+        with patch("ft_tui.features.projects.adapters.tester_docker.shutil.which", return_value=None), \
                 patch("pathlib.Path.is_file", return_value=True):
             self.assertEqual(service.docker(), str(Path.home() / ".docker/bin/docker"))
 

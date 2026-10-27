@@ -5,9 +5,9 @@ from unittest.mock import patch
 from datetime import datetime,timezone,timedelta
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.ui.components import Static,TabbedContent,Button
 from registration_fixtures import registration_state,operation
 

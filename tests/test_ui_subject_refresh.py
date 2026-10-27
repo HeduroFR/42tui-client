@@ -12,7 +12,7 @@ from ft_tui.api.http_client import SubjectPendingError
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project
 from ft_tui.ui.button import AppButton
-from ft_tui.ui.project_details import ProjectDetailsMixin
+from ft_tui.features.projects.views.details import ProjectDetailsMixin
 
 
 class SubjectRefreshTests(unittest.IsolatedAsyncioTestCase):

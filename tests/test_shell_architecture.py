@@ -51,6 +51,6 @@ class ShellArchitectureTests(unittest.TestCase):
             'from ft_tui.app.startup import StartupService; from ft_tui.features.accounts.shell_service import AccountShellService'],
             env=dict(os.environ,PYTHONPATH=str(ROOT.parent)),capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
-        from ft_tui.api import campus_types
+        from ft_tui.features.accounts import campuses as campus_types
         from ft_tui.features.accounts import campuses
         self.assertIs(campus_types,campuses)

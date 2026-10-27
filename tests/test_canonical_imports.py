@@ -1,36 +1,42 @@
-"""Canonical imports keep legacy modules solely as public compatibility aliases."""
+"""Feature implementations have one owner and no legacy import facades."""
 import ast
-import importlib
 import importlib.util
 from pathlib import Path
 import unittest
 
-ROOT = Path(__file__).resolve().parents[1]
-# Deliberately excludes shell composition owned by its own boundary checks and
-# api/__init__.py, whose eager public export order is a separate contract.
-SOURCES = ['src/ft_tui/features/social/adapters/sqlite.py', 'src/ft_tui/api/campus_types.py', 'src/ft_tui/api/http_client.py', 'src/ft_tui/api/oauth_client.py', 'src/ft_tui/app/read_cache.py', 'src/ft_tui/features/accounts/views/connection.py', 'src/ft_tui/features/catalog/adapters/sqlite.py', 'src/ft_tui/features/clubs/views/workspace.py', 'src/ft_tui/features/cluster_map/adapters/sqlite.py', 'src/ft_tui/features/cluster_map/models.py', 'src/ft_tui/features/cluster_map/views/cluster_map.py', 'src/ft_tui/features/cluster_map/views/cluster_map_grid.py', 'src/ft_tui/features/cluster_map/views/cluster_seat_preview.py', 'src/ft_tui/features/cluster_map/views/cluster_workstation.py', 'src/ft_tui/features/corrections/calendar.py', 'src/ft_tui/features/corrections/types.py', 'src/ft_tui/features/corrections/views.py', 'src/ft_tui/features/dashboard/views/home.py', 'src/ft_tui/features/friends/adapters/sqlite.py', 'src/ft_tui/features/friends/adapters/storage.py', 'src/ft_tui/features/friends/views/project.py', 'src/ft_tui/features/friends/views/search.py', 'src/ft_tui/features/friends/views/suggestions.py', 'src/ft_tui/features/friends/views/workspace.py', 'src/ft_tui/features/installation/views/updates.py', 'src/ft_tui/features/profiles/adapters/cache.py', 'src/ft_tui/features/profiles/views/profile_view.py', 'src/ft_tui/features/profiles/views/user_profile.py', 'src/ft_tui/features/projects/activity/models.py', 'src/ft_tui/features/projects/adapters/checkout.py', 'src/ft_tui/features/projects/adapters/navigation.py', 'src/ft_tui/features/projects/adapters/tester_docker.py', 'src/ft_tui/features/projects/views/activity.py', 'src/ft_tui/features/projects/views/details.py', 'src/ft_tui/features/projects/views/registration.py', 'src/ft_tui/features/projects/views/team.py', 'src/ft_tui/features/settings/views/workspace.py', 'src/ft_tui/features/social/models.py', 'src/ft_tui/features/social/views/events.py', 'src/ft_tui/features/social/views/inbox.py', 'src/ft_tui/features/social/views/pokes.py', 'src/ft_tui/features/worklog/adapters/activity.py', 'src/ft_tui/goto.py', 'src/ft_tui/services/project_catalog.py', 'src/ft_tui/ui/components.py', 'src/ft_tui/ui/layout.py', 'src/ft_tui/ui/navigation.py', 'src/ft_tui/ui/project_browser.py', 'src/ft_tui/ui/project_testers.py']
-ALIASES = {'ft_tui.api.activity_types': 'ft_tui.features.projects.activity.models', 'ft_tui.api.catalog_types': 'ft_tui.features.catalog.models', 'ft_tui.api.clubs_types': 'ft_tui.features.clubs.models', 'ft_tui.api.cluster_map_types': 'ft_tui.features.cluster_map.models', 'ft_tui.api.friends_types': 'ft_tui.features.friends.models', 'ft_tui.api.goals_types': 'ft_tui.features.profiles.goals', 'ft_tui.api.keychain': 'ft_tui.infrastructure.security.keychain', 'ft_tui.api.registration_types': 'ft_tui.features.projects.registration.types', 'ft_tui.api.slots_types': 'ft_tui.features.corrections.types', 'ft_tui.api.social_types': 'ft_tui.features.social.models', 'ft_tui.api.team_types': 'ft_tui.features.projects.registration.team_types', 'ft_tui.api.user_profile_types': 'ft_tui.features.profiles.models', 'ft_tui.cluster_map.experience': 'ft_tui.features.cluster_map.experience', 'ft_tui.cluster_map.geometry': 'ft_tui.features.cluster_map.geometry', 'ft_tui.cluster_map.state': 'ft_tui.features.cluster_map.state', 'ft_tui.services.catalog_cache': 'ft_tui.features.catalog.adapters.cache', 'ft_tui.services.curriculum_selection': 'ft_tui.features.catalog.preferences', 'ft_tui.services.dashboard_cache': 'ft_tui.features.profiles.adapters.cache', 'ft_tui.services.friends': 'ft_tui.features.friends.adapters.storage', 'ft_tui.services.installation': 'ft_tui.features.installation.adapters.maintenance', 'ft_tui.services.pdf_checker': 'ft_tui.features.projects.subjects.adapters.files', 'ft_tui.services.project_activity': 'ft_tui.features.projects.activity.presentation', 'ft_tui.services.project_checkout': 'ft_tui.features.projects.adapters.checkout', 'ft_tui.services.project_curriculum': 'ft_tui.features.catalog.read_models', 'ft_tui.services.project_navigation': 'ft_tui.features.projects.adapters.navigation', 'ft_tui.services.project_registration': 'ft_tui.features.projects.registration.presentation', 'ft_tui.services.read_cache': 'ft_tui.app.read_cache', 'ft_tui.services.tester_catalog': 'ft_tui.features.projects.adapters.tester_catalog', 'ft_tui.services.tester_docker': 'ft_tui.features.projects.adapters.tester_docker', 'ft_tui.services.tester_terminal': 'ft_tui.features.projects.adapters.tester_terminal', 'ft_tui.services.time_tracking': 'ft_tui.features.worklog.adapters.accounting', 'ft_tui.services.updates': 'ft_tui.features.installation.adapters.runtime', 'ft_tui.services.user_profile': 'ft_tui.features.profiles.adapters.portraits', 'ft_tui.services.user_settings': 'ft_tui.features.settings.adapters.storage', 'ft_tui.slots.model': 'ft_tui.features.corrections.model', 'ft_tui.ui.account_connection': 'ft_tui.features.accounts.views.connection', 'ft_tui.ui.club_announcements': 'ft_tui.features.clubs.views.announcements', 'ft_tui.ui.club_inbox': 'ft_tui.features.clubs.views.inbox', 'ft_tui.ui.clubs': 'ft_tui.features.clubs.views.workspace', 'ft_tui.ui.cluster_issue': 'ft_tui.features.cluster_map.views.cluster_issue', 'ft_tui.ui.cluster_map': 'ft_tui.features.cluster_map.views.cluster_map', 'ft_tui.ui.cluster_map_grid': 'ft_tui.features.cluster_map.views.cluster_map_grid', 'ft_tui.ui.cluster_seat_preview': 'ft_tui.features.cluster_map.views.cluster_seat_preview', 'ft_tui.ui.cluster_workstation': 'ft_tui.features.cluster_map.views.cluster_workstation', 'ft_tui.ui.correction_slots': 'ft_tui.features.corrections.views', 'ft_tui.ui.dashboard': 'ft_tui.features.dashboard.views.home', 'ft_tui.ui.dev_log': 'ft_tui.features.worklog.views.notes', 'ft_tui.ui.friend_project': 'ft_tui.features.friends.views.project', 'ft_tui.ui.friend_search': 'ft_tui.features.friends.views.search', 'ft_tui.ui.friend_suggestions': 'ft_tui.features.friends.views.suggestions', 'ft_tui.ui.friends': 'ft_tui.features.friends.views.workspace', 'ft_tui.ui.poke_notification': 'ft_tui.features.social.views.pokes', 'ft_tui.ui.profile_sections': 'ft_tui.features.profiles.views.profile_sections', 'ft_tui.ui.profile_view': 'ft_tui.features.profiles.views.profile_view', 'ft_tui.ui.project_activity': 'ft_tui.features.projects.views.activity', 'ft_tui.ui.project_catalog_controller': 'ft_tui.features.catalog.views.controller', 'ft_tui.ui.project_details': 'ft_tui.features.projects.views.details', 'ft_tui.ui.project_navigation': 'ft_tui.features.projects.views.navigation', 'ft_tui.ui.project_registration': 'ft_tui.features.projects.views.registration', 'ft_tui.ui.project_setup': 'ft_tui.features.projects.views.setup', 'ft_tui.ui.project_team': 'ft_tui.features.projects.views.team', 'ft_tui.ui.push_events': 'ft_tui.features.social.views.events', 'ft_tui.ui.settings': 'ft_tui.features.settings.views.workspace', 'ft_tui.ui.slots_calendar': 'ft_tui.features.corrections.calendar', 'ft_tui.ui.social': 'ft_tui.features.social.views.inbox', 'ft_tui.ui.updates': 'ft_tui.features.installation.views.updates', 'ft_tui.ui.user_profile': 'ft_tui.features.profiles.views.user_profile'}
+ROOT = Path(__file__).resolve().parents[1] / 'src/ft_tui'
+SHARED_UI = {
+    '__init__', 'app', 'button', 'commands', 'components', 'layout', 'modal',
+    'navigation', 'onboarding', 'select', 'shortcuts', 'terminal_capabilities', 'username',
+}
+TRANSPORT = {'__init__', 'client_factory', 'client_interface', 'http_client', 'oauth_client'}
 
 
 class CanonicalImportTests(unittest.TestCase):
-    def test_migrated_sources_import_canonical_feature_owners(self):
-        violations = []
-        for relative in SOURCES:
-            path = ROOT / relative
-            module = '.'.join(path.relative_to(ROOT / 'src').with_suffix('').parts)
-            package = module if path.name == '__init__.py' else module.rpartition('.')[0]
-            for node in ast.walk(ast.parse(path.read_text())):
-                if not isinstance(node, ast.ImportFrom) or not node.module:
-                    continue
-                target = importlib.util.resolve_name('.' * node.level + node.module, package) if node.level else node.module
-                if target in ALIASES:
-                    violations.append(f'{relative}:{node.lineno}: {target}')
-                for imported in node.names:
-                    if target + '.' + imported.name in ALIASES:
-                        violations.append(f'{relative}:{node.lineno}: {target}.{imported.name}')
-        self.assertEqual(violations, [])
+    def test_top_level_packages_contain_only_shared_or_composition_code(self):
+        for name in ('services', 'slots', 'cluster_map'):
+            self.assertFalse((ROOT / name).exists(), name)
+        self.assertEqual({p.stem for p in (ROOT / 'ui').glob('*.py')}, SHARED_UI)
+        self.assertEqual({p.stem for p in (ROOT / 'api').glob('*.py')}, TRANSPORT)
 
-    def test_every_legacy_alias_retains_canonical_module_identity(self):
-        for legacy, canonical in ALIASES.items():
-            with self.subTest(module=legacy):
-                self.assertIs(importlib.import_module(legacy), importlib.import_module(canonical))
+    def test_source_imports_resolve_without_legacy_modules(self):
+        for path in ROOT.rglob('*.py'):
+            module = 'ft_tui.' + '.'.join(path.relative_to(ROOT).with_suffix('').parts)
+            package = module.removesuffix('.__init__') if path.name == '__init__.py' else module.rpartition('.')[0]
+            for node in ast.walk(ast.parse(path.read_text())):
+                targets = []
+                if isinstance(node, ast.ImportFrom):
+                    targets = [importlib.util.resolve_name('.' * node.level + (node.module or ''), package)
+                               if node.level else node.module or '']
+                elif isinstance(node, ast.Import):
+                    targets = [alias.name for alias in node.names]
+                for target in targets:
+                    if not target.startswith('ft_tui.'):
+                        continue
+                    relative = ROOT.joinpath(*target.split('.')[1:])
+                    with self.subTest(source=path.relative_to(ROOT), target=target):
+                        self.assertTrue(relative.with_suffix('.py').is_file() or (relative / '__init__.py').is_file())
+
+    def test_feature_sources_are_not_module_aliases(self):
+        for path in ROOT.rglob('*.py'):
+            self.assertNotIn('_sys.modules[__name__]', path.read_text(), str(path))

@@ -3,9 +3,9 @@ import unittest
 
 from textual.app import App
 from textual.widgets import Digits,Static
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.ui.button import Button
-from ft_tui.ui.friend_project import FriendProjectPreview
+from ft_tui.features.friends.views.project import FriendProjectPreview
 from tests.activity_fixtures import history,evaluations
 from tests.friends_fixtures import snapshot,attempt
 
@@ -48,7 +48,7 @@ async def settle(screen,pilot):
 class FriendProjectTests(unittest.IsolatedAsyncioTestCase):
     async def test_restricted_evaluations_keep_unrelated_account_cache(self):
         import httpx
-        from ft_tui.services.read_cache import app_cache, account_scope
+        from ft_tui.app.read_cache import app_cache, account_scope
 
         class Restricted(Provider):
             restricted = False

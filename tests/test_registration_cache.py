@@ -1,6 +1,6 @@
 import unittest
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.catalog_cache import save_account_data,load_context_projects
+from ft_tui.features.catalog.adapters.cache import save_account_data, load_context_projects
 
 class RegistrationCacheTests(unittest.TestCase):
  def test_complete_refresh_removes_only_refreshed_cursus_membership(self):

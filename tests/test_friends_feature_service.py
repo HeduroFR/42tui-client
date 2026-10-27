@@ -49,12 +49,3 @@ class FriendsFeatureServiceTests(unittest.IsolatedAsyncioTestCase):
             await service.batch(provider,['owner'],21,owner_login='owner',account_id='42')
         provider.search_students=lambda *args,**kwargs:{'items':[],'index':{'updated_at':None,'status':'building','count':0,'stale':True}}
         self.assertEqual((await service.search(provider,'a',exclude_ids=('2',)))['items'],[])
-
-    def test_old_module_paths_alias_canonical_types_and_storage(self):
-        from ft_tui.api import friends_types
-        from ft_tui.features.friends import models
-        from ft_tui.services import friends
-        from ft_tui.features.friends.adapters import storage
-        from ft_tui.ui import friends as old_view
-        from ft_tui.features.friends.views import workspace
-        self.assertIs(friends_types,models);self.assertIs(friends,storage);self.assertIs(old_view,workspace)

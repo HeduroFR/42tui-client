@@ -7,12 +7,12 @@ from tempfile import TemporaryDirectory
 from textual.app import App
 from textual.widgets import DataTable, Input, TabbedContent
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.friends import memberships, cache_mutual_friends
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.friends.adapters.storage import memberships, cache_mutual_friends
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.friends import FriendsWorkspace, FriendsSearchSuggestions
-from ft_tui.ui.friend_suggestions import FriendSuggestions
-from ft_tui.ui.friend_search import FriendSearchScreen
+from ft_tui.features.friends.views.workspace import FriendsWorkspace, FriendsSearchSuggestions
+from ft_tui.features.friends.views.suggestions import FriendSuggestions
+from ft_tui.features.friends.views.search import FriendSearchScreen
 from tests.friends_fixtures import snapshot
 
 

@@ -33,7 +33,7 @@ from textual.widgets.text_area import TextAreaTheme
 from ft_tui.db.models import ActivityHeartbeat, DevNote, Project, TimeLog
 from ft_tui.i18n import translate, translate_renderable
 from ft_tui.i18n import LANGUAGE_LABELS, SUPPORTED_LANGUAGES
-from ft_tui.services.git_service import inspect_repository
+from ft_tui.features.projects.adapters.git import inspect_repository
 from ft_tui.features.projects.adapters.checkout import (
     CheckoutResult,
     CheckoutSetupError,
@@ -56,7 +56,7 @@ from ft_tui.features.projects.subjects.adapters.files import (
 from ft_tui.ui.select import Select
 from ft_tui.ui.button import Button
 from ft_tui.ui.terminal_capabilities import icon_glyph, icon_mode, icon_prefix
-from ft_tui.ui.project_settings import ProjectSettingsScreen
+from ft_tui.features.projects.views.settings import ProjectSettingsScreen
 
 
 def _widget_icon_mode(widget):

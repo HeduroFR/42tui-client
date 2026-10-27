@@ -2,7 +2,7 @@ import unittest
 from types import ModuleType
 from unittest.mock import patch
 
-from ft_tui.api.keychain import CredentialStore, SecureStoreError
+from ft_tui.infrastructure.security.keychain import CredentialStore, SecureStoreError
 from ft_tui.api.oauth_client import DeviceCredentials
 
 

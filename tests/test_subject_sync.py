@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from ft_tui.api.http_client import HttpProjectProvider
-from ft_tui.services.pdf_checker import PDFCheckError, synchronize_subject_pdf, ensure_pdf_gitignore
+from ft_tui.features.projects.subjects.adapters.files import PDFCheckError, synchronize_subject_pdf, ensure_pdf_gitignore
 
 
 class SubjectSyncTests(unittest.TestCase):
@@ -77,7 +77,7 @@ class SubjectSyncTests(unittest.TestCase):
         from types import SimpleNamespace
         from ft_tui.db.database import make_session_factory
         from ft_tui.db.models import Project
-        from ft_tui.ui.project_details import ProjectDetailsMixin
+        from ft_tui.features.projects.views.details import ProjectDetailsMixin
         pdf = b'%PDF-1.7\nupdated subject'
         digest = hashlib.sha256(pdf).hexdigest()
         api = Mock()

@@ -14,7 +14,7 @@ from ft_tui.app.read_cache import backend_origin
 from ft_tui.i18n import translate
 from ft_tui.features.cluster_map.adapters.factory import resolve_cluster_service
 from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
-from ft_tui.ui.cluster_portrait import PortraitCache
+from ft_tui.features.cluster_map.views.portrait import PortraitCache
 
 
 def observed_seat(app,login,user_id=None):

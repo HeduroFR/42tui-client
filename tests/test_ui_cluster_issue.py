@@ -3,10 +3,10 @@ import unittest
 from unittest.mock import patch
 
 from textual.widgets import TextArea
-from ft_tui.ui.cluster_issue import ClusterIssueModal,IssueChoiceButton
+from ft_tui.features.cluster_map.views.cluster_issue import ClusterIssueModal, IssueChoiceButton
 from ft_tui.ui.components import Button,Static
-from ft_tui.ui.cluster_map import ClusterMapWorkspace
-from ft_tui.ui.cluster_map_grid import ClusterMapGrid
+from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
 from test_ui_cluster_map import MapHarness
 
 
@@ -109,7 +109,7 @@ class IssueUiTests(unittest.IsolatedAsyncioTestCase):
             _,modal=await self.open_composer(app,pilot);await self.fill(modal,pilot)
             self.assertTrue(modal.query_one('#issue-review',Button).disabled)
             self.assertIn('unavailable for this account',str(modal.query_one('#issue-status',Static).render()))
-            with patch('ft_tui.ui.cluster_issue.webbrowser.open') as browser:
+            with patch('ft_tui.features.cluster_map.views.cluster_issue.webbrowser.open') as browser:
                 await pilot.click('#issue-browser');browser.assert_called_once_with('https://cluster-map.42angouleme.fr/')
             self.assertFalse(app.provider.calls)
 

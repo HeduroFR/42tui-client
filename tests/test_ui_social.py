@@ -11,9 +11,9 @@ from textual.app import App
 from textual.containers import Vertical
 from textual.widgets import Checkbox, DataTable
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.friends import memberships
-from ft_tui.ui.social import SocialInbox, PokeComposer
-from ft_tui.ui.push_events import PushEvents
+from ft_tui.features.friends.adapters.storage import memberships
+from ft_tui.features.social.views.inbox import SocialInbox, PokeComposer
+from ft_tui.features.social.views.events import PushEvents
 from ft_tui.ui.components import Button, Input, Select
 
 
@@ -246,7 +246,7 @@ class PokeNotificationTests(unittest.IsolatedAsyncioTestCase):
         self.directory.cleanup()
 
     async def test_minimal_popup_has_all_portraits_literal_message_and_persistent_dismiss(self):
-        from ft_tui.ui.poke_notification import PokeNotification, PokePortrait
+        from ft_tui.features.social.views.pokes import PokeNotification, PokePortrait
         popup = self.app.screen
         self.assertIsInstance(popup, PokeNotification)
         self.assertEqual(len(popup.query(PokePortrait)), 2)
@@ -374,14 +374,14 @@ class PokeNotificationTests(unittest.IsolatedAsyncioTestCase):
         import base64
         from io import BytesIO
         from PIL import Image
-        from ft_tui.ui.poke_notification import PokePortrait
+        from ft_tui.features.social.views.pokes import PokePortrait
         entry = next(iter(self.app.screen.entries.values()))
         portrait = entry.query_one(PokePortrait)
         sender = entry.poke['senders'][0]
         url = 'https://cdn.intra.42.fr/users/bob.jpg'
         image = BytesIO(); Image.new('RGB', (8, 8), '#123456').save(image, format='PNG')
         self.app.provider.get_student_profile = lambda user_id: {'user_id': user_id, 'image_url': url}
-        with patch('ft_tui.ui.poke_notification.download_portrait', return_value={
+        with patch('ft_tui.features.social.views.pokes.download_portrait', return_value={
                 'image_url': url, 'status': 'ready', 'image_base64': base64.b64encode(image.getvalue()).decode()}) as download:
             await entry.load_portrait(sender, portrait)
             download.assert_called_once_with(url)

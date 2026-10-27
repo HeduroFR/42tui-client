@@ -1,17 +1,11 @@
 """Import compatibility, layering and resource paths survive extraction."""
 import ast
-import importlib
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 
 
 class ClusterBoundaryTests(unittest.TestCase):
-    def test_legacy_imports_are_canonical_module_aliases(self):
-        for legacy,canonical in [('api.cluster_map_types','models'),
-                ('cluster_map.geometry','geometry'),('cluster_map.state','state'),('cluster_map.experience','experience'),
-                *[('ui.'+name,'views.'+name) for name in ('cluster_map','cluster_issue','cluster_workstation','cluster_seat_preview','cluster_map_grid')]]:
-            self.assertIs(importlib.import_module('ft_tui.'+legacy),importlib.import_module('ft_tui.features.cluster_map.'+canonical))
 
     def test_feature_core_has_no_framework_or_concrete_infrastructure_imports(self):
         from ft_tui.features.cluster_map import service

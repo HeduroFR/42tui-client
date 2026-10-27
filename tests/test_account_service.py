@@ -18,11 +18,3 @@ class AccountServiceTests(unittest.TestCase):
             self.assertEqual(AccountService().read(SimpleNamespace(get_profile=fail, list_cursuses=lambda: [21])), (None, [21]))
         with self.assertLogs('ft_tui.features.accounts.service', level='WARNING'):
             self.assertEqual(AccountService().read(SimpleNamespace(get_profile=lambda: {'account_id': '42'}, list_cursuses=fail)), ({'account_id': '42'}, None))
-
-    def test_moved_security_and_account_view_preserve_module_identity(self):
-        from ft_tui.api import keychain as old_keychain
-        from ft_tui.infrastructure.security import keychain
-        self.assertIs(old_keychain, keychain)
-        from ft_tui.ui import account_connection as old_view
-        from ft_tui.features.accounts.views import connection
-        self.assertIs(old_view, connection)

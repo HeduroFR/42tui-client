@@ -2,8 +2,8 @@ import unittest
 
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import FriendObservation
-from ft_tui.services.friends import cache_mutual_friends, memberships, save_observation, cached_observations, forget_authorization
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.friends.adapters.storage import cache_mutual_friends, memberships, save_observation, cached_observations, forget_authorization
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from tests.friends_fixtures import snapshot
 
 

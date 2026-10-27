@@ -6,10 +6,10 @@ import unittest
 from unittest.mock import Mock
 
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.updates import Installation, UpdateService
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.installation.adapters.runtime import Installation, UpdateService
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.updates import ChangelogScreen
+from ft_tui.features.installation.views.updates import ChangelogScreen
 from ft_tui.ui.select import Select
 
 
@@ -92,7 +92,7 @@ class StartupUpdateTests(unittest.IsolatedAsyncioTestCase):
                 await finish.wait()
                 return '0.4.0'
             from unittest.mock import patch
-            with patch('ft_tui.ui.updates.asyncio.to_thread', side_effect=check):
+            with patch('ft_tui.features.installation.views.updates.asyncio.to_thread', side_effect=check):
                 worker = asyncio.create_task(app._check_updates())
                 await started.wait()
                 self.save({'automatic_updates': 'false'})

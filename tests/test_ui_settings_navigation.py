@@ -8,10 +8,10 @@ from textual.widgets import Input, ListView, TabbedContent
 from textual.app import App, ComposeResult
 
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.settings import SETTINGS_CATEGORIES
-from ft_tui.ui.settings import SettingsMixin
+from ft_tui.features.settings.views.workspace import SETTINGS_CATEGORIES
+from ft_tui.features.settings.views.workspace import SettingsMixin
 from ft_tui.ui.components import Static
 from ft_tui.ui.select import Select
 

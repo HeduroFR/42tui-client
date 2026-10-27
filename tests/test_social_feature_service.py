@@ -70,11 +70,3 @@ class SocialFeatureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.service.neighbours(provider,lambda:True),[{'account_id':'2','login':'bob'}])
         self.assertIs(await self.service.sender_profile(provider,'2',lambda:True),data)
         self.assertIsNone(await self.service.sender_profile(provider,'3',lambda:True))
-
-    def test_legacy_modules_keep_canonical_identity(self):
-        from ft_tui.api import social_types
-        from ft_tui.features.social import models
-        from ft_tui.ui import social,poke_notification,push_events
-        from ft_tui.features.social.views import inbox,pokes,events
-        self.assertIs(social_types,models)
-        self.assertIs(social,inbox);self.assertIs(poke_notification,pokes);self.assertIs(push_events,events)

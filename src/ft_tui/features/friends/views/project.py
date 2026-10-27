@@ -8,7 +8,7 @@ from textual.widgets import Collapsible, Digits, Static
 from ft_tui.features.projects.activity.models import friend_activity, friend_evaluations
 from ft_tui.features.catalog.models import project_summary
 from ft_tui.features.projects.activity.presentation import format_mark
-from ft_tui.services.project_presentation import readable_condition
+from ft_tui.features.catalog.views.presentation import readable_condition
 from ft_tui.ui.modal import AppModal, modal_css
 from ft_tui.features.projects.views.activity import ProjectActivityScreen
 
