@@ -23,6 +23,20 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Candidate checks:** fix two UI-cache
+  tests that assumed a non-refresh reload always starts a worker; explicitly
+  force synchronization before awaiting it. The release-tooling scope now passes
+  all 90 tests locally, after refreshing editable package metadata to 0.4.1.
+  Clean archived-commit wheel/sdist checks, installed-package smoke, 6 release
+  tests, version validation and installer digests passed. Preserve unrelated
+  untracked files and exclude them from clean release builds.
+  Client PR #12 and backend PR #5 are linked; backend CI passed and #5 merged as
+  `e917aca`. Authorized Dokploy deployment completed, the deployed slot-source
+  hash matches that revision, 22 synthetic slot tests passed in the API container,
+  and read-only PostgreSQL/Redis/API probes passed. Initial three-pair workflow
+  `40589486585` passed; final candidate/deployed pair evidence must be refreshed.
+  No live Intra mutation or client publication was performed.
+
 - **2026-10-27 · patch preparation · 0.4.1:** prepare the authorized package
   version and matching release notes, reconcile distribution documentation with
   the verified GitHub 0.4.0 publication, and record 0.4.0 as the supported client
@@ -35,7 +49,7 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   review/CI, exact-pair compatibility, backend deployment, version preparation,
   publication authorization and post-release verification tasks. Preserve the
   existing distribution/documentation backlog. Reference:
-  `fix/correction-slot-start` (checklist update uncommitted).
+  `258116b` (checklist); progress updates on `fix/correction-slot-start`.
   Checks: documentation diff and relative links reviewed; no runtime tests rerun.
 
 - **2026-10-27 · no release required · Release record:** verify the published
@@ -55,6 +69,6 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Post-release documentation diff/link checks passed. Runtime suites were not
   repeated for this documentation-only update.
 - Correction-slot scope: 52 tests passed; regression-scope ownership checked.
-- Backend HTTP simulation uses synthetic records; real Intra acceptance, deployed
-  backend revision and exact-pair release checks remain unverified.
+- Backend deployment was verified as described above. HTTP simulations remain
+  synthetic; real Intra acceptance and final exact-pair evidence are pending.
 - Prepare 0.4.1 after review; do not publish before the required backend is verified.

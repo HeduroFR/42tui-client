@@ -2,7 +2,8 @@
 
 ## 0.4.1 — Correction-slot start window
 
-Status: fixes committed and locally tested; 0.4.1 prepared, not ready to publish.
+Status: 0.4.1 prepared; backend fix merged and deployed. Client PR/CI and final
+release evidence remain in progress; publication is not authorized.
 The latest published version remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
 exam filtering and other 0.5.0 work are outside this release.
 
@@ -27,20 +28,29 @@ exam filtering and other 0.5.0 work are outside this release.
 
 ### Remaining before release
 
-- [ ] Review both fixes, push/open linked PRs when authorized, obtain required
-  client/backend CI results and merge reviewed changes to each main branch.
+- [x] Independently review both fixes and open linked PRs:
+  [client #12](https://github.com/HeduroFR/42tui-client/pull/12), backend #5.
+- [x] Obtain green backend CI and merge backend #5 as `e917aca`.
+- [ ] Obtain green final client CI and merge client #12. The first run found
+  two throttled-sync test assumptions; both tests now explicitly force sync.
 - [x] Confirm the published 0.4.0 baseline in GitHub and align distribution
   documentation with the development changelog.
 - [x] Select 0.4.0 as the oldest supported client for this release.
-- [ ] Record exact candidate/current backend revisions and run the three
+- [x] Run the initial three-pair compatibility workflow successfully:
+  backend Actions run `40589486585` (client `0c22b9a`, backend `880ce27`,
+  supported client 0.4.0, prior deployed backend `731b7cd`).
+- [ ] Refresh exact candidate/deployed backend evidence and run the three
   compatibility pairs described in
   [API compatibility](docs/api-compatibility.md). The existing friend-preview
   scenario alone does not verify correction-slot behavior.
 - [ ] Verify the correction-slot behavior with the candidate pair, including
   10:18 → 10:45, quarter-hour rollover, stale editor validation and deletion.
   Record any remaining real-Intra acceptance limitation explicitly.
-- [ ] Deploy the compatible backend first, with separate authorization. Verify
-  its actual deployed SHA/image digest and functional readiness, not only health.
+- [x] Deploy backend `e917aca` through Dokploy with separate authorization.
+  Its API image ID is `sha256:d87af92f735c42324fd95a344e0be777cc3d84bdd19b93c4cdb8bfe9de08d7ef`.
+  Deployment finished; deployed slot-source hash matches that revision; 22
+  synthetic slot tests pass inside the API container. Read-only PostgreSQL
+  SELECT 1, Redis PING and API health probes passed. No real Intra write was made.
 - [x] Prepare version 0.4.1 and its CHANGELOG section with authorization; retain
   pending DEV_CHANGELOG entries until publication has been fully verified.
 - [ ] On the final reviewed release revision, validate `v0.4.1` with
