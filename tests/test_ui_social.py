@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import unittest
 from copy import deepcopy
@@ -307,20 +308,20 @@ class PokeNotificationTests(unittest.IsolatedAsyncioTestCase):
         extra['id'] = str(uuid4()); extra['message'] = 'Arrived during dismiss'
         def dismiss(draft):
             self.app.provider.calls.append(draft)
-            started.set(); release.wait(3)
+            started.set(); release.wait()
             self.app.provider.data['pokes'] = [p for p in self.app.provider.data['pokes'] if p['id'] != draft['id']]
+            return {'status': 'sent'}
         self.app.provider.social_action = dismiss
         worker = popup.run_worker(popup.action_close())
-        for _ in range(30):
-            if started.is_set():
-                break
-            await self.pilot.pause(.01)
-        self.assertTrue(started.is_set())
-        self.app.provider.data['pokes'].append(extra)
-        self.inbox.snapshot['pokes'].append(deepcopy(extra))
-        await self.inbox.show_pokes()
-        release.set()
-        await worker.wait()
+        try:
+            self.assertTrue(await asyncio.to_thread(started.wait, 5))
+            self.app.provider.data['pokes'].append(extra)
+            self.inbox.snapshot['pokes'].append(deepcopy(extra))
+            await self.inbox.show_pokes()
+        finally:
+            release.set()
+            await worker.wait()
+        self.assertEqual(list(popup.entries), [extra['id']])
         await self.inbox.sync()
         self.assertIs(self.app.screen, popup)
         self.assertEqual(list(popup.entries), [extra['id']])
