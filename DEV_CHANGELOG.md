@@ -3,8 +3,8 @@
 Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
 Package version: **0.4.1**, prepared but not published.
 Suggested next release: **0.4.1** (patch), for correction-slot start selection.
-Worth preparing; publication remains blocked on backend deployment and exact-pair
-verification. Version preparation is authorized; deployment and publication remain separate.
+Prepared and validated for client candidate `4e48e9b` with deployed backend
+`e917aca`; awaiting separate tag/publication authorization. Version preparation is authorized; deployment and publication remain separate.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -22,6 +22,21 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Requires the matching backend change deployed before releasing the client.
 
 ### Internal changes and documentation
+
+- **2026-10-27 · no release required · Final readiness record:** client PR #12
+  merged as `4e48e9b`, with the same Git tree as PR head `a3cfc09`; CI run
+  `40590113023` passed all 21 jobs (14 regression scopes, four platforms,
+  packaging/installers, distribution container and campus-Python installation).
+  Its exact wheel passed installed-package smoke and the synthetic slot HTTP
+  roundtrip through the real client provider and backend routes/service/transport.
+  Final compatibility run `40590735918` passed all three pairs against deployed
+  backend `e917aca`, including supported client 0.4.0. The readiness checker
+  accepted the candidate receipt and observed Dokploy deployment evidence.
+  Update TODO.md to freeze the tested release candidate and leave only explicit
+  publication authorization, tag/publish, and post-release verification pending.
+  These documentation changes follow the candidate; do not retag a later head.
+  Live Intra write acceptance remains unverified. No tag/publication performed.
+  Checks: documentation diff, links, recorded CI and deployment evidence reviewed.
 
 - **2026-10-27 · no release required · Candidate checks:** fix two UI-cache
   tests that assumed a non-refresh reload always starts a worker; explicitly
@@ -69,6 +84,7 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Post-release documentation diff/link checks passed. Runtime suites were not
   repeated for this documentation-only update.
 - Correction-slot scope: 52 tests passed; regression-scope ownership checked.
-- Backend deployment was verified as described above. HTTP simulations remain
-  synthetic; real Intra acceptance and final exact-pair evidence are pending.
-- Prepare 0.4.1 after review; do not publish before the required backend is verified.
+- Backend deployment and final exact-pair evidence passed as recorded above.
+  Slot HTTP checks remain synthetic; real Intra acceptance is unverified.
+- Candidate 4e48e9b is validated for 0.4.1; obtain separate tag/publication approval
+  and reverify backend readiness immediately before publication.
