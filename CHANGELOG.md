@@ -7,6 +7,12 @@
   Linux machines need an accessible Docker engine with BuildKit support. macOS
   setup installs Docker Desktop in the user's Applications folder; keep its
   user-level settings and accept Docker's terms when prompted.
+- Add WIP, a tiny crawling 42 otter with a visible top-right perch. He sleeps during Do
+  Not Disturb, delivers centered pokes and hangs from the message's top-left edge
+  until dismissal. Appearance settings can hide him or disable animation. Add a
+  local **Test self-poke** preview that exercises delivery without sending a poke.
+- Enabling Do Not Disturb also hides an open poke without marking it read;
+  still-active pokes return when Do Not Disturb ends.
 
 ## 0.4.1
 

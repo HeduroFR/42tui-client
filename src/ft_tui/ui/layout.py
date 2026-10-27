@@ -4,7 +4,6 @@ from ft_tui.ui.components import (
     Button,
     ComposeResult,
     Footer,
-    Header,
     Horizontal,
     Input,
     ListView,
@@ -24,6 +23,7 @@ from ft_tui.features.profiles.views.profile_sections import ProfilePortrait
 from ft_tui.ui.shortcuts import ShortcutsPanel
 from ft_tui.ui.navigation import MainTabbedContent
 from ft_tui.features.projects.views.testers import ProjectTesters
+from ft_tui.ui.companion import WipHeader
 
 
 class DashboardProfileCard(Vertical):
@@ -42,7 +42,7 @@ class ProjectDetailsColumns(Horizontal):
 
 class MainLayoutMixin:
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield WipHeader()
         with MainTabbedContent(initial="projects-tab", id="main-tabs"):
             with TabPane("Dashboard", icon="\uf015", id="dashboard"):
                 with Vertical(id="dashboard-page"):

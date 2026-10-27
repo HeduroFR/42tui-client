@@ -155,6 +155,54 @@ class PokeComposer(AppModal):
                     button.disabled = False
 
 
+class LocalPokePreviewInbox:
+    """Minimal local inbox adapter for testing delivery before social setup."""
+
+    def __init__(self, app):
+        self.app = app
+        self.snapshot = {'pokes': [], 'dnd': False}
+        self.mutating = False
+        self.poke_popup = None
+
+    def scope(self):
+        return (getattr(self.app, 'account_generation', None),
+                getattr(self.app, 'account_id', None),
+                id(getattr(self.app, 'provider', None)),
+                getattr(self.app, 'account_connected', False))
+
+    def dnd(self):
+        return False
+
+    def render_data(self):
+        pass
+
+    def preview_self_poke(self):
+        _show_self_poke(self)
+
+
+def _show_self_poke(inbox):
+    """Open a synthetic sample; never call the social service or mutate inbox."""
+    from datetime import timedelta
+    from ft_tui.features.social.views.pokes import PokeNotification
+    if inbox.poke_popup and inbox.poke_popup in inbox.app.screen_stack:
+        return
+    account_id = inbox.scope()[1] or 'wip-preview'
+    login = getattr(inbox.app, 'account_login', None) or 'you'
+    poke = {
+        'id': 'wip-preview-' + str(uuid4()),
+        'recipient': {'account_id': account_id, 'login': login},
+        'senders': [{'account_id': account_id, 'login': 'WIP'}],
+        'approved': [], 'status': 'sent', 'dismissed': False,
+        'message': 'WIP test poke: hello!',
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'expires_at': (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat(),
+    }
+    popup = inbox.poke_popup = PokeNotification(inbox, preview=True)
+
+    popup.preview_pokes = [poke]
+    inbox.app.push_screen(popup)
+
+
 class SocialInbox(Vertical):
     DEFAULT_CSS = '''
     SocialInbox { height: auto; }
@@ -252,7 +300,7 @@ class SocialInbox(Vertical):
         if self.snapshot.get('dnd', True):
             return True
         from ft_tui.features.clubs.views.workspace import ClubsWorkspace
-        return any(w.dnd for w in self.app.query(ClubsWorkspace))
+        return any(w.dnd for w in self.screen.query(ClubsWorkspace))
 
     async def sync(self):
         context = self.scope()
@@ -335,21 +383,32 @@ class SocialInbox(Vertical):
         from ft_tui.features.social.views.pokes import PokeNotification
         if self.context != self.scope():
             return
+        popup = self.poke_popup
+        if popup and popup in self.app.screen_stack and getattr(popup, 'preview', False):
+            return
         now = datetime.now(timezone.utc)
         pokes = [p for p in self.snapshot.get('pokes', [])
                  if p['status'] == 'sent' and not p.get('dismissed')
                  and p['recipient']['account_id'] == self.scope()[1]
                  and datetime.fromisoformat(p['expires_at'].replace('Z', '+00:00')) > now]
-        popup = self.poke_popup
+        if self.dnd():
+            if popup and popup in self.app.screen_stack and not popup.closing:
+                # DND hides delivery without marking any pending message read.
+                popup.dismiss()
+            return
         if popup and popup in self.app.screen_stack and not popup.closing:
             await popup.reconcile(pokes)
-        elif pokes and not self.dnd():
+        elif pokes:
             # A covered closing window must resume and leave the stack first.
             if popup and popup in self.app.screen_stack:
                 return
             self.poke_popup = popup = PokeNotification(self)
             await self.app.push_screen(popup)
             await popup.reconcile(pokes)
+
+    def preview_self_poke(self):
+        """Show a local sample through the real companion delivery UI."""
+        _show_self_poke(self)
 
     def render_data(self):
         if not self.is_mounted:

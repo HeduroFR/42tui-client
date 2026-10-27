@@ -283,6 +283,33 @@ class PokeNotificationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.app.provider.calls, [{'action': 'dismiss', 'id': key}] * 2)
         self.assertIsNot(self.app.screen, popup)
 
+    async def test_dnd_hides_open_poke_without_acknowledging_and_restores_it(self):
+        popup = self.app.screen
+        keys = list(popup.entries)
+        self.app.provider.data['dnd'] = True
+        await self.inbox.sync()
+        await self.pilot.pause()
+        self.assertNotIn(popup, self.app.screen_stack)
+        self.assertEqual(self.app.provider.calls, [])
+        self.assertEqual([p['id'] for p in self.app.provider.data['pokes']], keys)
+        self.app.provider.data['dnd'] = False
+        await self.inbox.sync()
+        self.assertEqual(list(self.app.screen.entries), keys)
+
+    async def test_dnd_under_cover_never_pops_cover_or_acknowledges_poke(self):
+        from ft_tui.ui.modal import AppModal
+        popup = self.app.screen
+        cover = AppModal()
+        await self.app.push_screen(cover)
+        self.app.provider.data['dnd'] = True
+        await self.inbox.sync()
+        self.assertIs(self.app.screen, cover)
+        self.assertTrue(popup.closing)
+        self.assertEqual(self.app.provider.calls, [])
+        cover.dismiss()
+        await self.pilot.pause()
+        self.assertNotIn(popup, self.app.screen_stack)
+
     async def test_new_arrival_appends_in_same_window_and_sounds_without_request_throttle(self):
         popup = self.app.screen
         extra = deepcopy(self.app.provider.data['pokes'][0])

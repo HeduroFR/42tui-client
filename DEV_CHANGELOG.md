@@ -6,8 +6,8 @@ Prepared patch candidate: **0.4.1**, client `30e1245` (tests/docs corrected;
 application runtime unchanged), with deployed backend `e917aca`. Original tag
 `v0.4.1` at `4e48e9b` failed CI three times; no PyPI/GitHub release was published.
 Replacing that unpublished tag requires separate authorization after validation.
-Suggested release including tester setup: **0.5.0** (minor), because the tester flow
-adds user-visible setup and execution behavior after published 0.4.0. Keep the
+Suggested release including tester setup and WIP: **0.5.0** (minor), because both
+add user-visible behavior after published 0.4.0. Keep the
 existing 0.4.1 preparation unchanged; tester changes may follow that patch release.
 The later tester release still requires its relevant CI, native platform checks
 and exact-pair verification. Version preparation does not authorize deployment or publication.
@@ -32,6 +32,20 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Git metadata. Other custom HTTPS clone URLs retain the existing-Git fallback and
   give explicit guidance if Git is absent. Update README, French/Spanish copy and
   focused regressions. Reference: `3ea93ab`, [PR #13](https://github.com/HeduroFR/42tui-client/pull/13).
+
+### Added behavior
+
+- **2026-10-27 · minor · WIP companion:** add a bundled tiny crawling 42 otter
+  with a top-right header perch, sleep/wake poses for effective DND, travel to
+  centered pokes and a hanging pose on the box's top-left edge. Return WIP to the
+  permanent perch only after explicit successful dismissal. Preserve poke IDs,
+  multiple arrivals, literal text, expiry and account-context boundaries. DND also
+  hides an open delivery without acknowledging it. Add saved visibility and
+  animation controls with French/Spanish labels. Respect image modes; missing
+  artwork and small screens retain ordinary poke access. Size the perch to 8 × 3
+  terminal cells. Bundle 32 transparent frames, a local regeneration tool and a
+  local self-poke preview that exercises delivery without sending an API request.
+  Record approved design and implementation plan. Reference: `feat/wip-companion`.
 
 ### Fixes
 

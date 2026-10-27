@@ -27,7 +27,7 @@ SCOPES = {
     'clubs-social': (
         'test_clubs_provider', 'test_social_provider', 'test_social_simulation',
         'test_clubs_feature', 'test_social_feature_service', 'test_social_feature_repository', 'test_community_composition',
-        'test_ui_clubs', 'test_ui_social',
+        'test_ui_clubs', 'test_ui_social', 'test_ui_companion',
     ),
     'profiles': ('test_student_profile_feature_service', 'test_ui_user_profile', 'test_user_profile', 'test_profile_service', 'test_profile_repository'),
     'catalog-curriculum': (

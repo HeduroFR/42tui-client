@@ -97,6 +97,17 @@ class SettingsWorkspace(Vertical):
         event.stop()
         self.app._refresh_username_preview()
 
+    @on(Button.Pressed, '#wip-test-poke')
+    def preview_wip_poke(self, event):
+        event.stop()
+        from ft_tui.features.social.views.inbox import SocialInbox
+        inbox = next((inbox for screen in self.app.screen_stack
+                      for inbox in screen.query(SocialInbox)), None)
+        if inbox is None:
+            from ft_tui.features.social.views.inbox import LocalPokePreviewInbox
+            inbox = LocalPokePreviewInbox(self.app)
+        inbox.preview_self_poke()
+
 
 class SettingsMixin:
     def _settings_operations(self):
@@ -264,6 +275,15 @@ class SettingsMixin:
                             )
                             yield Static('', id='username-gradient-preview', markup=False, localize=False)
                             yield Static('Preview your dashboard username. Save settings to apply.', classes='field-help')
+                            yield Static('WIP companion', classes='settings-label')
+                            yield Select([('On', 'true'), ('Off', 'false')],
+                                         value='true' if self.companion_visible else 'false',
+                                         allow_blank=False, id='wip-companion')
+                            yield Static('Companion animation', classes='settings-label')
+                            yield Select([('On', 'true'), ('Off', 'false')],
+                                         value='true' if self.companion_motion else 'false',
+                                         allow_blank=False, id='wip-motion')
+                            yield Button('Test self-poke', id='wip-test-poke')
                             yield Static('Images', classes='settings-label')
                             yield Select([
                                 ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
@@ -396,6 +416,8 @@ class SettingsMixin:
             "favorite_theme": favorite_theme,
             "language": language,
             "club_notification_sound": club_sound,
+            'companion_visible': str(self.query_one('#wip-companion', Select).value),
+            'companion_motion': str(self.query_one('#wip-motion', Select).value),
             'image_mode': images,
             'icon_mode': icons,
             'username_gradient': gradient,
@@ -419,10 +441,18 @@ class SettingsMixin:
         self.favorite_subject_viewer = favorite_subject_viewer
         self.language = language
         self.club_notification_sound = club_sound == "true"
+        self.companion_visible = values['companion_visible'] == 'true'
+        self.companion_motion = values['companion_motion'] == 'true'
         images_changed = self.image_mode != images
         self.image_mode = images
         self.icon_mode = icons
         self.username_gradient = gradient
+        from ft_tui.ui.companion import WipSprite
+        for screen in self.screen_stack:
+            if not screen.is_mounted:
+                continue
+            for widget in screen.query(WipSprite):
+                widget.refresh_preferences()
         if images_changed:
             from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
             from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid

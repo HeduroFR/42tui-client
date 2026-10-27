@@ -5,7 +5,7 @@ from ft_tui.features.accounts.campuses import campus_directory
 
 LEGACY_PREFERENCES=('projects_root','favorite_editor','favorite_theme','language')
 INITIAL_KEYS=(*LEGACY_PREFERENCES,'onboarding_completed','campus_directory','club_notification_sound',
-              'image_mode','icon_mode','username_gradient','catalog_last_account','catalog_last_campuses')
+              'companion_visible','companion_motion','image_mode','icon_mode','username_gradient','catalog_last_account','catalog_last_campuses')
 MOUNT_KEYS=(*LEGACY_PREFERENCES,'onboarding_completed','favorite_subject_viewer','subject_check_interval_seconds')
 
 
@@ -31,6 +31,8 @@ class StartupService:
             'first_launch':first,'campus_directory':campuses,
             'language':values.get('language',detected_language if first else 'en'),
             'club_notification_sound':values.get('club_notification_sound','true')=='true',
+            'companion_visible':values.get('companion_visible','true')=='true',
+            'companion_motion':values.get('companion_motion','true')=='true',
             'image_mode':values.get('image_mode','auto'),'icon_mode':values.get('icon_mode','auto'),
             'username_gradient':values.get('username_gradient','off'),
             'offline_account_id':values.get('catalog_last_account') or None,

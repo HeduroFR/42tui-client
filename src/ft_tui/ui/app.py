@@ -100,6 +100,8 @@ class FortyTwoTuiApp(
     favorite_subject_viewer = StateField('settings_state', 'favorite_subject_viewer')
     language = StateField('settings_state', 'language')
     club_notification_sound = StateField('settings_state', 'club_notification_sound')
+    companion_visible = StateField('settings_state', 'companion_visible')
+    companion_motion = StateField('settings_state', 'companion_motion')
     image_mode = StateField('settings_state', 'image_mode')
     icon_mode = StateField('settings_state', 'icon_mode')
     username_gradient = StateField('settings_state', 'username_gradient')
@@ -245,6 +247,8 @@ class FortyTwoTuiApp(
         self.campus_directory = initial['campus_directory']
         self.language = initial['language']
         self.club_notification_sound = initial['club_notification_sound']
+        self.companion_visible = initial.get('companion_visible', True)
+        self.companion_motion = initial.get('companion_motion', True)
         self.image_mode = valid_mode(initial['image_mode'], IMAGE_MODES)
         self.icon_mode = valid_mode(initial['icon_mode'], ICON_MODES)
         from ft_tui.ui.username import USERNAME_GRADIENTS

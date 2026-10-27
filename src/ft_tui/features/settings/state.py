@@ -9,6 +9,8 @@ class SettingsState:
     favorite_subject_viewer: str = 'system'
     language: str = 'en'
     club_notification_sound: bool = True
+    companion_visible: bool = True
+    companion_motion: bool = True
     image_mode: str = 'auto'
     icon_mode: str = 'auto'
     username_gradient: str = 'off'

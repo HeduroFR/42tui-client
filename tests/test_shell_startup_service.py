@@ -10,6 +10,17 @@ class Repository:
 
 
 class StartupServiceTests(unittest.TestCase):
+    def test_companion_defaults_and_saved_boolean_preferences(self):
+        defaults = StartupService(Repository()).initial_preferences('en')
+        self.assertIs(defaults.get('companion_visible'), True)
+        self.assertIs(defaults.get('companion_motion'), True)
+        for visible, motion in [('false', 'true'), ('true', 'false')]:
+            values = StartupService(Repository({
+                'companion_visible': visible, 'companion_motion': motion,
+            })).initial_preferences('en')
+            self.assertIs(values['companion_visible'], visible == 'true')
+            self.assertIs(values['companion_motion'], motion == 'true')
+
     def test_first_launch_detects_language_only_when_no_legacy_preference_exists(self):
         service=StartupService(Repository())
         self.assertTrue(service.initial_preferences('fr')['first_launch'])

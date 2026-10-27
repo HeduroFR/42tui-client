@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from PIL import Image
 from textual.app import App
+from textual.screen import Screen
 from textual.widgets import Static
 from ft_tui.db.database import make_session_factory
 from ft_tui.features.settings.adapters.storage import save_settings, get_setting
@@ -13,6 +14,7 @@ from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
 from ft_tui.ui.components import Button, Select
 from ft_tui.features.settings.views.workspace import SettingsWorkspace
+from ft_tui.ui.companion import WipSprite
 
 
 class PortraitHarness(App):
@@ -27,7 +29,95 @@ class FakeTerminalImage(Static):
     image = None
 
 
+class PreferenceSprite(WipSprite):
+    refresh_count = 0
+
+    def refresh_preferences(self):
+        super().refresh_preferences()
+        self.refresh_count += 1
+        self.saved_preferences = (self.app.companion_visible, self.app.companion_motion)
+
+
+class PreferencePerch(PreferenceSprite):
+    pass
+
+
 class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_self_poke_button_previews_real_delivery_without_sending(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "wip-preview.db"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'language': 'en'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(120, 40)) as pilot:
+                    await pilot.press('f5')
+                    app.query_one(SettingsWorkspace).show_category(4)
+                    button = app.query_one('#wip-test-poke')
+                    button.scroll_visible(animate=False)
+                    await pilot.pause()
+                    self.assertTrue(await pilot.click('#wip-test-poke'))
+                    from ft_tui.features.social.views.pokes import PokeNotification
+                    for _ in range(20):
+                        await pilot.pause(0.05)
+                        if isinstance(app.screen, PokeNotification):
+                            break
+                    popup = app.screen
+                    self.assertIsInstance(popup, PokeNotification)
+                    self.assertTrue(popup.preview)
+                    self.assertTrue(any('WIP test poke' in entry.poke['message'] for entry in popup.entries.values()))
+                    self.assertEqual(popup._delivery_phase, 'travel')
+                    self.assertFalse(popup.inbox.snapshot.get('pokes'))
+                    await popup.action_close()
+                    self.assertEqual(popup.inbox.snapshot.get('pokes'), [])
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_companion_drafts_persist_and_restore(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "companion.db"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'language': 'en'})
+                app = FortyTwoTuiApp(factory, None)
+                self.assertIs(getattr(app, 'companion_visible', None), True)
+                self.assertIs(getattr(app, 'companion_motion', None), True)
+                async with app.run_test(size=(120, 40)) as pilot:
+                    await pilot.press('f5')
+                    app.query_one(SettingsWorkspace).show_category(4)
+                    for selector in ('#wip-companion', '#wip-motion'):
+                        self.assertEqual(app.query_one(selector, Select).value, 'true')
+                        app.query_one(selector, Select).value = 'false'
+                    self.assertTrue(app.companion_visible)
+                    self.assertTrue(app.companion_motion)
+                    underlying = app.screen
+                    perch = PreferencePerch()
+                    await underlying.mount(perch)
+                    overlay = Screen()
+                    await app.push_screen(overlay)
+                    sprite = PreferenceSprite()
+                    await overlay.mount(sprite)
+                    perch.refresh_count = sprite.refresh_count = 0
+                    # Save the underlying settings while a modal screen is mounted.
+                    with patch.object(app, 'query_one', underlying.query_one):
+                        await app._save_settings()
+                    self.assertEqual(perch.refresh_count, 1)
+                    self.assertEqual(sprite.refresh_count, 1)
+                    self.assertEqual(perch.saved_preferences, (False, False))
+                    self.assertEqual(sprite.saved_preferences, (False, False))
+                    app.pop_screen()
+                    await pilot.pause()
+                    self.assertFalse(app.companion_visible)
+                    self.assertFalse(app.companion_motion)
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'companion_visible'), 'false')
+                        self.assertEqual(get_setting(session, 'companion_motion'), 'false')
+                restored = FortyTwoTuiApp(factory, None)
+                self.assertFalse(restored.companion_visible)
+                self.assertFalse(restored.companion_motion)
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_username_gradient_preview_is_draft_then_saved_and_restored(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "gradient.db"}')
