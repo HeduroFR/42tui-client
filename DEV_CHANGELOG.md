@@ -1,10 +1,10 @@
 # Development changelog
 
 Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
-Package version: **0.4.0**, published to PyPI and GitHub.
+Package version: **0.4.1**, prepared but not published.
 Suggested next release: **0.4.1** (patch), for correction-slot start selection.
 Worth preparing; publication remains blocked on backend deployment and exact-pair
-verification. The package version remains 0.4.0 until release preparation.
+verification. Version preparation is authorized; deployment and publication remain separate.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -22,6 +22,13 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Requires the matching backend change deployed before releasing the client.
 
 ### Internal changes and documentation
+
+- **2026-10-27 · patch preparation · 0.4.1:** prepare the authorized package
+  version and matching release notes, reconcile distribution documentation with
+  the verified GitHub 0.4.0 publication, and record 0.4.0 as the supported client
+  baseline. Independent read-only review found no substantive slot-fix defects.
+  Reference: `fix/correction-slot-start`. Deployment, final exact-pair evidence
+  and publication remain pending; pending release entries are retained.
 
 - **2026-10-27 · no release required · Release checklist:** track completed
   correction-slot fixes and local checks in TODO.md, with separate remaining

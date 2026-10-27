@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.4.1
+
 - Fix correction-slot selection and suggested start times: at 10:18, the first
   available start is 10:45. Prevent publishing a start that became too early while
   editing.

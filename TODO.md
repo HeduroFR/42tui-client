@@ -2,8 +2,8 @@
 
 ## 0.4.1 — Correction-slot start window
 
-Status: fixes committed and locally tested; not ready to publish. Package version
-remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
+Status: fixes committed and locally tested; 0.4.1 prepared, not ready to publish.
+The latest published version remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
 exam filtering and other 0.5.0 work are outside this release.
 
 ### Main fixes
@@ -29,10 +29,11 @@ exam filtering and other 0.5.0 work are outside this release.
 
 - [ ] Review both fixes, push/open linked PRs when authorized, obtain required
   client/backend CI results and merge reviewed changes to each main branch.
-- [ ] Confirm documentation agrees on the published 0.4.0 baseline; distribution
-  documentation still describes it as unpublished.
-- [ ] Define the oldest supported client and record exact candidate/current
-  backend revisions; run the three compatibility pairs described in
+- [x] Confirm the published 0.4.0 baseline in GitHub and align distribution
+  documentation with the development changelog.
+- [x] Select 0.4.0 as the oldest supported client for this release.
+- [ ] Record exact candidate/current backend revisions and run the three
+  compatibility pairs described in
   [API compatibility](docs/api-compatibility.md). The existing friend-preview
   scenario alone does not verify correction-slot behavior.
 - [ ] Verify the correction-slot behavior with the candidate pair, including
@@ -40,7 +41,7 @@ exam filtering and other 0.5.0 work are outside this release.
   Record any remaining real-Intra acceptance limitation explicitly.
 - [ ] Deploy the compatible backend first, with separate authorization. Verify
   its actual deployed SHA/image digest and functional readiness, not only health.
-- [ ] Prepare version 0.4.1 and its CHANGELOG section when authorized; retain
+- [x] Prepare version 0.4.1 and its CHANGELOG section with authorization; retain
   pending DEV_CHANGELOG entries until publication has been fully verified.
 - [ ] On the final reviewed release revision, validate `v0.4.1` with
   `release/check_version.py`; obtain package, installer, regression and supported
