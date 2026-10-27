@@ -6,7 +6,7 @@ Status: original tag v0.4.1 at 4e48e9b failed a UI-test race in three workflow
 attempts; neither PyPI nor GitHub received a release. Backend remains deployed.
 Corrected isolated candidate: `30e124509489c5017cacc5320ecc7f23ab395273`.
 Runtime is identical to the original candidate; only tests/docs changed. Its
-CI/compatibility and main integration are in progress. Replacing the unpublished
+CI and main integration are in progress; compatibility run 40596520184 passed. Replacing the unpublished
 tag requires explicit authorization after validation.
 This progress-only documentation follows that candidate and must not silently
 replace the tested revision when creating the release tag.

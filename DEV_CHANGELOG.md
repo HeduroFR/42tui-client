@@ -2,8 +2,10 @@
 
 Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
 Package version: **0.4.1**, prepared but not published.
-Prepared patch candidate: **0.4.1**, client `4e48e9b`, validated with deployed
-backend `e917aca`; awaiting separate tag/publication authorization.
+Prepared patch candidate: **0.4.1**, client `30e1245` (tests/docs corrected;
+application runtime unchanged), with deployed backend `e917aca`. Original tag
+`v0.4.1` at `4e48e9b` failed CI three times; no PyPI/GitHub release was published.
+Replacing that unpublished tag requires separate authorization after validation.
 Suggested release including tester setup: **0.5.0** (minor), because the tester flow
 adds user-visible setup and execution behavior after published 0.4.0. Keep the
 existing 0.4.1 preparation unchanged; tester changes may follow that patch release.
@@ -70,7 +72,9 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Update TODO.md to freeze the tested release candidate and leave only explicit
   publication authorization, tag/publish, and post-release verification pending.
   These documentation changes follow the candidate; do not retag a later head.
-  Live Intra write acceptance remains unverified. No tag/publication performed.
+  This records the original pre-tag evidence. The subsequently authorized tag
+  workflow failed as recorded above; no package publication occurred. Live Intra
+  write acceptance remains unverified.
   Checks: documentation diff, links, recorded CI and deployment evidence reviewed.
 
 - **2026-10-27 · no release required · Readiness reconciliation:** merge the
@@ -134,8 +138,9 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Correction-slot scope: 52 tests passed; regression-scope ownership checked.
 - Backend deployment and final exact-pair evidence for patch candidate 4e48e9b
   passed as recorded above. Slot HTTP checks remain synthetic; real Intra
-  acceptance is unverified. Obtain separate tag/publication approval and reverify
-  backend readiness immediately before publication.
+  acceptance is unverified. Original tag publication failed. Corrected candidate
+  30e1245 passed compatibility run 40596520184; finish CI/review and obtain explicit
+  unpublished-tag replacement authorization before publication.
 
 ### Tester setup validation (2026-10-27)
 
