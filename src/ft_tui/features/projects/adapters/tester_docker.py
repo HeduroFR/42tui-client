@@ -11,12 +11,14 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 from ft_tui.config.settings import data_dir
 from ft_tui.features.projects.adapters.tester_catalog import Tester
@@ -67,13 +69,19 @@ class DockerStatus:
 @dataclass(frozen=True)
 class DockerInstallation:
     commands: tuple[tuple[str, ...], ...]
-    source: str = ""
+    cleanup: tuple[tuple[str, ...], ...] = ()
+
+    def __post_init__(self) -> None:
+        for command in (*self.commands, *self.cleanup):
+            executable = Path(command[0]).name if command else ""
+            if executable not in {"curl", "mkdir", "hdiutil", "ditto", "codesign", "mv", "rm", "open", "rmdir", "systemctl"}:
+                raise ValueError("Tester setup only supports unprivileged commands.")
+            if executable == "systemctl" and "--user" not in command:
+                raise ValueError("Tester setup can only start user services.")
 
     def preview(self) -> str:
         import shlex
-        return "\n".join(shlex.join(command) for command in self.commands) + (
-            "\n\n" + self.source if self.source else ""
-        )
+        return "\n".join(shlex.join(command) for command in (*self.commands, *self.cleanup))
 
 
 class TesterError(RuntimeError):
@@ -111,6 +119,7 @@ class TesterDocker:
             return executable
         if self.host.system == "darwin":
             for path in (Path.home() / ".docker/bin/docker",
+                         Path.home() / "Applications/Docker.app/Contents/Resources/bin/docker",
                          Path("/Applications/Docker.app/Contents/Resources/bin/docker")):
                 if path.is_file():
                     return str(path)
@@ -149,9 +158,12 @@ class TesterDocker:
             return [args[0], *connection[1], *args[1:]]
         return args
 
-    def _run(self, terminal, args):
+    def _run(self, terminal, args, *, env=None):
         connection = self._connection.get()
-        terminal.run(self._arguments(args), env=connection[2] if connection else None)
+        environment = connection[2] if connection else None
+        if env:
+            environment = {**(environment if environment is not None else os.environ), **env}
+        terminal.run(self._arguments(args), env=environment)
 
     def _capture(self, args: list[str]) -> subprocess.CompletedProcess:
         connection = self._connection.get()
@@ -271,6 +283,33 @@ class TesterDocker:
         with self.connection():
             self._install(tester, terminal)
 
+    @contextmanager
+    def _build_context(self, tester: Tester, terminal):
+        repository = tester.repository.rstrip("/")
+        if repository.endswith(".git"):
+            source = f"{repository}#{tester.ref}"
+            if str(PurePosixPath(tester.context)) != ".":
+                source += ":" + quote(tester.context, safe="/")
+            terminal.write("Fetching the pinned tester source in Docker…")
+            yield source
+            return
+        # Preserve custom HTTPS clone URLs that BuildKit would interpret as HTTP
+        # contexts. This fallback uses existing Git and never installs host tools.
+        git = shutil.which("git")
+        if not git:
+            raise TesterError("This custom tester needs Git or an HTTPS clone URL ending in .git. No host tools were installed.")
+        with tempfile.TemporaryDirectory(prefix="42tui-tester-") as directory:
+            checkout = Path(directory)
+            terminal.write("Fetching the pinned tester source…")
+            terminal.run([git, "init", str(checkout)])
+            terminal.run([git, "-C", str(checkout), "remote", "add", "origin", tester.repository])
+            terminal.run([git, "-C", str(checkout), "fetch", "--depth=1", "origin", tester.ref])
+            terminal.run([git, "-C", str(checkout), "checkout", "--detach", "FETCH_HEAD"])
+            context = (checkout / tester.context).resolve()
+            if not context.is_relative_to(checkout.resolve()) or not context.is_dir():
+                raise TesterError("Docker build context must be inside the tester repository.")
+            yield str(context)
+
     def _install(self, tester: Tester, terminal) -> None:
         docker = self._require_ready()
         if self.host.system not in tester.platforms:
@@ -278,23 +317,18 @@ class TesterDocker:
         if self.installed(tester):
             return
         architecture = self.architecture(tester)
-        with tempfile.TemporaryDirectory(prefix="42tui-tester-") as directory:
-            checkout = Path(directory)
-            terminal.write("Fetching the pinned tester source…")
-            terminal.run(["git", "init", str(checkout)])
-            terminal.run(["git", "-C", str(checkout), "remote", "add", "origin", tester.repository])
-            terminal.run(["git", "-C", str(checkout), "fetch", "--depth=1", "origin", tester.ref])
-            terminal.run(["git", "-C", str(checkout), "checkout", "--detach", "FETCH_HEAD"])
-            context = (checkout / tester.context).resolve()
-            if not context.is_relative_to(checkout.resolve()) or not context.is_dir():
-                raise TesterError("Docker build context must be inside the tester repository.")
+        context = PurePosixPath(tester.context)
+        if context.is_absolute() or ".." in context.parts:
+            raise TesterError("Docker build context must be inside the tester repository.")
+        with self._build_context(tester, terminal) as source:
             # Build under a temporary tag. Only publish the final tag after success,
             # so cancelling a build never makes it appear installed.
             staging = f"42tui/build:{uuid.uuid4().hex}"
             try:
                 terminal.write("Building the tester image…")
                 self._run(terminal, [docker, "build", "--platform", f"linux/{architecture}",
-                                    "--tag", staging, str(context)])
+                                    "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1", source],
+                                    env={"DOCKER_BUILDKIT": "1"})
                 if not self.installed(tester, image=staging):
                     raise TesterError("The tester image could not be verified. Retry installation.")
                 self._run(terminal, [docker, "image", "tag", staging, tester.image_for(architecture)])
@@ -393,45 +427,144 @@ class TesterDocker:
         except (OSError, subprocess.TimeoutExpired):
             pass
 
+    def _docker_endpoint(self) -> str:
+        """Read the selected endpoint without changing Docker configuration."""
+        endpoint = os.environ.get("DOCKER_HOST", "") if not os.environ.get("DOCKER_CONTEXT") else ""
+        if endpoint:
+            return endpoint
+        docker = self.docker()
+        if not docker:
+            return ""
+        try:
+            result = self._capture([docker, "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"])
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        return result.stdout.strip() if not result.returncode else ""
+
+    def _desktop_path(self) -> Path | None:
+        for path in (Path.home() / "Applications/Docker.app", Path("/Applications/Docker.app")):
+            if path.is_dir():
+                return path
+        return None
+
+    def _desktop_installed(self) -> bool:
+        return self._desktop_path() is not None
+
+    def _desktop_command(self) -> list[str]:
+        path = self._desktop_path()
+        return ["open", str(path)] if path else ["open", "-a", "Docker"]
+
+    def setup_plan(self, status: DockerStatus) -> DockerInstallation | None:
+        """Offer only user-owned installation and existing rootless service startup."""
+        if status.state == "missing":
+            return self.installation()
+        if status.state != "stopped":
+            return None
+        # Never start a local daemon to repair a remote Docker connection.
+        endpoint = self._docker_endpoint()
+        if self.host.system == "darwin":
+            if not self._desktop_installed() and endpoint.startswith("unix://"):
+                return self.installation()
+        elif self.host.system == "linux" and endpoint == f"unix:///run/user/{os.getuid()}/docker.sock":
+            return DockerInstallation((("systemctl", "--user", "start", "docker"),))
+        return None
+
+    def prepare_and_run(self, tester: Tester, project_path: str | None, terminal,
+                        *, plan: DockerInstallation | None = None) -> None:
+        """Set up user-owned dependencies, then install and run on one Docker connection."""
+        if not project_path or not Path(project_path).expanduser().is_dir():
+            raise TesterError("Configure an existing local project folder to run tests.")
+        if self.host.system not in tester.platforms:
+            raise TesterError("This tester is unavailable on this platform.")
+        status = self.status()
+        needs_desktop = (status.state == "stopped" and self.host.system == "darwin"
+                         and not self._desktop_installed() and self._docker_endpoint().startswith("unix://"))
+        if status.state == "missing" or needs_desktop:
+            if self.host.system == "linux":
+                raise TesterError("An accessible Docker engine is required on Linux. Ask school staff if Docker is missing. No system changes were made.")
+            if self.installation() is None:
+                raise TesterError("Docker testers require Linux or macOS on amd64 or arm64.")
+            if plan is None:
+                raise TesterError("Docker installation needs approval. Click Run again to review setup.")
+            self.install_docker(plan, terminal)
+            status = self.status()
+        elif status.state == "stopped" and self.host.system == "linux":
+            current_plan = self.setup_plan(status)
+            if current_plan is None:
+                raise TesterError("Start an accessible Docker engine or ask school staff to start the managed service. 42TUI only starts user services.")
+            if plan != current_plan:
+                raise TesterError("Docker startup needs approval. Click Run again to review setup.")
+            for command in plan.commands:
+                terminal.run(list(command))
+            status = self.status()
+        if status.state == "stopped" and self.host.system == "darwin" and not self._docker_endpoint().startswith("unix://"):
+            raise TesterError("Start the Docker engine for your selected context, then click Run again.")
+        if status.state in {"missing", "stopped"}:
+            terminal.write("Waiting for Docker to become ready. Press Ctrl+C to cancel.")
+            if self.host.system == "darwin":
+                terminal.write("Finish Docker Desktop setup using user-level settings. Do not enable system CLI links, the default socket or privileged port mapping.")
+            deadline = time.monotonic() + 180
+            desktop_started = False
+            while status.state in {"missing", "stopped"}:
+                if self.host.system == "darwin" and status.state == "stopped" and not desktop_started:
+                    terminal.run(self._desktop_command())
+                    desktop_started = True
+                if time.monotonic() >= deadline:
+                    raise TesterError("Docker setup is not finished. Complete setup, then click Run again.")
+                time.sleep(1)
+                status = self.status()
+        if status.state != "ready":
+            messages = {
+                "denied": "Docker access was denied. Select an accessible Docker context or ask school staff to enable access. 42TUI does not change permissions.",
+                "incompatible": "A Linux Docker engine is required.",
+                "unsupported": "Docker testers require Linux or macOS on amd64 or arm64.",
+            }
+            message = messages.get(status.state, "Docker is not ready. Click Run again to retry.")
+            terminal.write(message)
+            raise TesterError(message + ("\n" + status.detail if status.detail else ""))
+        with self.connection():
+            self._install(tester, terminal)
+            self._run_tester(tester, project_path, terminal)
+
     def installation(self) -> DockerInstallation | None:
-        host = self.host
-        if host.architecture not in {"amd64", "arm64"}:
+        if self.host.system != "darwin" or self.host.architecture not in {"amd64", "arm64"}:
             return None
-        if host.system == "darwin":
-            brew = shutil.which("brew")
-            if brew:
-                return DockerInstallation(((brew, "install", "--cask", "docker-desktop"), ("open", "-a", "Docker")))
-            image = str(self.root / f"Docker-{host.architecture}.dmg")
-            url = f"https://desktop.docker.com/mac/main/{host.architecture}/Docker.dmg"
-            return DockerInstallation((("curl", "--fail", "--location", "--output", image, url), ("open", image)))
-        supported = {"ubuntu": {"jammy", "noble", "resolute", "stonking"}, "debian": {"bookworm", "trixie"}}
-        if host.system != "linux" or host.codename not in supported.get(host.distribution, set()):
-            return None
-        url = f"https://download.docker.com/linux/{host.distribution}"
-        source = (f"Types: deb\nURIs: {url}\nSuites: {host.codename}\nComponents: stable\n"
-                  f"Architectures: {host.architecture}\nSigned-By: /etc/apt/keyrings/docker.asc\n")
-        commands = (
-            ("sudo", "apt-get", "update"),
-            ("sudo", "apt-get", "install", "-y", "ca-certificates", "curl"),
-            ("sudo", "install", "-m", "0755", "-d", "/etc/apt/keyrings"),
-            ("sudo", "curl", "-fsSL", url + "/gpg", "-o", "/etc/apt/keyrings/docker.asc"),
-            ("sudo", "chmod", "a+r", "/etc/apt/keyrings/docker.asc"),
-            ("sudo", "install", "-m", "0644", str(self.root / "docker.sources"),
-             "/etc/apt/sources.list.d/docker.sources"),
-            ("sudo", "apt-get", "update"),
-            ("sudo", "apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io",
-             "docker-buildx-plugin", "docker-compose-plugin"),
-            ("sudo", "systemctl", "start", "docker"),
-        )
-        return DockerInstallation(commands, source)
+        image = str(self.root / f"Docker-{self.host.architecture}.dmg")
+        url = f"https://desktop.docker.com/mac/main/{self.host.architecture}/Docker.dmg"
+        mount = str(self.root / ("Docker-mount-" + uuid.uuid4().hex))
+        applications = Path.home() / "Applications"
+        staging = str(applications / (".42tui-Docker-" + uuid.uuid4().hex + ".app"))
+        return DockerInstallation((
+            ("curl", "--fail", "--location", "--output", image, url),
+            ("mkdir", "-p", mount, str(applications)),
+            ("hdiutil", "attach", "-readonly", "-nobrowse", "-mountpoint", mount, image),
+            ("ditto", mount + "/Docker.app", staging),
+            ("codesign", "--verify", "--deep", "--strict", staging),
+            ("mv", staging, str(applications / "Docker.app")),
+            ("open", str(applications / "Docker.app")),
+        ), cleanup=(("rm", "-rf", staging), ("hdiutil", "detach", mount), ("rmdir", mount)))
 
     def install_docker(self, plan: DockerInstallation, terminal) -> None:
         """Called only after the user has approved the displayed command plan."""
-        if self.docker():
-            terminal.write("Docker is already installed. Check Docker access again.")
+        if self.host.system != "darwin":
+            if self.docker():
+                terminal.write("Docker is already available. Continuing with the selected context.")
+                return
+            raise TesterError("An accessible Docker engine is required on Linux. Ask school staff if Docker is missing. No system changes were made.")
+        if self._desktop_installed():
+            terminal.write("Docker Desktop is already installed. Continuing with the existing installation.")
             return
         self.root.mkdir(parents=True, exist_ok=True)
-        if plan.source:
-            (self.root / "docker.sources").write_text(plan.source, encoding="utf-8")
-        for command in plan.commands:
-            terminal.run(list(command))
+        mounted = False
+        try:
+            for command in plan.commands:
+                terminal.run(list(command))
+                if "hdiutil" in command and "attach" in command:
+                    mounted = True
+        finally:
+            if mounted:
+                for command in plan.cleanup:
+                    try:
+                        terminal.run(list(command))
+                    except (OSError, subprocess.SubprocessError):
+                        terminal.write("Docker installer cleanup was incomplete. Check temporary installer files and mounted volumes.")

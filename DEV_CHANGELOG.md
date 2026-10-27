@@ -14,6 +14,19 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Changed behavior
 
+- **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
+  controls with one Run action per tester. Preserve compact image removal, locking,
+  pinned sources, platform-specific images, mount checks and captured project paths.
+  Setup uses no sudo, package-manager installs, system service changes or socket/group
+  permission changes. Linux uses an accessible existing engine and can start an
+  existing rootless user service. macOS installs Desktop under `~/Applications`
+  through an unprivileged DMG mount, staged copy, signature verification and rename;
+  failed copies remain retryable. Keep Desktop's user-level defaults.
+  Build pinned `.git` sources inside Docker BuildKit without host Git, preserving
+  Git metadata. Other custom HTTPS clone URLs retain the existing-Git fallback and
+  give explicit guidance if Git is absent. Update README, French/Spanish copy and
+  focused regressions. Reference: uncommitted `feat/tester-one-click`.
+
 - **2026-10-27 · patch · App header:** show the installed package version instead
   of account connection status; preserve alpha, beta and release-candidate
   suffixes through language and connection changes. No version bump or changes
@@ -130,3 +143,29 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Before release, review the skipped checks, confirm publication ownership and
   run the required checks on the exact release candidate. Follow
   [distribution operations](docs/distribution.md).
+
+### Tester setup validation (2026-10-27)
+
+- Adapter tests: 54 passed, covering no privileged setup commands, managed-school
+  Docker missing/denied/stopped, user-only rootless startup, per-user macOS discovery,
+  pinned remote builds without host Git, safe custom clone fallback, Git metadata,
+  interrupted Mac copy cleanup/retry, timeout and terminal operation boundaries.
+- Read-only reviews found partial-copy retry and custom-build compatibility gaps;
+  reproduced each with failing regressions, fixed and verified the adapter suite.
+  Linux rootless-service approval copy now describes Linux startup correctly.
+- Final tester scope: 70 passed in 54.868 seconds using the runner-only heartbeat.
+  Locale checks: 2 passed; new setup/error strings have French/Spanish coverage.
+  Scope ownership: all 820 discovered tests assigned exactly once. Diff whitespace
+  check passed. The full suite was not run locally.
+- Ordinary UI runs stalled during Python 3.14 asyncio executor shutdown in this
+  sandbox after successful assertions. A temporary runner-only event-loop heartbeat
+  resolves the wakeup stall; product and test files contain no workaround.
+- A WSL2/Ubuntu 26.04 probe confirmed Docker is absent here. The earlier privileged
+  installation attempt stopped at the sandbox's no-new-privileges guard before any
+  package changes. The final WSL probe selected no installation plan, produced the
+  school-Docker guidance, executed zero host setup commands and released the lock.
+- Native school Docker access, real container builds and native macOS installation
+  remain unverified. Full-suite/CI remain release gates. Flake8 is unavailable.
+- Release 0.4.0 remains worth preparing: accumulated onboarding and tester behavior
+  justify the existing minor bump from published 0.3.0. No version bump or publication
+  is performed; CI and native platform checks still block publication readiness.
