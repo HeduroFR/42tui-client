@@ -6,9 +6,34 @@ Do not release a dependent client until its exact revision is tested with the ba
 
 Preserve unrelated local work. Use dedicated feat/, fix/ or docs/ branches and pull requests to main.
 Do not commit, push, tag, publish, deploy or change repository visibility without authorization.
-Use a one-line English Conventional Commit matching the branch prefix.
+Use a one-line English Conventional Commit matching the branch prefix and repository scope: `type(client): description` (for example, `docs(client): clarify contributor workflow`).
 Keep credentials, .env files, user databases, browser profiles, sessions and .local/ out of Git.
 Use relative paths in shared instructions. Review the diff and run relevant checks before delivery.
+
+# Delivery format
+
+For each completed feature, fix or documentation task:
+
+- Separate the final delivery by affected repository, labelled **Client** and/or
+  **Backend**. Include only repositories changed by the task; do not imply an
+  untouched repository was validated.
+- In each repository's block, summarize the change, checks actually run and any
+  skipped, failed or unavailable checks. State whether files remain uncommitted.
+- If a commit remains to be created, provide executable commands selecting that
+  repository (`cd` or `git -C`), `git add <exact task files>`, and
+  `git commit -m "type(scope): description"`. Use the real paths and branch name;
+  never stage unrelated changes with `git add .` or `git add -A`.
+- Propose `git push -u origin <actual-task-branch>` for each affected repository,
+  clearly separate from commands already executed. If changes were committed
+  with authorization, report the commit and omit duplicate add/commit commands.
+- For cross-repository work, provide separate commits and push commands, identify
+  linked PRs when available, and explain API compatibility, version implications,
+  rollout order and any remaining integration or deployment verification.
+- Providing commands does not authorize executing them. Commit authorization alone
+  does not authorize push, merge, tag, publication or deployment. Preserve those
+  separate authorization boundaries; do not invent a release for an internal change.
+- If the user asks only for a commit message, return only the scoped Conventional
+  Commit line without explanation or a code block.
 
 # Client
 
