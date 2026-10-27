@@ -44,6 +44,16 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Corrected candidate readiness:** PR #16
+  merged after all 21 jobs passed in CI 40596753649. Isolated candidate
+  30e124509489c5017cacc5320ecc7f23ab395273 is an ancestor of reviewed main;
+  three-pair compatibility 40596520184 and clean archived-package smoke passed.
+  Application source is identical to the original 0.4.1 tag; only tests/docs differ.
+  Update the checklist with completed checks and keep explicit authorization to
+  replace the unpublished tag pending. No tag move or publication performed.
+  Checks: diff, recorded CI/review and ancestry inspected; runtime not rerun for
+  this progress-only documentation.
+
 - **2026-10-27 · no release required · Release regression synchronization:**
   wait for the onboarding dismiss/save callback before closing its test app,
   and for the friend-search Add button's queued ResultsChanged handler before
