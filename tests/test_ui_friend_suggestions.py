@@ -86,9 +86,14 @@ class FriendSuggestionsUITests(unittest.IsolatedAsyncioTestCase):
                     await pilot.press('escape'); await pilot.pause()
                     self.assertEqual(provider.requests, [])
 
-                    field.value = 'alice'; field.focus()
-                    await self.wait_for(pilot, lambda: table.row_count == 1 and not suggestions.loading)
-                    self.assertFalse(workspace.query_one('#friends-open-search').disabled)
+                    # Result availability must update Add even when the cursor
+                    # stays on the same row and emits no highlight notification.
+                    with table.prevent(DataTable.RowHighlighted):
+                        field.value = 'alice'; field.focus()
+                        await self.wait_for(pilot, lambda: suggestions.query == 'alice'
+                            and suggestions.display and suggestions.timer is None
+                            and table.row_count == 1 and not suggestions.loading)
+                        self.assertFalse(workspace.query_one('#friends-open-search').disabled)
                     await pilot.click('#friends-open-search')
                     self.assertNotIsInstance(app.screen, FriendSearchScreen)
                     await self.wait_for(pilot, lambda: not workspace.adding)

@@ -41,7 +41,11 @@ class IssueUiTests(unittest.IsolatedAsyncioTestCase):
 
     async def choose(self,modal,pilot,group,value):
         button=next(b for b in modal.query(IssueChoiceButton) if b.group==group and b.value==value)
-        button.scroll_visible(immediate=True)
+        # Focus the current choice before scrolling: focus left in a replaced
+        # grid can otherwise scroll the form again between layout and the click.
+        button.focus()
+        await pilot.pause()
+        button.scroll_visible(immediate=True,animate=False)
         await pilot.pause()
         self.assertTrue(await pilot.click(button))
         await pilot.pause()

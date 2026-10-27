@@ -74,7 +74,10 @@ class CorrectionsServiceTests(unittest.IsolatedAsyncioTestCase):
         provider.save_correction_slot = save
         with self.assertRaises(MutationFailure) as caught:
             await CorrectionsService(provider).save(S, B, E, current=lambda: True)
-        self.assertIs(caught.exception.error, failure)
+        # Python 3.12 may recreate TimeoutError across the executor bridge.
+        self.assertIs(type(caught.exception.error), type(failure))
+        self.assertEqual(caught.exception.error.args, failure.args)
+        self.assertIs(caught.exception.__cause__, caught.exception.error)
         self.assertEqual(caught.exception.completed, 0)
         self.assertEqual(len(provider.calls), 1)
 
@@ -86,7 +89,10 @@ class CorrectionsServiceTests(unittest.IsolatedAsyncioTestCase):
         provider.delete_correction_slot = delete
         with self.assertRaises(MutationFailure) as caught:
             await CorrectionsService(provider).delete((S, T), current=lambda: True)
-        self.assertIs(caught.exception.error, failure)
+        # Python 3.12 may recreate TimeoutError across the executor bridge.
+        self.assertIs(type(caught.exception.error), type(failure))
+        self.assertEqual(caught.exception.error.args, failure.args)
+        self.assertIs(caught.exception.__cause__, caught.exception.error)
         self.assertEqual(caught.exception.completed, 1)
         self.assertEqual(provider.calls, [S, T])
 

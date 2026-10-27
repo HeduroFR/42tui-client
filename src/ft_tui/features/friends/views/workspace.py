@@ -869,6 +869,11 @@ class FriendsWorkspace(Vertical):
         self.query_one(FriendsSearchSuggestions).set_query(event.value)
         self._render_status()
 
+    @on(FriendSuggestions.ResultsChanged)
+    def suggestions_changed(self, event):
+        event.stop()
+        self._render_status()
+
     @on(DataTable.RowHighlighted, '#friend-suggestions-table')
     def highlight_suggestion(self, event):
         event.stop()
