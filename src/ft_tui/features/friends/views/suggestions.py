@@ -14,6 +14,9 @@ from ft_tui.ui.components import Static
 
 
 class FriendSuggestions(Vertical):
+    class ResultsChanged(Message):
+        """Candidates changed independently of the table cursor position."""
+
     class Chosen(Message):
         def __init__(self, candidate):
             super().__init__()
@@ -199,6 +202,7 @@ class FriendSuggestions(Vertical):
         hint = self.t('Select a friend to highlight them, or another student to send a request.' if self.purpose == 'navigate' else 'Choose a login with Enter, then Invite.' if self.purpose == 'team' else 'Choose a login with Enter, then Add member.' if self.purpose == 'member' else 'Choose a login with Enter, then Add friend.') if table.row_count else self.t('No suggestions yet. Try another name or login.' if self.purpose == 'team' else 'No suggestions yet; you can still add an exact login.')
         message = '\n'.join(part for part in (message, hint) if part)
         self.query_one(Static).update(message)
+        self.post_message(self.ResultsChanged())
 
     def on_resize(self):
         if self.ready and self.is_attached:
