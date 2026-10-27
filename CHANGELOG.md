@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-No unreleased changes.
+- Run Francinette from one button on Linux and macOS, with installation and retries.
+  Tester setup never uses sudo or changes host packages or permissions. School
+  Linux machines need an accessible Docker engine with BuildKit support. macOS
+  setup installs Docker Desktop in the user's Applications folder; keep its
+  user-level settings and accept Docker's terms when prompted.
 
 ## 0.4.2
 

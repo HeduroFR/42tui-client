@@ -51,41 +51,36 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
         await widget._inspection_worker.wait()
         await pilot.pause()
 
-    async def test_install_without_folder_run_requires_existing_folder_and_shared_image(self):
+    async def test_run_requires_folder_even_before_install_and_reuses_shared_image(self):
         async with self.workspace() as (_app, widget, service, projects, pilot, root):
-            await self.select(widget, projects["libft"], pilot)
-            button = widget.query_one(TesterAction)
-            self.assertEqual(str(button.label), "Install Francinette")
-            self.assertFalse(button.disabled)
-            service.installed.return_value = True
-            for slug in ("libft", "ft_printf", "get_next_line"):
-                await self.select(widget, projects[slug], pilot)
-                button = widget.query_one(TesterAction)
-                self.assertEqual(str(button.label), "Run Francinette")
-                self.assertTrue(button.disabled)
-                projects[slug].local_path = str(root)
-                await self.select(widget, projects[slug], pilot)
-                self.assertFalse(widget.query_one(TesterAction).disabled)
-            service.installed.return_value = False
-            await self.select(widget, projects["libft"], pilot)
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Install Francinette")
+            for installed in (False, True):
+                service.installed.return_value = installed
+                for slug in ("libft", "ft_printf", "get_next_line"):
+                    projects[slug].local_path = None
+                    await self.select(widget, projects[slug], pilot)
+                    button = widget.query_one(TesterAction)
+                    self.assertEqual(str(button.label), "Run Francinette")
+                    self.assertTrue(button.disabled)
+                    projects[slug].local_path = str(root)
+                    await self.select(widget, projects[slug], pilot)
+                    self.assertFalse(widget.query_one(TesterAction).disabled)
             await self.select(widget, projects["born2beroot"], pilot)
             self.assertFalse(widget.query(TesterAction))
 
-    async def test_docker_states_offer_install_recheck_and_recovery(self):
-        async with self.workspace() as (_app, widget, service, projects, pilot, _root):
-            for state in ("missing", "denied", "stopped", "unsupported", "incompatible"):
+    async def test_one_run_action_stays_available_for_setup_and_recovery(self):
+        async with self.workspace() as (_app, widget, service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
+            for state in ("missing", "denied", "stopped", "unsupported", "incompatible", "ready"):
                 service.status.return_value = DockerStatus(state, "test detail")
                 await self.select(widget, projects["libft"], pilot)
-                self.assertTrue(widget.query_one(TesterAction).disabled)
-                self.assertEqual(widget.query_one("#tester-install-docker").display, state == "missing")
-                self.assertFalse(widget.query_one("#tester-recheck").disabled)
-            service.status.return_value = DockerStatus("ready")
-            await self.select(widget, projects["libft"], pilot)
-            self.assertFalse(widget.query_one(TesterAction).disabled)
+                buttons = list(widget.query(Button))
+                self.assertEqual(len(buttons), 1)
+                self.assertEqual(str(buttons[0].label), "Run Francinette")
+                self.assertFalse(buttons[0].disabled)
 
     async def test_terminal_restored_after_success_failure_and_interrupt_and_double_click(self):
         async with self.workspace() as (app, widget, service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
             await self.select(widget, projects["libft"], pilot)
             restored = []
             @contextmanager
@@ -96,27 +91,30 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 finally:
                     restored.append("exit")
             for error in (None, TesterError("build failure"), KeyboardInterrupt()):
-                service.install = Mock(side_effect=error)
+                service.prepare_and_run = Mock(side_effect=error)
                 with patch.object(app, "suspend", side_effect=suspend), \
                         patch("ft_tui.features.projects.views.testers.wait_for_key") as key, \
                         patch("ft_tui.features.projects.views.testers.TerminalSession"):
-                    widget._start("install", app.tester_catalog.testers[0])
-                    widget._start("install", app.tester_catalog.testers[0])
+                    widget._start("run", app.tester_catalog.testers[0])
+                    widget._start("run", app.tester_catalog.testers[0])
                     self.assertTrue(widget._operating)
                     await pilot.pause(0.4)
                     await widget.workers.wait_for_complete()
                     await pilot.pause()
-                    service.install.assert_called_once()
+                    service.prepare_and_run.assert_called_once()
                     key.assert_called_once()
                     self.assertEqual(restored[-2:], ["enter", "exit"])
                     self.assertFalse(widget._operating)
                     self.assertFalse(service.busy)
                     self.assertFalse(widget.query_one(TesterAction).disabled)
                     self.assertEqual("francinette" in widget._retry, error is not None)
+                    if isinstance(error, TesterError):
+                        self.assertIn("build failure", widget._messages["francinette"])
             self.assertEqual(len(list((root / "testers/logs").glob("*.log"))), 3)
 
     async def test_projects_heading_and_shortcut_reveal_actions_on_small_screens(self):
-        async with self.workspace() as (app, widget, _service, projects, pilot, _root):
+        async with self.workspace() as (app, widget, _service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
             from textual.containers import VerticalScroll
 
             await self.select(widget, projects["libft"], pilot)
@@ -203,7 +201,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("removed", widget._messages["francinette"])
             await self.select(widget, projects["ft_printf"], pilot)
             self.assertFalse(widget.query(TesterRemoveButton))
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Install Francinette")
+            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Francinette")
 
     async def test_remove_failure_keeps_the_delete_action_available_without_changing_run_retry(self):
         async with self.workspace() as (app, widget, service, projects, pilot, _root):
@@ -232,27 +230,30 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
         async with self.workspace() as (app, widget, service, projects, pilot, _root):
             await self.select(widget, projects["libft"], pilot)
             with patch.object(app, "suspend", side_effect=KeyboardInterrupt):
-                await widget._perform("install", app.tester_catalog.testers[0], None, None)
+                await widget._perform("run", app.tester_catalog.testers[0], None, None)
             self.assertFalse(service.busy)
             self.assertFalse(widget._operating)
             self.assertIn("francinette", widget._retry)
             self.assertIn("interrupted", widget._messages["francinette"])
 
     async def test_invalid_catalog_warning_keeps_bundled_tester_usable(self):
-        async with self.workspace(invalid_catalog=True) as (_app, widget, _service, projects, pilot, _root):
+        async with self.workspace(invalid_catalog=True) as (_app, widget, _service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
             await self.select(widget, projects["libft"], pilot)
             warning = widget.query_one("#tester-catalog-warning")
             self.assertTrue(warning.display)
             self.assertIn("Invalid tester configuration", str(warning.render()))
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Install Francinette")
+            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Francinette")
             self.assertFalse(widget.query_one(TesterAction).disabled)
 
-    async def test_administrator_commands_require_explicit_confirmation(self):
-        async with self.workspace() as (app, widget, service, projects, pilot, _root):
+    async def test_user_directory_installation_requires_explicit_confirmation(self):
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
+            service.host = Host("darwin", "arm64")
             service.status.return_value = DockerStatus("missing")
             service.install_docker = Mock()
             await self.select(widget, projects["libft"], pilot)
-            button = widget.query_one("#tester-install-docker", Button)
+            button = widget.query_one(TesterAction)
             widget.on_button_pressed(Button.Pressed(button))
             await pilot.pause()
             self.assertIsInstance(app.screen, DockerInstallScreen)
@@ -261,6 +262,28 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             service.install_docker.assert_not_called()
             self.assertFalse(widget._operating)
+
+    async def test_approved_setup_runs_original_project_after_selection_changes(self):
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            projects["libft"].local_path = str(root)
+            service.host = Host("darwin", "arm64")
+            service.status.return_value = DockerStatus("missing")
+            service.prepare_and_run = Mock()
+            await self.select(widget, projects["libft"], pilot)
+            plan = widget._setup_plan
+            widget.on_button_pressed(Button.Pressed(widget.query_one(TesterAction)))
+            await pilot.pause()
+            widget.project = projects["ft_printf"]
+            with patch.object(app, "suspend", side_effect=nullcontext), \
+                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
+                    patch("ft_tui.features.projects.views.testers.TerminalSession") as terminal:
+                app.screen.query_one("#confirm-docker-install", Button).press()
+                await pilot.pause(.4)
+                await widget.workers.wait_for_complete()
+            service.prepare_and_run.assert_called_once_with(
+                app.tester_catalog.testers[0], str(root), terminal.return_value, plan=plan,
+            )
+
 
 
 class TesterInspectionLifecycleTests(unittest.IsolatedAsyncioTestCase):
