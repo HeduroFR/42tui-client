@@ -50,7 +50,7 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Carry forward the partial-publication recovery guidance from superseded PR #11;
   close that obsolete 0.4.0 documentation PR instead of restoring its old baseline.
   Reference: `fix/friend-suggestions-test-readiness`. Friends scope: 52 tests
-  passed, 1 optional integration skipped; independent read-only review passed.
+  run (51 passed, 1 optional integration skipped); independent read-only review passed.
   The bounded wait still fails if the button never becomes enabled, and the
   subsequent click and exact request assertion remain unchanged.
 
