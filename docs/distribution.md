@@ -1,7 +1,8 @@
 # Distribution operations
 
-The Python package is `ft-tui`; 0.4.0 is prepared but not yet published. The latest
-confirmed stable release remains 0.3.0. This client repository owns publication
+The Python package is `ft-tui`. The latest confirmed stable release is
+[0.4.0](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0), published
+on GitHub and PyPI. Version 0.4.1 is prepared but not yet published. This client repository owns publication
 through `.github/workflows/release.yml`. Only explicitly authorized stable release
 tags publish packages; ordinary branch pushes do not publish.
 
@@ -22,7 +23,7 @@ PyPI Trusted Publishing must match GitHub owner
 The maintainer confirmed the PyPI configuration during the release cutover.
 The GitHub `pypi` environment permits only tags matching `v*`; the workflow also
 checks the exact stable version, release notes and main ancestry before publishing.
-The first successful publish verifies the end-to-end OIDC authorization.
+The successful 0.4.0 publication verified end-to-end OIDC authorization.
 Preserve PyPI package ownership, protect main and stable tags, and retain original
 release artifacts. Published versions are immutable: never republish 0.3.0 merely
 to populate the new repository. New backend deployments are independent.

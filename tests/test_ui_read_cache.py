@@ -45,6 +45,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
                     workspace = app.query_one(FriendsWorkspace)
                     await wait_until(lambda: app.query_one(TabbedContent).active == 'friends')
                     await workspace.reload()
+                    workspace.start_sync(refresh=True)
                     await workspace.worker.wait()
                     self.assertIn('alice', workspace.snapshots)
                     provider.restricted = True
@@ -233,6 +234,7 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
                     app.account_connected = True
                     await wait_until(lambda: app.query_one(TabbedContent).active == 'friends')
                     await workspace.reload()
+                    workspace.start_sync(refresh=True)
                     await workspace.worker.wait()
                     workspace.selected_login = 'alice'
                     workspace._refresh_view()

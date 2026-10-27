@@ -8,6 +8,11 @@ import os
 UTC = timezone.utc
 
 
+def earliest_start(now: datetime) -> datetime:
+    now = now.astimezone(UTC)
+    return now.replace(minute=now.minute // 15 * 15, second=0, microsecond=0) + timedelta(minutes=30)
+
+
 def timestamp(value: str) -> datetime:
     if not isinstance(value, str):
         raise ValueError('Invalid slot timestamp')

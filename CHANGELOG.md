@@ -8,8 +8,14 @@
   setup installs Docker Desktop in the user's Applications folder; keep its
   user-level settings and accept Docker's terms when prompted.
 
+## 0.4.1
+
+- Fix correction-slot selection and suggested start times: at 10:18, the first
+  available start is 10:45. Prevent publishing a start that became too early while
+  editing.
+
 See [DEV_CHANGELOG.md](DEV_CHANGELOG.md) for the development record and release
-readiness. The 0.4.0 notes below are prepared for publication.
+readiness.
 
 ## 0.4.0
 
