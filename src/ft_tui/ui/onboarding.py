@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from ft_tui.ui.modal import AppModal
 from textual.widgets import Input, Static
@@ -13,10 +12,9 @@ from ft_tui.i18n import LANGUAGE_LABELS, SUPPORTED_LANGUAGES, translate
 from ft_tui.ui.components import Button
 
 
-class OnboardingScreen(AppModal[dict[str, str] | None]):
+class OnboardingScreen(AppModal[dict[str, str]]):
     """A short, three-step welcome wizard for first launch."""
 
-    BINDINGS = [Binding("escape", "skip", show=False)]
     CSS = """
     OnboardingScreen {   background: $background 70%; }
     #onboarding-shell {
@@ -47,7 +45,6 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
     #onboarding-language-wrap { height: auto; margin-top: 1; }
     #onboarding-error { color: $error; height: 1; }
     #onboarding-actions { height: 3; align-vertical: middle; }
-    #onboarding-skip { width: auto; min-width: 18; }
     #onboarding-actions-spacer { width: 1fr; }
     #onboarding-back { width: 14; margin-right: 1; }
     #onboarding-next, #onboarding-finish { width: 18; }
@@ -115,7 +112,7 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
                         id="onboarding-connect-account",
                     )
                     yield Static(
-                        self._t("Optional · connect in your browser. Your password and OAuth code stay with 42."),
+                        self._t("Required · connect in your browser. Your password and OAuth code stay with 42."),
                         classes="onboarding-help",
                     )
                 with Vertical(id="onboarding-form-workspace", classes="onboarding-form"):
@@ -157,7 +154,6 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
                     yield Static(self._t("Your choices are saved on this device."), classes="onboarding-help")
                 yield Static("", id="onboarding-error")
                 with Horizontal(id="onboarding-actions"):
-                    yield Button(self._t("Skip setup"), id="onboarding-skip")
                     yield Static("", id="onboarding-actions-spacer")
                     yield Button(self._t("Back"), id="onboarding-back")
                     yield Button(self._t("Continue"), variant="primary", id="onboarding-next")
@@ -193,9 +189,7 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
         self.query_one("#onboarding-description", Static).update(self._t(descriptions[self.step]))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "onboarding-skip":
-            self.dismiss(None)
-        elif event.button.id == "onboarding-connect-account":
+        if event.button.id == "onboarding-connect-account":
             self.app.open_account_connection("onboarding")
         elif event.button.id == "onboarding-back":
             self.step = max(0, self.step - 1)
@@ -207,6 +201,8 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
             self._finish()
 
     def _continue(self) -> None:
+        if not self._valid_account():
+            return
         if self.step == 1 and not self._valid_root():
             return
         self.step = min(2, self.step + 1)
@@ -227,7 +223,19 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
         self.query_one("#onboarding-error", Static).update("")
         return True
 
+    def _valid_account(self) -> bool:
+        if not self.app.account_connected:
+            self.step = 0
+            self._show_step()
+            self._focus_current_step()
+            self.query_one("#onboarding-error", Static).update(self._t("Connect your 42 account"))
+            return False
+        self.query_one("#onboarding-error", Static).update("")
+        return True
+
     def _finish(self) -> None:
+        if not self._valid_account():
+            return
         if not self._valid_root():
             self.step = 1
             self._show_step()
@@ -244,6 +252,3 @@ class OnboardingScreen(AppModal[dict[str, str] | None]):
             "favorite_theme": str(self.query_one("#onboarding-theme", Select).value),
             "language": str(self.query_one("#onboarding-language", Select).value),
         })
-
-    def action_skip(self) -> None:
-        self.dismiss(None)

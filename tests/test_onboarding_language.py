@@ -31,19 +31,24 @@ class LanguageDetectionTests(unittest.TestCase):
 
 
 class OnboardingLanguageTests(unittest.IsolatedAsyncioTestCase):
-    async def test_detected_language_is_visible_and_persisted_when_skipping(self):
+    async def test_detected_language_is_visible_and_persisted_after_connected_setup(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "ui.sqlite"}')
             try:
                 with patch.dict('os.environ', {'LANGUAGE': 'fr_FR:en'}, clear=True):
                     app = FortyTwoTuiApp(factory, None)
-                    async with app.run_test(size=(140, 50)):
+                    async with app.run_test(size=(140, 50)) as pilot:
                         self.assertEqual(app.language, 'fr')
                         self.assertEqual(app.screen.query_one('#onboarding-language', Select).value, 'fr')
                         self.assertIn('Connectez', str(app.screen.query_one('#onboarding-title').render()))
-                        await app._finish_onboarding(None)
+                        app.account_connected = True
+                        await pilot.click('#onboarding-next')
+                        await pilot.click('#onboarding-next')
+                        await pilot.click('#onboarding-finish')
+                        await pilot.pause()
                     with factory() as session:
                         self.assertEqual(get_setting(session, 'language'), 'fr')
+                        self.assertEqual(get_setting(session, 'onboarding_completed'), 'true')
             finally:
                 factory.kw['bind'].dispose()
 
