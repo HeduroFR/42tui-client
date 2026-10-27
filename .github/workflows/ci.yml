@@ -148,6 +148,7 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:8080/healthz
+          test "$(curl -fsS -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:8080/github)" = '301 https://github.com/HeduroFR/42tui-client'
           for name in install.sh install.ps1 install.py uninstall.sh; do
             curl -fsS "http://127.0.0.1:8080/$name" -o "$RUNNER_TEMP/$name"
             cmp "distribution/$name" "$RUNNER_TEMP/$name"
