@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Check for stable updates on every launch and every 12 hours while the app
+  remains open. Recent checks no longer suppress a new startup check, and
+  re-enabling automatic updates immediately starts a check.
+
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
   Linux machines need an accessible Docker engine with BuildKit support. macOS

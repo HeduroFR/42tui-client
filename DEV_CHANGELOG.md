@@ -28,6 +28,23 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   focused regressions. Reference: `3ea93ab`, [PR #13](https://github.com/HeduroFR/42tui-client/pull/13).
 
 
+### Fixes
+
+- **2026-10-28 · patch · Automatic update checks:** check on every stable-version
+  startup, bypassing a recent persisted check, then schedule checks every 12 hours
+  during the session; re-enabling the setting immediately starts a check.
+  Enforce opt-out before scheduling network work and again
+  before accepting results. Keep post-exit installation, managed-tool detection,
+  development/pinned protections and offline failure behavior unchanged.
+  Regression tests first reproduced both suppressed relaunch and missing periodic
+  detection. Reference: `fix/automatic-update-checks`.
+  Validation: all 70 installation-updates scope tests passed; scope ownership
+  and diff whitespace checks passed; 2 campus-settings UI tests passed.
+  Independent read-only review passed. Live PyPI lookup returned 0.4.1. No release
+  performed; full regression coverage is delegated to PR CI.
+  The accumulated tester feature still warrants a 0.5.0 minor release; this fix
+  alone is patch-sized (0.4.2 if released separately without tester changes).
+
 ### Internal changes and documentation
 
 - **2026-10-27 · no release required · Verified 0.4.1 publication:** publish the
