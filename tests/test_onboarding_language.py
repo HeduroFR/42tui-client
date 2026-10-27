@@ -1,4 +1,5 @@
 """First-run locale detection must not replace a saved preference."""
+import asyncio
 import unittest
 from importlib.metadata import version
 from pathlib import Path
@@ -58,6 +59,14 @@ class OnboardingLanguageTests(unittest.IsolatedAsyncioTestCase):
             try:
                 with patch.dict('os.environ', {'LANGUAGE': 'fr_FR:en'}, clear=True):
                     app = FortyTwoTuiApp(factory, None)
+                    completed = asyncio.Event()
+                    finish_onboarding = app._finish_onboarding
+
+                    async def finish(values):
+                        await finish_onboarding(values)
+                        completed.set()
+
+                    app._finish_onboarding = finish
                     async with app.run_test(size=(140, 50)) as pilot:
                         self.assertEqual(app.language, 'fr')
                         self.assertEqual(app.screen.query_one('#onboarding-language', Select).value, 'fr')
@@ -66,7 +75,7 @@ class OnboardingLanguageTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.click('#onboarding-next')
                         await pilot.click('#onboarding-next')
                         await pilot.click('#onboarding-finish')
-                        await pilot.pause()
+                        await asyncio.wait_for(completed.wait(), timeout=10)
                     with factory() as session:
                         self.assertEqual(get_setting(session, 'language'), 'fr')
                         self.assertEqual(get_setting(session, 'onboarding_completed'), 'true')

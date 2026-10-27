@@ -2,8 +2,10 @@
 
 Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
 Package version: **0.4.1**, prepared but not published.
-Prepared patch candidate: **0.4.1**, client `4e48e9b`, validated with deployed
-backend `e917aca`; awaiting separate tag/publication authorization.
+Prepared patch candidate: **0.4.1**, client `30e1245` (tests/docs corrected;
+application runtime unchanged), with deployed backend `e917aca`. Original tag
+`v0.4.1` at `4e48e9b` failed CI three times; no PyPI/GitHub release was published.
+Replacing that unpublished tag requires separate authorization after validation.
 Suggested release including tester setup: **0.5.0** (minor), because the tester flow
 adds user-visible setup and execution behavior after published 0.4.0. Keep the
 existing 0.4.1 preparation unchanged; tester changes may follow that patch release.
@@ -42,6 +44,22 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Release regression synchronization:**
+  wait for the onboarding dismiss/save callback before closing its test app,
+  and for the friend-search Add button's queued ResultsChanged handler before
+  asserting readiness, keeping the bounded timeout, click and exact request
+  assertions. The original v0.4.1 tag hit this test race in three publication
+  attempts; no package was published. Prepare the test-only correction on the
+  existing correction-slot task branch, retaining the 0.4.1 runtime and excluding
+  later tester features. The original tag remains unchanged pending explicit
+  authorization for a newly validated candidate. Preserve partial-publication
+  recovery guidance from superseded PR #11. Reference:
+  `fix/correction-slot-start`. Friends scope: 52 run (51 passed, 1 optional integration skipped);
+  corrections scope: 52 passed; accounts: 94 run (93 passed, 1 optional
+  integration skipped). Clean archived candidate 30e1245 passes package/version
+  checks and installed-package smoke. Integration with main preserves later
+  tester work, but the isolated release candidate remains 30e1245.
+
 - **2026-10-27 · no release required · Final readiness record:** client PR #12
   merged as `4e48e9b`, with the same Git tree as PR head `a3cfc09`; CI run
   `40590113023` passed all 21 jobs (14 regression scopes, four platforms,
@@ -54,7 +72,9 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Update TODO.md to freeze the tested release candidate and leave only explicit
   publication authorization, tag/publish, and post-release verification pending.
   These documentation changes follow the candidate; do not retag a later head.
-  Live Intra write acceptance remains unverified. No tag/publication performed.
+  This records the original pre-tag evidence. The subsequently authorized tag
+  workflow failed as recorded above; no package publication occurred. Live Intra
+  write acceptance remains unverified.
   Checks: documentation diff, links, recorded CI and deployment evidence reviewed.
 
 - **2026-10-27 · no release required · Readiness reconciliation:** merge the
@@ -118,8 +138,9 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Correction-slot scope: 52 tests passed; regression-scope ownership checked.
 - Backend deployment and final exact-pair evidence for patch candidate 4e48e9b
   passed as recorded above. Slot HTTP checks remain synthetic; real Intra
-  acceptance is unverified. Obtain separate tag/publication approval and reverify
-  backend readiness immediately before publication.
+  acceptance is unverified. Original tag publication failed. Corrected candidate
+  30e1245 passed compatibility run 40596520184; finish CI/review and obtain explicit
+  unpublished-tag replacement authorization before publication.
 
 ### Tester setup validation (2026-10-27)
 

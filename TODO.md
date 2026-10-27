@@ -2,9 +2,12 @@
 
 ## 0.4.1 — Correction-slot start window
 
-Status: 0.4.1 prepared and validated; both fixes merged, backend deployed.
-Awaiting separate tag/publication authorization. Immutable release candidate:
-`4e48e9b4e4df3d76d0a8b549b9b60cb8b3cee78a` (reviewed client main).
+Status: original tag v0.4.1 at 4e48e9b failed a UI-test race in three workflow
+attempts; neither PyPI nor GitHub received a release. Backend remains deployed.
+Corrected isolated candidate: `30e124509489c5017cacc5320ecc7f23ab395273`.
+Runtime is identical to the original candidate; only tests/docs changed. Its
+CI and main integration are in progress; compatibility run 40596520184 passed. Replacing the unpublished
+tag requires explicit authorization after validation.
 This progress-only documentation follows that candidate and must not silently
 replace the tested revision when creating the release tag.
 The latest published version remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
@@ -70,7 +73,10 @@ exam filtering and other 0.5.0 work are outside this release.
   entry points. CI covered package, installers, regressions and supported
   platforms; exact merged-candidate compatibility receipts passed. The tag
   workflow must rebuild and check the exact authorized candidate before publishing.
-- [ ] Obtain separate tag/publication authorization, reverify backend readiness,
+- [x] Obtain original tag/publication authorization and push v0.4.1 at 4e48e9b.
+  Workflow 40593923756 failed its friend UI assertion three times; no publication.
+- [ ] Validate corrected candidate 30e1245 and integrate its tests into main.
+- [ ] Obtain authorization to replace the unpublished tag, reverify backend readiness,
   then publish the tested immutable client artifacts through the release workflow.
 - [ ] Verify both PyPI distributions and GitHub release assets/checksums, smoke
   test the published package and update path, then advance DEV_CHANGELOG to the
