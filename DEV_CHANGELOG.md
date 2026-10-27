@@ -23,6 +23,19 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Release regression synchronization:**
+  wait for the onboarding dismiss/save callback before closing its test app,
+  and for the friend-search Add button's queued ResultsChanged handler before
+  asserting readiness, keeping the bounded timeout, click and exact request
+  assertions. The original v0.4.1 tag hit this test race in three publication
+  attempts; no package was published. Prepare the test-only correction on the
+  existing correction-slot task branch, retaining the 0.4.1 runtime and excluding
+  later tester features. The original tag remains unchanged pending explicit
+  authorization for a newly validated candidate. Preserve partial-publication
+  recovery guidance from superseded PR #11. Reference:
+  `fix/correction-slot-start`. Friends scope: 52 run (51 passed, 1 optional integration skipped);
+  corrections scope: 52 passed. Account-scope validation is in progress.
+
 - **2026-10-27 · no release required · Candidate checks:** fix two UI-cache
   tests that assumed a non-refresh reload always starts a worker; explicitly
   force synchronization before awaiting it. The release-tooling scope now passes

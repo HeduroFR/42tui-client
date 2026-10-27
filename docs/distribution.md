@@ -39,6 +39,11 @@ Installer helper bytes and embedded SHA-256 checks are unchanged by the split.
 After any future helper edit, run `python release/installer_hashes.py --write`
 and review all entry points together. Package and installer rollback are distinct.
 
+If publication stops after uploading to PyPI, retain the tag and original CI
+artifacts and rerun only the failed job in the same workflow run. A newly created
+GitHub draft can briefly be invisible to a follow-up lookup; retrying resumes it.
+Do not rebuild or overwrite distributions for an already published version.
+
 ## Development changelog
 
 [DEV_CHANGELOG.md](../DEV_CHANGELOG.md) is the rolling record from the latest
