@@ -14,6 +14,7 @@ Build using `docker build -f distribution/Dockerfile distribution`.
 For Dokploy select this repository, branch main, Build Path `/distribution`,
 Dockerfile Path `Dockerfile`, Docker Context Path `distribution`, port 8080,
 health path `/healthz`, and hostname `tui.42wip.in`. No secrets or volumes are needed.
+The `/github` path permanently redirects (HTTP 301) to `https://github.com/HeduroFR/42tui-client`.
 Change the repository binding only after the reviewed client tree is published;
 do not enable deployment as part of repository creation.
 
