@@ -1,87 +1,36 @@
 # Development changelog
 
-Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
-Package version: **0.4.1**, prepared but not published.
-Suggested next release: **0.4.1** (patch), for correction-slot start selection.
-Worth preparing; publication remains blocked on backend deployment and exact-pair
-verification. Version preparation is authorized; deployment and publication remain separate.
+Latest release: **0.4.1** ([`v0.4.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.1)).
+Package version: **0.4.2**, prepared but not published.
+Suggested next release: **0.4.2** (patch), for update discovery, exam resumption
+and corrected onboarding instructions. This isolated branch starts at v0.4.1;
+later tester features on main remain outside this patch. Publication requires
+separate authorization after exact-candidate validation and main integration.
 
-This file tracks implemented changes since the latest release. Keep published
-history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
-instructions are in [distribution operations](docs/distribution.md#development-changelog).
+## Changes since 0.4.1
 
-## Changes since 0.4.0
-
-### Fixes
-
-- **2026-10-27 · patch · Correction slots:** use the current quarter-hour rounded
-  down plus 30 minutes as the earliest start (10:18 → 10:45), consistently for
-  calendar selection, Add availability, editor publication and pre-dispatch checks.
-  Keep nearby existing availability deletable. Update French/Spanish messages.
-  Reference: client `82f583b`, backend `880ce27`.
-  Requires the matching backend change deployed before releasing the client.
-
-### Internal changes and documentation
-
-- **2026-10-27 · no release required · Release regression synchronization:**
-  wait for the onboarding dismiss/save callback before closing its test app,
-  and for the friend-search Add button's queued ResultsChanged handler before
-  asserting readiness, keeping the bounded timeout, click and exact request
-  assertions. The original v0.4.1 tag hit this test race in three publication
-  attempts; no package was published. Prepare the test-only correction on the
-  existing correction-slot task branch, retaining the 0.4.1 runtime and excluding
-  later tester features. The original tag remains unchanged pending explicit
-  authorization for a newly validated candidate. Preserve partial-publication
-  recovery guidance from superseded PR #11. Reference:
-  `fix/correction-slot-start`. Friends scope: 52 run (51 passed, 1 optional integration skipped);
-  corrections scope: 52 passed. Account-scope validation is in progress.
-
-- **2026-10-27 · no release required · Candidate checks:** fix two UI-cache
-  tests that assumed a non-refresh reload always starts a worker; explicitly
-  force synchronization before awaiting it. The release-tooling scope now passes
-  all 90 tests locally, after refreshing editable package metadata to 0.4.1.
-  Clean archived-commit wheel/sdist checks, installed-package smoke, 6 release
-  tests, version validation and installer digests passed. Preserve unrelated
-  untracked files and exclude them from clean release builds.
-  Client PR #12 and backend PR #5 are linked; backend CI passed and #5 merged as
-  `e917aca`. Authorized Dokploy deployment completed, the deployed slot-source
-  hash matches that revision, 22 synthetic slot tests passed in the API container,
-  and read-only PostgreSQL/Redis/API probes passed. Initial three-pair workflow
-  `40589486585` passed; final candidate/deployed pair evidence must be refreshed.
-  No live Intra mutation or client publication was performed.
-
-- **2026-10-27 · patch preparation · 0.4.1:** prepare the authorized package
-  version and matching release notes, reconcile distribution documentation with
-  the verified GitHub 0.4.0 publication, and record 0.4.0 as the supported client
-  baseline. Independent read-only review found no substantive slot-fix defects.
-  Reference: `fix/correction-slot-start`. Deployment, final exact-pair evidence
-  and publication remain pending; pending release entries are retained.
-
-- **2026-10-27 · no release required · Release checklist:** track completed
-  correction-slot fixes and local checks in TODO.md, with separate remaining
-  review/CI, exact-pair compatibility, backend deployment, version preparation,
-  publication authorization and post-release verification tasks. Preserve the
-  existing distribution/documentation backlog. Reference:
-  `258116b` (checklist); progress updates on `fix/correction-slot-start`.
-  Checks: documentation diff and relative links reviewed; no runtime tests rerun.
-
-- **2026-10-27 · no release required · Release record:** verify the published
-  wheel/sdist against GitHub checksums and PyPI digests, install the published
-  wheel and verify its CLI/resources, then advance the published baseline to
-  0.4.0 and clear only entries included in that tag. Preserve the user-facing
-  release history and document safe recovery from a partial publication.
-  Reference: `docs/post-release-0.4.0`.
-  Publication used commit `bb5caff0988cbedd54d00c8dcb455a187da153bf` and
-  [release run 40570776094](https://github.com/HeduroFR/42tui-client/actions/runs/40570776094),
-  which succeeded after retrying the GitHub draft-visibility failure with the
-  original CI artifacts. Live OAuth and pinned-pair compatibility were not
-  exercised during publication; this limitation was disclosed before authorization.
+- **2026-10-28 · patch · Automatic updates:** carry only the update policy/view,
+  settings hook and tests from `ee60aa2` (PR #18). Check at every startup, every
+  12 hours while running, and immediately on re-enable. Preserve opt-out and
+  managed/development/pinned safeguards and installation after normal exit.
+- **2026-10-28 · patch · Continue working:** exclude exams before active/recent/
+  selected/fallback resumption selection. Reuse the catalog kind classifier so
+  exam-rank slugs in older snapshots are recognized. Catalog and curriculum
+  progress still include exams. The regression failed all eight scenarios before
+  the fix. No user data, API contract or backend behavior changes.
+- **2026-10-28 · patch · First-run documentation:** replace the README's obsolete
+  connection bypass instructions with required initial connection and continued
+  offline access to saved projects/notes after setup.
+- **2026-10-28 · release preparation · 0.4.2:** prepare package version, matching
+  release notes and a checklist for only these three fixes. Reference:
+  `fix/release-0.4.2`. No tag, publication or deployment performed.
 
 ## Validation and release readiness
 
-- Post-release documentation diff/link checks passed. Runtime suites were not
-  repeated for this documentation-only update.
-- Correction-slot scope: 52 tests passed; regression-scope ownership checked.
-- Backend deployment was verified as described above. HTTP simulations remain
-  synthetic; real Intra acceptance and final exact-pair evidence are pending.
-- Prepare 0.4.1 after review; do not publish before the required backend is verified.
+- Dashboard resumption regression failed eight scenarios before editing; all
+  28 dashboard and 70 installation-updates scope tests now pass. Independent
+  read-only review found no substantive issues. Version check v0.4.2 and diff
+  whitespace checks passed. Clean package build validation remains pending.
+- Live OAuth, native platform checks and real Intra writes are not exercised.
+- Review, CI/main integration and exact-candidate compatibility remain pending.
+  The patch is worth preparing, but is not yet ready to publish.

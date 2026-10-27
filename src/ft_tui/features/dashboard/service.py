@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 from collections.abc import Callable
 from ft_tui.features.catalog.read_models import curriculum_projects
+from ft_tui.features.catalog.kind import project_kind
 from ft_tui.shared.activity import IDLE_TIMEOUT_SECONDS
 from .models import DashboardProject, ProfileStats, Journey, Deadline, Activity, DashboardViewModel
 from .ports import DashboardReader
@@ -36,7 +37,8 @@ class DashboardService:
                 active_project_id, selected_project_key, now):
         rows = [DashboardProject.from_project(project) for project in projects]
         ordered = self.sorted_projects(rows, activity, active_project_id)
-        resumable = [p for p in rows if p.status.casefold() not in {'completed', 'done', 'finished', 'locked'}]
+        resumable = [p for p in rows if p.status.casefold() not in {'completed', 'done', 'finished', 'locked'}
+                     and project_kind(p.catalog_data.get('kind', ''), p.catalog_data.get('slug', '')) != 'exam']
         active = next((p for p in resumable if p.id == active_project_id), None)
         recent = None
         if active is not None:

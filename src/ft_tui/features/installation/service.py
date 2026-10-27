@@ -21,10 +21,10 @@ class InstallationService:
     def acknowledge(self,current):
         self.preferences.save({'updates:last_seen_version':current})
 
-    def begin_check(self,now):
+    def begin_check(self,now,*,force=False):
         try:last_check=float(self.preferences.get('updates:last_check','0'))
         except ValueError:last_check=0
-        if 0<=now-last_check<CHECK_INTERVAL:return False
+        if not force and 0<=now-last_check<CHECK_INTERVAL:return False
         # Record before external work, including offline/failed attempts.
         self.preferences.save({'updates:last_check':str(now)})
         return True

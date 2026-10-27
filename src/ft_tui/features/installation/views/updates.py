@@ -53,8 +53,13 @@ class UpdateMixin:
         previous = resolve_installation_service(self).startup(service.current)
         if previous:
             self._show_changelog_when_ready(previous)
-        if self.automatic_updates_enabled():
-            self.run_worker(self._check_updates(), group="release-check", exclusive=True)
+        self.set_interval(CHECK_INTERVAL, self._start_update_check)
+        self._start_update_check(force=True)
+
+    def _start_update_check(self, *, force=False):
+        if (self.update_service is not None and stable_version(self.update_service.current)
+                and self.automatic_updates_enabled()):
+            self.run_worker(self._check_updates(force=force), group="release-check", exclusive=True)
 
     def _show_changelog_when_ready(self, previous):
         # Onboarding and account dialogs keep priority over release notes.
@@ -69,10 +74,10 @@ class UpdateMixin:
 
         self.push_screen(ChangelogScreen(previous, current, self.language), acknowledged)
 
-    async def _check_updates(self):
+    async def _check_updates(self, *, force=False):
         now = time.time()
         policy = resolve_installation_service(self)
-        if not policy.begin_check(now):
+        if not self.automatic_updates_enabled() or not policy.begin_check(now, force=force):
             return
         try:
             available = await asyncio.to_thread(self.update_service.check)

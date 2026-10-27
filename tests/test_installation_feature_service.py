@@ -32,6 +32,12 @@ class InstallationPolicyTests(unittest.TestCase):
         self.assertEqual(len(prefs.writes),1)
         self.assertTrue(service.begin_check(100000+12*60*60))
 
+    def test_startup_check_bypasses_recent_cooldown(self):
+        prefs=Preferences({'updates:last_check':'100000'})
+        service=InstallationService(prefs)
+        self.assertTrue(service.begin_check(100001, force=True))
+        self.assertFalse(service.begin_check(100002))
+
     def test_malformed_or_future_clock_does_not_block_checks(self):
         for value in ('invalid','9999999999'):
             self.assertTrue(InstallationService(Preferences({'updates:last_check':value})).begin_check(100000))

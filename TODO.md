@@ -1,5 +1,22 @@
 # TODO
 
+## 0.4.2 — Updates, resumption and first-run instructions
+
+Isolated patch candidate based on v0.4.1. Later tester features stay on main for
+0.5.0. Package 0.4.2 is prepared; publication remains separately authorized.
+
+- [x] Carry automatic update discovery from PR #18 without tester changes.
+- [x] Exclude active/recent/selected/fallback exams from Continue working.
+- [x] Preserve exams in the catalog and curriculum progress.
+- [x] Correct the README's first-run connection requirement and offline behavior.
+- [x] Prepare package version 0.4.2 and matching user-facing notes.
+- [x] Run focused regressions: 28 dashboard and 70 installation-updates tests
+  passed; version check v0.4.2 passed. Clean package build checks are pending.
+- [ ] Review, open PR and integrate the isolated candidate into reviewed main.
+- [ ] Verify required CI/platform and exact-candidate compatibility checks.
+- [ ] Obtain separate tag/publication authorization.
+- [ ] Publish and verify PyPI/GitHub artifacts plus real update from 0.4.1.
+
 ## 0.4.1 — Correction-slot start window
 
 Status: 0.4.1 prepared; backend fix merged and deployed. Client PR/CI and final
