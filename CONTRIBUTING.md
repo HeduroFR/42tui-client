@@ -77,12 +77,14 @@ feature modules internally; keep public compatibility aliases when required.
 Use the shared `AppButton`/`AppSelect` or their localized wrappers. Preserve locale
 coverage, resource paths and account/provider/cursus context fences.
 
-Run relevant feature tests during development, then the complete suite before
-requesting review of behavioral changes:
+Run focused tests for the affected features locally before requesting review.
+The full suite runs in PR CI; running it locally is optional, not a prerequisite
+for review. Broaden local checks when useful for cross-cutting changes or failures:
 
 ```sh
 python release/regression_scopes.py --check
 python release/regression_scopes.py --scope projects
+# Optional full local run:
 python -m unittest discover -s tests
 ```
 

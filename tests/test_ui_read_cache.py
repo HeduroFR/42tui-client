@@ -40,15 +40,16 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
                 provider = Restricted()
                 app = FriendsHarness(factory, provider)
                 async with app.run_test(size=(120, 40)) as pilot:
+                    await pilot.pause()
                     app.account_connected = True
                     workspace = app.query_one(FriendsWorkspace)
                     await wait_until(lambda: app.query_one(TabbedContent).active == 'friends')
                     await workspace.reload()
-                    await wait_until(lambda: not workspace.busy)
+                    await workspace.worker.wait()
                     self.assertIn('alice', workspace.snapshots)
                     provider.restricted = True
                     workspace.start_sync(refresh=True)
-                    await wait_until(lambda: not workspace.busy)
+                    await workspace.worker.wait()
                     self.assertIn('bob', workspace.snapshots)
                     self.assertNotIn('alice', workspace.snapshots)
                     self.assertEqual({watch.login for watch in workspace.watches}, {'alice', 'bob'})
@@ -122,6 +123,22 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
             ProjectDetailsMixin.action_project_activity(app)
             await pilot.pause(.1)
             self.assertIsNot(app.screen, replaced)
+
+    async def test_pruning_activity_screen_rejects_late_rendering(self):
+        from ft_tui.features.projects.views.activity import open_project_activity
+        provider = MeasuredProvider()
+        app = ActivityHarness(provider)
+        async with app.run_test(size=(120, 40)):
+            await open_project_activity(app, 1001, 'Libft', CatalogScope(21, 31), '42', provider, 0, None)
+            screen = app.screen
+            await wait_until(lambda: screen.evaluations is not None and all(w.is_finished for w in screen.workers))
+            await app.pop_screen()
+            removal = screen.remove()
+            self.assertFalse(screen._same_account())
+            screen._check_identity()
+            self.assertFalse(screen._invalidated)
+            await removal
+            screen._show_source_status()
 
     async def test_retained_activity_reconciles_reads_completed_while_closed(self):
         from ft_tui.features.projects.views.details import ProjectDetailsMixin
@@ -211,11 +228,12 @@ class PilotReadCacheTests(unittest.IsolatedAsyncioTestCase):
             app = FriendsHarness(factory, provider)
             try:
                 async with app.run_test(size=(120, 40)) as pilot:
+                    await pilot.pause()
                     workspace = app.query_one(FriendsWorkspace)
                     app.account_connected = True
                     await wait_until(lambda: app.query_one(TabbedContent).active == 'friends')
                     await workspace.reload()
-                    await wait_until(lambda: not workspace.busy)
+                    await workspace.worker.wait()
                     workspace.selected_login = 'alice'
                     workspace._refresh_view()
                     table = workspace.query_one('#friend-projects', DataTable)
