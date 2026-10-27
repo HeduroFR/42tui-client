@@ -13,7 +13,7 @@ from textual.scroll_view import ScrollView
 from textual.strip import Strip
 
 from ft_tui.i18n import translate
-from ft_tui.features.corrections.model import interval
+from ft_tui.features.corrections.model import earliest_start, interval
 
 
 @lru_cache(maxsize=32)
@@ -152,8 +152,10 @@ class SlotsCalendar(ScrollView, can_focus=True):
         self.refresh()
         self.post_message(self.ViewChanged())
 
-    def first_row(self, day):
+    def first_row(self, day, *, adding=True):
         now = datetime.now(self.zone)
+        if adding:
+            now = earliest_start(now).astimezone(self.zone)
         date = self.week + timedelta(days=day)
         return 96 if date < now.date() else now.hour * 4 + now.minute // 15 if date == now.date() else 0
 
@@ -241,7 +243,7 @@ class SlotsCalendar(ScrollView, can_focus=True):
         candidates = self.slots_at(*cell)
         self.post_message(self.SelectionChanged(candidates[0] if len(candidates) == 1 else None))
         self.post_message(self.ViewChanged())
-        if not self.writable or self.row < self.first_row(self.day):
+        if not self.writable or self.row < self.first_row(self.day, adding=not candidates):
             return
         self.gesture = (cell, (event.x, event.y), False)
         self.capture_mouse(); self.refresh()
@@ -255,7 +257,7 @@ class SlotsCalendar(ScrollView, can_focus=True):
         moved = moved or (event.x, event.y) != position
         self.gesture = (origin, position, moved)
         preview, deleting = None, ()
-        if cell and cell[0] == origin[0] and cell[1] >= self.first_row(cell[0]):
+        if cell and cell[0] == origin[0] and cell[1] >= self.first_row(cell[0], adding=not self.slots_at(*origin)):
             try:
                 begin, end = interval(self.week + timedelta(days=origin[0]), origin[1], cell[1], self.zone)
                 existing = self.slots_at(*origin)
@@ -364,7 +366,7 @@ class SlotsCalendar(ScrollView, can_focus=True):
             candidates = self.slots_at(day, row)
             date = self.week + timedelta(days=day)
             past = date < now.date() or date == now.date() and row < now.hour * 4 + now.minute // 15
-            style = disabled if past else base
+            style = disabled if row < self.first_row(day) else base
             text = ''
             if candidates:
                 slot = candidates[0]

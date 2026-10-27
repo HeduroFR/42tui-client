@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from textual.app import App
 from textual.widgets import Static, TabbedContent, TabPane
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from ft_tui.features.corrections.views import CorrectionSlotsWorkspace, SlotEditor, SlotPicker, rounded_slot_time
 from ft_tui.ui.components import Input, Select
 from ft_tui.features.corrections.calendar import SlotsCalendar
@@ -35,6 +35,29 @@ class Harness(App):
         yield CorrectionSlotsWorkspace()
 
 class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_add_proposes_1045_at_1018_and_rechecks_before_saving(self):
+        clock = datetime(2026, 10, 26, 10, 18, tzinfo=timezone.utc)
+        with patch('ft_tui.features.corrections.views.datetime', wraps=datetime) as view_clock:
+            view_clock.now.return_value = clock
+            app = Harness()
+            async with app.run_test(size=(60, 40)) as pilot:
+                await pilot.pause()
+                ws = app.query_one(CorrectionSlotsWorkspace)
+                ws.zone = timezone.utc
+                cal = app.query_one(SlotsCalendar)
+                cal.row = 40
+                await pilot.click('#slots-add'); await pilot.pause()
+                editor = app.screen
+                self.assertIsInstance(editor, SlotEditor)
+                self.assertTrue(editor.query_one('#slot-editor-begin', Input).value.endswith('10:45'))
+                view_clock.now.return_value = clock.replace(minute=30)
+                await pilot.click('#slot-editor-publish'); await pilot.pause()
+                self.assertIs(app.screen, editor)
+                self.assertEqual(app.provider.calls, [])
+                editor.dismiss(None); await pilot.pause()
+                await ws.change(None, clock.replace(minute=45), clock.replace(hour=11, minute=15))
+                self.assertEqual(app.provider.calls, [])
+
     def test_rounding_supports_every_minute_and_day_rollover(self):
         for minute in range(60):
             rounded = rounded_slot_time(f'2026-10-26 10:{minute:02d}', timezone.utc)
