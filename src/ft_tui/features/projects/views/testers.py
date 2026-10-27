@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import subprocess
-import webbrowser
 from functools import partial
 from typing import ClassVar
 
@@ -34,13 +33,18 @@ class DockerInstallScreen(AppModal[bool]):
 
     def compose(self):
         with Vertical(id="docker-install-dialog"):
-            yield Static("Install Docker", classes="panel-title")
+            yield Static("Set up tester dependencies", classes="panel-title")
             with VerticalScroll(id="docker-install-scroll"):
-                yield Static("These commands install Docker on this computer. Commands using sudo require administrator approval.")
-                yield Static("Existing conflicting Docker packages must be resolved manually using the official instructions.")
+                user_service = all(command[0] == "systemctl" for command in self.plan.commands)
+                if user_service:
+                    yield Static("These commands start your Docker user service without administrator access.")
+                else:
+                    yield Static("These commands install Docker Desktop in your home directory without administrator access.")
+                    yield Static("Keep Docker Desktop user-level settings. Do not enable system CLI links, the default socket or privileged port mapping.")
                 yield Static(self.plan.preview(), markup=False, localize=False)
-                yield Static("On macOS, finish Docker Desktop setup and start Docker, then check access again.")
-            yield Button("Install Docker", id="confirm-docker-install")
+                if not user_service:
+                    yield Static("On macOS, finish Docker Desktop installation and setup if prompted. Tests will continue automatically.")
+            yield Button("Continue and run", id="confirm-docker-install")
             yield Button("Cancel", id="cancel-docker-install")
 
     def action_cancel(self):
@@ -86,16 +90,13 @@ class ProjectTesters(Vertical):
         self._messages: dict[str, str] = {}
         self._retry: set[str] = set()
         self._generation = 0
+        self._setup_plan = None
 
     def compose(self):
         yield Static("Testers", classes="panel-title")
         yield Static("", id="tester-catalog-warning")
         yield Static("Select a project to see testers.", id="tester-status")
         yield Vertical(id="tester-rows")
-        yield Button("Install Docker", id="tester-install-docker")
-        yield Button("Start Docker Desktop", id="tester-start-docker")
-        yield Button("Docker instructions", id="tester-docker-docs")
-        yield Button("Check Docker access again", id="tester-recheck")
 
     def on_mount(self):
         for button in self.query(Button):
@@ -127,8 +128,7 @@ class ProjectTesters(Vertical):
         # Workers may start or resume while Textual is removing our children.
         return generation == self._generation and self.is_attached and all(
             self.query(selector) for selector in (
-                "#tester-status", "#tester-rows", "#tester-install-docker",
-                "#tester-start-docker", "#tester-docker-docs", "#tester-recheck",
+                "#tester-status", "#tester-rows",
             )
         )
 
@@ -148,8 +148,7 @@ class ProjectTesters(Vertical):
         await self.query_one("#tester-rows").remove_children()
         if not self._inspection_current(generation):
             return
-        for selector in ("#tester-install-docker", "#tester-start-docker", "#tester-docker-docs", "#tester-recheck"):
-            self.query_one(selector).display = False
+        self._setup_plan = None
         if not testers:
             return
         # Avoid repeated daemon probes while moving through the project list.
@@ -159,11 +158,10 @@ class ProjectTesters(Vertical):
         status = await asyncio.to_thread(service.status)
         if not self._inspection_current(generation):
             return
-        installed = await asyncio.to_thread(lambda: {tester.id for tester in testers if service.installed(tester)}) if (
-            status.state == "ready"
-        ) else set()
+        setup_plan = await asyncio.to_thread(service.setup_plan, status)
         if not self._inspection_current(generation):
             return
+        self._setup_plan = setup_plan
         removable = await asyncio.to_thread(lambda: {tester.id for tester in testers if service.has_images(tester)}) if (
             status.state == "ready"
         ) else set()
@@ -173,28 +171,26 @@ class ProjectTesters(Vertical):
         messages = {
             "ready": "Docker is ready. Container execution and folder access are checked before each run.",
             "incompatible": "A Linux Docker engine is required.",
-            "missing": "Docker is not installed.",
-            "stopped": "Docker is not responding. Start the engine and check access again.",
-            "denied": "Docker access was denied. Check your Docker context, DOCKER_HOST and socket permissions. For rootless Docker, start your user daemon. Do not run 42TUI with sudo.",
+            "missing": "Docker is not installed. Run the tester to set it up.",
+            "stopped": "Docker is not responding. Run the tester to start or retry setup.",
+            "denied": "Docker access was denied. Select an accessible Docker context or ask school staff to enable access. 42TUI does not change permissions.",
             "unsupported": "Docker testers require Linux or macOS on amd64 or arm64.",
         }
         message = translate(messages[status.state], self.app.language)
         if status.detail:
             message += "\n" + escape(status.detail)
-        if status.state == "denied" and service.host.system == "linux":
-            message += "\n" + translate(
-                "For a system Docker Engine, an administrator can grant Docker group access: sudo usermod -aG docker <login>. Then sign out and back in.",
+        if status.state == "missing" and service.host.system == "linux":
+            message = translate(
+                "An accessible Docker engine is required on Linux. Ask school staff if Docker is missing. No system changes were made.",
                 self.app.language,
             )
-        if status.state == "ready" and not has_local_folder(project.local_path):
+        if not has_local_folder(project.local_path):
             message += "\n" + translate("Configure an existing local project folder to run tests.", self.app.language)
         self.query_one("#tester-status", Static).update(message)
         rows = self.query_one("#tester-rows")
         for tester in testers:
-            action = "run" if tester.id in installed else "install"
-            button = TesterAction(tester, action, tester.id in self._retry)
-            button.disabled = (self._operating or service.busy or status.state != "ready"
-                               or (action == "run" and not has_local_folder(project.local_path)))
+            button = TesterAction(tester, "run", tester.id in self._retry)
+            button.disabled = self._operating or service.busy or not has_local_folder(project.local_path)
             controls = [button]
             if tester.id in removable:
                 remove = TesterRemoveButton(tester, self.app.language)
@@ -207,15 +203,6 @@ class ProjectTesters(Vertical):
                 await rows.mount(Static(self._messages[tester.id]))
                 if not self._inspection_current(generation):
                     return
-        for selector, visible in (
-            ("#tester-install-docker", status.state == "missing" and service.installation() is not None),
-            ("#tester-start-docker", status.state == "stopped" and service.host.system == "darwin"),
-            ("#tester-docker-docs", status.state != "ready"),
-            ("#tester-recheck", True),
-        ):
-            button = self.query_one(selector, Button)
-            button.display = visible
-            button.disabled = self._operating or service.busy
 
     def focus_actions(self) -> None:
         """Reveal tester controls from the Projects heading or its keyboard shortcut."""
@@ -231,33 +218,29 @@ class ProjectTesters(Vertical):
         if event.button.disabled or self._operating or self.app.tester_docker.busy:
             return
         if isinstance(event.button, TesterAction):
-            self._start(event.button.tester_action, event.button.tester)
+            tester = event.button.tester
+            project_path = self.project.local_path if self.project else None
+            plan = self._setup_plan
+            if plan:
+                self.app.push_screen(
+                    DockerInstallScreen(plan),
+                    lambda approved: self._start("run", tester, plan=plan, project_path=project_path)
+                    if approved else None,
+                )
+            else:
+                self._start("run", tester, project_path=project_path)
         elif isinstance(event.button, TesterRemoveButton):
             self._start("remove", event.button.tester)
-        elif event.button.id == "tester-recheck":
-            self.set_project(self.project)
-        elif event.button.id == "tester-docker-docs":
-            host = self.app.tester_docker.host
-            url = "https://docs.docker.com/engine/install/linux-postinstall/" if (
-                getattr(self, "_docker_state", "") == "denied" and host.system == "linux"
-            ) else host.docs
-            webbrowser.open(url)
-        elif event.button.id == "tester-start-docker":
-            self._start("start-docker")
-        elif event.button.id == "tester-install-docker":
-            plan = self.app.tester_docker.installation()
-            if plan:
-                self.app.push_screen(DockerInstallScreen(plan), lambda approved: self._start("docker", plan=plan)
-                                     if approved else None)
 
-    def _start(self, action, tester=None, *, plan=None):
+    def _start(self, action, tester=None, *, plan=None, project_path=None):
         if self._operating or self.app.tester_docker.busy:
             return
         self._operating = True
         for button in self.query(Button):
             button.disabled = True
         self.query_one("#tester-status", Static).update("Tester operation in progress…")
-        project_path = self.project.local_path if self.project else None
+        if project_path is None:
+            project_path = self.project.local_path if self.project else None
         self.run_worker(partial(self._perform, action, tester, project_path, plan), group="tester-operation")
 
     async def _perform(self, action, tester, project_path, plan):
@@ -266,6 +249,7 @@ class ProjectTesters(Vertical):
         key = tester.id if tester else "docker"
         message = "Tester operation completed."
         log_path = None
+        error_detail = None
         try:
             with service.operation():
                 log_path = service.log_path(action)
@@ -273,18 +257,11 @@ class ProjectTesters(Vertical):
                 with log_path.open("wb") as log, self.app.suspend():
                     terminal = TerminalSession(log, language=language)
                     try:
-                        if action == "install":
-                            service.install(tester, terminal)
-                        elif action == "run":
-                            service.run(tester, project_path, terminal)
+                        if action == "run":
+                            service.prepare_and_run(tester, project_path, terminal, plan=plan)
                         elif action == "remove":
                             service.remove(tester, terminal)
-                            message = "Tester removed. Install it again to run tests."
-                        elif action == "docker":
-                            service.install_docker(plan, terminal)
-                            terminal.write("Finish Docker setup, then check Docker access again.")
-                        elif action == "start-docker":
-                            terminal.run(["open", "-a", "Docker"])
+                            message = "Tester removed. Run it again to reinstall and test."
                         self._retry.discard(key)
                     except (KeyboardInterrupt, EOFError):
                         message = "Tester operation interrupted. You can retry."
@@ -294,7 +271,8 @@ class ProjectTesters(Vertical):
                         message = "Tester operation failed. You can retry."
                         if action != "remove":
                             self._retry.add(key)
-                        terminal.write(str(error))
+                        error_detail = str(error)
+                        terminal.write(error_detail)
                     finally:
                         terminal.write(message)
                         terminal.write(translate("Log: {path}", language).format(path=log_path))
@@ -310,10 +288,13 @@ class ProjectTesters(Vertical):
             message = "Tester operation failed. You can retry."
             if action != "remove":
                 self._retry.add(key)
+            error_detail = str(error)
             self.app.notify(f"{translate(message, language)} {error}", severity="error")
         finally:
             self._operating = False
             text = translate(message, language)
+            if error_detail:
+                text += "\n" + escape(translate(error_detail, language))
             if log_path:
                 text += "\n" + translate("Log: {path}", language).format(path=escape(str(log_path)))
             self._messages[key] = text
