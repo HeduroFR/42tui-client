@@ -14,8 +14,11 @@ into the task branch; the release must use the frozen isolated candidate. Packag
 - [x] Run focused regressions: 28 dashboard and 70 installation-updates tests
   passed; version check v0.4.2 passed. Clean wheel/sdist content checks and
   installed-package smoke passed for the exact isolated candidate.
-- [ ] Review, open PR and integrate the isolated candidate into reviewed main.
-- [ ] Verify required CI/platform and exact-candidate compatibility checks.
+- [x] Independently review the isolated candidate and open PR #19.
+- [ ] Merge PR #19 into reviewed main, preserving the frozen candidate ancestry.
+- [x] Required CI passed all 21 jobs (40600928710); exact-candidate
+  compatibility passed all three pairs (40600874913), including supported 0.4.0.
+  The paired scenario covers synthetic friend-preview HTTP, not the entire API.
 - [ ] Obtain separate tag/publication authorization.
 - [ ] Publish and verify PyPI/GitHub artifacts plus real update from 0.4.1.
 
