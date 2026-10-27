@@ -44,6 +44,12 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-28 · no release required · GitHub roadmap:** add an undated TODO for
+  a Settings button opening the project repository and a one-time star reminder
+  remembered across app restarts. Planning only; no runtime behavior changed.
+  Checks: reviewed the roadmap entry and diff; `git diff --check` passed.
+  Reference: uncommitted. Existing 0.5.0 tester release blockers remain unchanged.
+
 - **2026-10-27 · no release required · Release regression synchronization:**
   wait for the onboarding dismiss/save callback before closing its test app,
   and for the friend-search Add button's queued ResultsChanged handler before

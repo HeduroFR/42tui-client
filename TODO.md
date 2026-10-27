@@ -82,6 +82,12 @@ exam filtering and other 0.5.0 work are outside this release.
   test the published package and update path, then advance DEV_CHANGELOG to the
   verified 0.4.1 baseline while retaining any later changes.
 
+## Undated roadmap
+
+- [ ] Add a GitHub button in Settings that opens the project's repository.
+  - Show a one-time reminder to star the project on GitHub, remembering that it
+    has been shown across app restarts.
+
 ## Distribution and documentation backlog
 
 - [ ] Add standalone Linux x64/ARM64 and macOS Intel/Apple Silicon builds to GitHub releases.
