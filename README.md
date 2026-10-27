@@ -44,8 +44,9 @@ Restart your terminal, then run:
 3. Return to 42TUI and finish setup: projects folder, editor, theme, and language.
 
 Your project list loads after connection. To change cursus, open
-**Settings → Curriculum → Default cursus**. You can skip connection and work
-with saved projects and local notes.
+**Settings → Curriculum → Default cursus**. A connected 42 account is required
+to finish first-run setup. Once setup is complete, saved projects and local notes
+remain available offline.
 
 Your password stays with 42; device credentials use your OS credential store.
 

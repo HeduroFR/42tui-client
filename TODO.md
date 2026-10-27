@@ -1,5 +1,27 @@
 # TODO
 
+## 0.4.2 — Updates, resumption and first-run instructions
+
+Isolated patch candidate `0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`, based on
+v0.4.1. Later tester features stay on main for 0.5.0. Integration merges main
+into the task branch; the release must use the frozen isolated candidate. Package 0.4.2 is prepared; publication remains separately authorized.
+
+- [x] Carry automatic update discovery from PR #18 without tester changes.
+- [x] Exclude active/recent/selected/fallback exams from Continue working.
+- [x] Preserve exams in the catalog and curriculum progress.
+- [x] Correct the README's first-run connection requirement and offline behavior.
+- [x] Prepare package version 0.4.2 and matching user-facing notes.
+- [x] Run focused regressions: 28 dashboard and 70 installation-updates tests
+  passed; version check v0.4.2 passed. Clean wheel/sdist content checks and
+  installed-package smoke passed for the exact isolated candidate.
+- [x] Independently review the isolated candidate and open PR #19.
+- [ ] Merge PR #19 into reviewed main, preserving the frozen candidate ancestry.
+- [x] Required CI passed all 21 jobs (40600928710); exact-candidate
+  compatibility passed all three pairs (40600874913), including supported 0.4.0.
+  The paired scenario covers synthetic friend-preview HTTP, not the entire API.
+- [ ] Obtain separate tag/publication authorization.
+- [ ] Publish and verify PyPI/GitHub artifacts plus real update from 0.4.1.
+
 ## 0.4.1 — Correction-slot start window
 
 Status: **published and verified** on PyPI and GitHub.

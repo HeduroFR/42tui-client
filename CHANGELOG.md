@@ -8,6 +8,17 @@
   setup installs Docker Desktop in the user's Applications folder; keep its
   user-level settings and accept Docker's terms when prompted.
 
+## 0.4.2
+
+- Check for stable updates on every launch and every 12 hours while the app
+  remains open. Re-enabling automatic updates immediately starts a check.
+- Keep exams out of Continue working suggestions, including active, recent and
+  selected exams. Exams remain available in the project catalog and progress.
+- Clarify that first-run setup requires a connected 42 account; saved projects
+  and local notes remain available offline after setup.
+
+No unreleased changes.
+
 ## 0.4.1
 
 - Fix correction-slot selection and suggested start times: at 10:18, the first

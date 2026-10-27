@@ -371,6 +371,7 @@ class SettingsMixin:
         status.update("")
 
     async def _save_settings(self) -> None:
+        updates_were_enabled = self.automatic_updates_enabled()
         root_value = self.query_one("#projects-root", Input).value.strip()
         favorite_editor = str(self.query_one("#favorite-editor", Select).value)
         favorite_subject_viewer = str(self.query_one("#subject-viewer", Select).value)
@@ -414,6 +415,8 @@ class SettingsMixin:
             return
         if values["automatic_updates"] == "false":
             self.pending_update = None
+        elif not updates_were_enabled:
+            self._start_update_check(force=True)
         self.projects_root = values["projects_root"]
         self.favorite_editor = favorite_editor
         self.favorite_subject_viewer = favorite_subject_viewer

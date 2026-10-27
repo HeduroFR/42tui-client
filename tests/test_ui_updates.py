@@ -3,7 +3,7 @@ import asyncio
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from ft_tui.db.database import make_session_factory
 from ft_tui.features.installation.adapters.runtime import Installation, UpdateService
@@ -42,11 +42,39 @@ class StartupUpdateTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(self.get('updates:last_seen_version'), '0.3.0')
             self.assertNotIsInstance(app.screen, ChangelogScreen)
             self.assertEqual(app.pending_update, '0.4.0')
-        # The persisted cooldown suppresses repeated checks, including failures.
+        # A fresh launch must discover a release even after a recent check.
         check = Mock(return_value='0.4.0')
         async with self.app(check).run_test() as pilot:
             await pilot.pause()
-            check.assert_not_called()
+            self.assertEqual(pilot.app.pending_update, '0.4.0')
+
+    async def test_periodic_check_discovers_release_without_restart(self):
+        from ft_tui.features.installation.models import CHECK_INTERVAL
+        check = Mock(return_value='0.3.0')
+        app = self.app(check)
+        with patch('ft_tui.features.installation.views.updates.CHECK_INTERVAL', 0.1), \
+                patch('ft_tui.features.installation.views.updates.time.time', return_value=100000) as clock:
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                self.assertIsNone(app.pending_update)
+                check.return_value = '0.4.0'
+                clock.return_value = 100000 + CHECK_INTERVAL
+                for _ in range(20):
+                    if app.pending_update:
+                        break
+                    await pilot.pause(0.05)
+                self.assertEqual(app.pending_update, '0.4.0')
+
+    async def test_periodic_check_respects_optout(self):
+        self.save({'automatic_updates': 'false'})
+        check = Mock(return_value='0.4.0')
+        app = self.app(check)
+        with patch('ft_tui.features.installation.views.updates.CHECK_INTERVAL', 0.1):
+            async with app.run_test() as pilot:
+                await pilot.pause(0.25)
+                self.assertIsNone(app.pending_update)
+                self.assertEqual(self.get('updates:last_check'), '')
+                check.assert_not_called()
 
     async def test_notes_are_acknowledged_only_on_dismissal(self):
         self.save({'updates:last_seen_version': '0.2.0', 'automatic_updates': 'false'})
@@ -62,7 +90,7 @@ class StartupUpdateTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_optout_no_network_and_setting_persists(self):
         self.save({'automatic_updates': 'false'})
-        check = Mock()
+        check = Mock(return_value='0.4.0')
         app = self.app(check)
         async with app.run_test() as pilot:
             await pilot.pause()
@@ -72,6 +100,11 @@ class StartupUpdateTests(unittest.IsolatedAsyncioTestCase):
             app.query_one('#automatic-updates', Select).value = 'true'
             await app._save_settings()
             self.assertEqual(self.get('automatic_updates'), 'true')
+            for _ in range(20):
+                if app.pending_update:
+                    break
+                await pilot.pause(0.05)
+            self.assertEqual(app.pending_update, '0.4.0')
             app.pending_update = '0.4.0'
             app.query_one('#automatic-updates', Select).value = 'false'
             await app._save_settings()

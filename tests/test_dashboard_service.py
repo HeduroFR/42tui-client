@@ -1,5 +1,6 @@
 """Dashboard view models compose portable values without Textual or SQLite."""
 import unittest
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from ft_tui.features.dashboard.models import DashboardProject
 from ft_tui.features.dashboard.service import DashboardService
@@ -43,6 +44,21 @@ class DashboardServiceTests(unittest.TestCase):
         self.assertEqual((model.resume.id, model.activity_label), (2, 'ACTIVE NOW'))
         model = self.compose(rows, activity={1: self.now.replace(tzinfo=None)}, selected_project_key='api:3')
         self.assertEqual((model.resume.id, model.activity_label), (1, 'RECENT ACTIVITY'))
+
+    def test_exams_are_never_resumed_even_when_active_recent_or_selected(self):
+        for data in ({'kind': 'exam', 'slug': 'exam-rank-02'},
+                     {'kind': 'project', 'slug': 'exam-rank-02'}):
+            exam = replace(project(1, 'in_progress'), catalog_data=data)
+            normal = project(2)
+            for overrides in ({'active_project_id': 1},
+                              {'activity': {1: self.now.replace(tzinfo=None)}},
+                              {'selected_project_key': 'api:1'}, {}):
+                with self.subTest(data=data, overrides=overrides):
+                    self.assertEqual(self.compose([exam, normal], **overrides).resume.id, 2)
+                    self.assertIsNone(self.compose([exam], **overrides).resume)
+            # Exams still contribute to the curriculum; only resumption is filtered.
+            exam = replace(exam, catalog_data={**normal.catalog_data, **data})
+            self.assertEqual(self.compose([exam, normal]).journey.total, 2)
 
     def test_wallet_zero_is_preserved_and_invalid_stats_are_absent(self):
         model = self.compose([], profile={'wallet': 0, 'correction_point': True, 'location': ' host '})

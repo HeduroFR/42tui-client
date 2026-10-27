@@ -1,7 +1,12 @@
 # Development changelog
 
 Latest release: **0.4.1** ([`v0.4.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.1)).
-Package version: **0.4.1**, published to PyPI and GitHub.
+Package version: **0.4.2**, prepared but not published.
+Prepared isolated patch: **0.4.2**, candidate
+`0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`, based on published v0.4.1.
+It contains only update discovery, exam resumption and onboarding instructions.
+Later tester changes remain outside that candidate for the suggested 0.5.0.
+No tag/publication is authorized by preparation.
 Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
@@ -11,6 +16,39 @@ history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and rese
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.1
+
+### Prepared 0.4.2 patch
+
+- **2026-10-28 · patch · Automatic updates:** carry only the update policy/view,
+  settings hook and tests from `ee60aa2` (PR #18). Check at every startup, every
+  12 hours while running, and immediately on re-enable. Preserve opt-out and
+  managed/development/pinned safeguards and installation after normal exit.
+- **2026-10-28 · patch · Continue working:** exclude exams before active/recent/
+  selected/fallback resumption selection. Reuse the catalog kind classifier so
+  exam-rank slugs in older snapshots are recognized. Catalog and curriculum
+  progress still include exams. The regression failed all eight scenarios before
+  the fix. No user data, API contract or backend behavior changes.
+- **2026-10-28 · patch · First-run documentation:** replace the README's obsolete
+  connection bypass instructions with required initial connection and continued
+  offline access to saved projects/notes after setup.
+- **2026-10-28 · release preparation · 0.4.2:** prepare package version, matching
+  release notes and a checklist for only these three fixes. Reference:
+  `fix/release-0.4.2`. No tag, publication or deployment performed.
+
+- **2026-10-28 · release validation · Isolated candidate:** all 28 dashboard and
+  70 installation-updates tests passed; independent review and diff checks passed.
+  Clean Git-archive wheel/sdist checks, version validation and installed-package
+  smoke passed for 0f3f4c3. Only four application files differ from v0.4.1; tester
+  code is unchanged. Merge later main for integration only, preserving its tester
+  work and validation; only DEV_CHANGELOG.md required conflict resolution.
+  Freeze 0f3f4c3 for release packaging rather than the combined branch head.
+  PR #19 CI run 40600928710 passed all 21 jobs, including supported platforms;
+  compatibility run 40600874913 passed all three exact-revision pairs with
+  backend e917aca and supported client 0.4.0. The synthetic friend-preview
+  scenario does not establish complete API coverage or live Intra acceptance.
+  Integration review/merge and separate publication authorization remain pending.
+  Update the release checklist and plan with these verified results.
+  Documentation diff checks passed.
 
 ### Changed behavior
 
