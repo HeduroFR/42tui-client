@@ -10,6 +10,17 @@ Use a one-line English Conventional Commit matching the branch prefix and reposi
 Keep credentials, .env files, user databases, browser profiles, sessions and .local/ out of Git.
 Use relative paths in shared instructions. Review the diff and run relevant checks before delivery.
 
+# Git command location
+
+Always run Git commands from the shared `42TUI/` workspace folder containing
+`42tui-client/` and `42tui-backend/`, never from inside either repository.
+Prefix every Git command for this repository with `git -C 42tui-client`.
+This applies to commands executed by agents and commands given to the user,
+including status, fetch, branch, diff, add, commit and push. Do not provide bare
+Git commands or use `cd 42tui-client` to run Git. The workspace folder is
+not a third Git repository; do not initialize one there. Non-Git setup/test commands
+still follow their documented working directories.
+
 # Delivery format
 
 For each completed feature, fix or documentation task:
@@ -19,11 +30,11 @@ For each completed feature, fix or documentation task:
   untouched repository was validated.
 - In each repository's block, summarize the change, checks actually run and any
   skipped, failed or unavailable checks. State whether files remain uncommitted.
-- If a commit remains to be created, provide executable commands selecting that
-  repository (`cd` or `git -C`), `git add <exact task files>`, and
-  `git commit -m "type(scope): description"`. Use the real paths and branch name;
-  never stage unrelated changes with `git add .` or `git add -A`.
-- Propose `git push -u origin <actual-task-branch>` for each affected repository,
+- If a commit remains to be created, provide commands executable from the workspace
+  folder: `git -C 42tui-client add <exact task files>` and
+  `git -C 42tui-client commit -m "type(scope): description"`. Use the real
+  paths and branch name; stage only task files, never the whole working tree.
+- Propose `git -C 42tui-client push -u origin <actual-task-branch>` for each affected repository,
   clearly separate from commands already executed. If changes were committed
   with authorization, report the commit and omit duplicate add/commit commands.
 - For cross-repository work, provide separate commits and push commands, identify

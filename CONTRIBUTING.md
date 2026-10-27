@@ -16,19 +16,23 @@ A convenient workspace is a parent folder containing both clones:
 └── 42tui-backend/
 ```
 
-Run Git commands inside the repository you intend to change. A client-only feature
+Always run Git commands from the shared `42TUI/` workspace folder, using
+`git -C 42tui-client ...` for this repository and `git -C 42tui-backend ...`
+for the backend. Do not run bare Git commands or initialize the parent as a repository.
+Return to the workspace folder before Git operations if you have entered a
+repository to run setup or tests. A client-only feature
 needs no backend clone. Never add sibling source imports or require the private
 backend checkout for client builds or ordinary tests.
 
-Before starting, inspect `git status --short` and preserve unrelated work. Once
+Before starting, inspect `git -C 42tui-client status --short` and preserve unrelated work. Once
 the initial migration is reviewed and `main` exists, start each task from updated
 `main` in a clean checkout:
 
 ```sh
-git fetch origin
-git switch main
-git pull --ff-only
-git switch -c feat/club-invitations
+git -C 42tui-client fetch origin
+git -C 42tui-client switch main
+git -C 42tui-client pull --ff-only
+git -C 42tui-client switch -c feat/club-invitations
 ```
 
 Use `feat/`, `fix/` or `docs/` according to the task. Reuse an existing task branch
