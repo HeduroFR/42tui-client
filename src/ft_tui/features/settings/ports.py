@@ -1,0 +1,6 @@
+"""Atomic local preference operations; no session ownership in consumers."""
+from typing import Protocol
+
+class SettingsRepository(Protocol):
+    def get(self, key: str, default: str = '') -> str: ...
+    def save(self, values: dict[str, str]) -> None: ...

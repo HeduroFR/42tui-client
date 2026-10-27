@@ -1,0 +1,6 @@
+# Python Friends workspace -> authenticated backend snapshot contract.
+simulation: friends-refresh
+routing: path
+mocks:
+  - routeKey: backend
+    path: ../mocks/friends-refresh/config.yaml

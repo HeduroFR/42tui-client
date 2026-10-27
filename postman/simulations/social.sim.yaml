@@ -1,0 +1,5 @@
+simulation: social
+routing: path
+mocks:
+  - routeKey: backend
+    path: ../mocks/social-backend/config.yaml

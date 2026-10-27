@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!nginx.conf
+!install.sh
+!install.ps1
+!install.py
+!uninstall.sh
+!index.html

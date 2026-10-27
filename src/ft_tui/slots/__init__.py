@@ -1,0 +1,1 @@
+"""Correction availability intervals."""

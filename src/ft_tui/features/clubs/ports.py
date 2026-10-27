@@ -1,0 +1,16 @@
+"""Provider capabilities used by the clubs feature, independent of transport."""
+from typing import Protocol
+
+
+class ClubsReader(Protocol):
+    def get_clubs(self, campus_id: int) -> dict: ...
+
+
+class ClubsPoller(Protocol):
+    def poll_clubs(self) -> dict: ...
+
+
+class ClubsWriter(Protocol):
+    def set_club_preferences(self, draft: dict) -> dict: ...
+    def create_club(self, draft: dict) -> dict: ...
+    def club_action(self, club_id: str, draft: dict) -> dict: ...

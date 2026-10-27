@@ -1,0 +1,31 @@
+id = "42tui-activity"
+name = "42TUI Activity"
+description = "Local coding time tracking for 42TUI."
+version = "0.1.0"
+schema_version = 1
+authors = ["42TUI contributors"]
+repository = "https://github.com/HeduroFR/42tui-client"
+
+[language_servers.42tui-activity]
+name = "42TUI Activity"
+languages = [
+  "C",
+  "C++",
+  "CSS",
+  "Dockerfile",
+  "Go",
+  "HTML",
+  "Java",
+  "JavaScript",
+  "JSON",
+  "Lua",
+  "Markdown",
+  "Python",
+  "Rust",
+  "Shell Script",
+  "SQL",
+  "TOML",
+  "TSX",
+  "TypeScript",
+  "YAML",
+]

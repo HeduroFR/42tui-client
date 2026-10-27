@@ -1,0 +1,5 @@
+simulation: oauth-session
+routing: path
+mocks:
+  - routeKey: oauth
+    path: ../mocks/oauth-session/config.yaml

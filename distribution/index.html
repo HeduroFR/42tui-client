@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install 42TUI</title>
+<main>
+<h1>Install 42TUI</h1>
+<p>A terminal workspace for École 42 students. Linux and macOS first; native Windows is experimental.</p>
+<h2>Linux and macOS</h2>
+<pre>curl -fsSL https://tui.42wip.in/install.sh | sh</pre>
+<p>The installer uses uv and obtains Python 3.12 when a compatible Python is unavailable. System Python stays in place; administrator rights are unnecessary.</p>
+<p>To select options, download the script first:</p>
+<pre>curl -fsSL https://tui.42wip.in/install.sh -o install-42tui.sh
+sh install-42tui.sh --font
+# Or: sh install-42tui.sh --version 0.2.0 --no-font --non-interactive</pre>
+<h2>Windows (PowerShell)</h2>
+<pre>powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://tui.42wip.in/install.ps1 | iex"</pre>
+<p>Use Windows Terminal. For options, save the script and execute it with PowerShell:</p>
+<pre>Invoke-WebRequest https://tui.42wip.in/install.ps1 -OutFile install-42tui.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-42tui.ps1 -Font</pre>
+<h2>After installation</h2>
+<p>Restart your terminal if needed, then run <code>42tui</code>. Font installation is optional: select <strong>JetBrainsMono Nerd Font Mono</strong> in your terminal settings. For SSH or WSL, the font belongs on the terminal host.</p>
+<pre>uv tool upgrade ft-tui
+uv tool uninstall ft-tui</pre>
+<h2>Update or uninstall</h2>
+<pre>42tui update
+42tui uninstall
+# Alias: 42tui remove</pre>
+<p>These commands use the manager that owns your current installation, without opening the TUI. Source and editable installations should be maintained with their original manager.</p>
+<p>To uninstall a production uv installation even when the app cannot start:</p>
+<pre>curl -fsSL https://tui.42wip.in/uninstall.sh | sh</pre>
+<p>The uninstaller keeps application data, account credentials, fonts, shell PATH configuration, Python and uv. For pipx installations use <code>pipx uninstall ft-tui</code>.</p>
+<p>Uninstall keeps your application data. Existing pipx or development installations require explicit migration; the installer will explain any command conflict.</p>
+<p>Installation needs internet access and a writable home directory. Python tooling cannot bypass campus execution policies.</p>
+<p><a href="https://github.com/HeduroFR/42tui-client">Source and documentation</a> · <a href="https://github.com/HeduroFR/42tui-client/releases">Releases</a></p>
+</main>
+</html>

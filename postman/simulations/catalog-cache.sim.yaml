@@ -1,0 +1,5 @@
+simulation: catalog-cache
+routing: path
+mocks:
+  - routeKey: backend
+    path: ../mocks/catalog-cache/config.yaml

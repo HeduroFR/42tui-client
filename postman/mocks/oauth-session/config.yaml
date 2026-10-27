@@ -1,0 +1,6 @@
+version: 1
+name: oauth-session
+interceptRequests: true
+scenarios:
+  - name: default
+    path: default.js

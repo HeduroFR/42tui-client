@@ -1,0 +1,9 @@
+"""Provider capabilities required by correction availability."""
+from datetime import datetime
+from typing import Protocol
+from .model import Slot
+
+class CorrectionsProvider(Protocol):
+    def get_correction_slots(self, begin: datetime, end: datetime) -> dict: ...
+    def save_correction_slot(self, slot: Slot | None, begin: datetime, end: datetime): ...
+    def delete_correction_slot(self, slot: Slot): ...

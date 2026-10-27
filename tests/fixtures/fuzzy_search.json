@@ -1,0 +1,22 @@
+[
+  {"query":"", "fields":["alice"], "score":0},
+  {"query":"   ", "fields":["alice"], "score":0},
+  {"query":"ALICE", "fields":["alice"], "score":0},
+  {"query":"ali", "fields":["alice"], "score":10},
+  {"query":"lic", "fields":["alice"], "score":20},
+  {"query":"ace", "fields":["alice"], "score":32},
+  {"query":"ailce", "fields":["alice"], "score":51},
+  {"query":"alce", "fields":["alice"], "score":31},
+  {"query":"minsihell", "fields":["minishell"], "score":51},
+  {"query":"pswp", "fields":["push_swap"], "score":34},
+  {"query":"swap push", "fields":["push_swap"], "score":0},
+  {"query":"jose paris", "fields":["José García", "Paris"], "score":0},
+  {"query":"garcia jose", "fields":["José García"], "score":0},
+  {"query":"strasse", "fields":["Straße"], "score":0},
+  {"query":"σ", "fields":["ς"], "score":0},
+  {"query":"東京", "fields":["東京"], "score":0},
+  {"query":"---", "fields":["alice"], "score":null},
+  {"query":"zz", "fields":["alice"], "score":null},
+  {"query":"alic tokyo", "fields":["alice", "Paris"], "score":null},
+  {"query":"unrelated", "fields":["minishell"], "score":null}
+]

@@ -1,0 +1,40 @@
+{
+  "name": "42tui-activity",
+  "displayName": "42TUI Activity",
+  "description": "Send local editor activity to 42TUI.",
+  "version": "0.1.0",
+  "publisher": "42tui",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "42TUI Activity",
+      "properties": {
+        "42tui.cliPath": {
+          "type": "string",
+          "default": "42tui",
+          "description": "Path to the 42TUI executable. It must be available on PATH or set this to its absolute path."
+        },
+        "42tui.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable local editor activity heartbeats."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  }
+}
