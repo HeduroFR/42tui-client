@@ -2,25 +2,30 @@
 
 ## 0.4.2 — Updates, resumption and first-run instructions
 
-Isolated patch candidate `0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`, based on
-v0.4.1. Later tester features stay on main for 0.5.0. Integration merges main
-into the task branch; the release must use the frozen isolated candidate. Package 0.4.2 is prepared; publication remains separately authorized.
+Status: **published and verified** on PyPI and GitHub.
+Tag `v0.4.2` points to isolated candidate
+`0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`, based on v0.4.1.
+PR #19 merged as `b758138`, preserving candidate ancestry and later tester work
+on main for 0.5.0. Release workflow `40603624612` succeeded.
 
 - [x] Carry automatic update discovery from PR #18 without tester changes.
 - [x] Exclude active/recent/selected/fallback exams from Continue working.
 - [x] Preserve exams in the catalog and curriculum progress.
 - [x] Correct the README's first-run connection requirement and offline behavior.
 - [x] Prepare package version 0.4.2 and matching user-facing notes.
-- [x] Run focused regressions: 28 dashboard and 70 installation-updates tests
-  passed; version check v0.4.2 passed. Clean wheel/sdist content checks and
-  installed-package smoke passed for the exact isolated candidate.
-- [x] Independently review the isolated candidate and open PR #19.
-- [ ] Merge PR #19 into reviewed main, preserving the frozen candidate ancestry.
-- [x] Required CI passed all 21 jobs (40600928710); exact-candidate
-  compatibility passed all three pairs (40600874913), including supported 0.4.0.
+- [x] Focused regressions: 28 dashboard and 70 installation-updates tests passed;
+  clean archived package/version/installed smoke checks passed.
+- [x] Independent review, PR #19 and main integration; superseded PR #18 closed.
+- [x] Final PR CI passed all 21 jobs (40602985868); exact-candidate compatibility
+  passed all three pairs (40600874913), including supported client 0.4.0.
   The paired scenario covers synthetic friend-preview HTTP, not the entire API.
-- [ ] Obtain separate tag/publication authorization.
-- [ ] Publish and verify PyPI/GitHub artifacts plus real update from 0.4.1.
+- [x] Obtain separate authorization and push v0.4.2 on the exact isolated candidate.
+- [x] Tag workflow passed all release checks and published to PyPI/GitHub.
+- [x] Verify all seven GitHub assets/checksums and exact byte equality of PyPI and
+  GitHub distributions against original CI artifacts.
+- [x] Run actual `42tui update` from 0.4.1 to 0.4.2 in disposable unpinned uv tools;
+  preserve local test data and pass installed-package CLI/resource smoke.
+- [x] Advance DEV_CHANGELOG baseline to 0.4.2, retaining unreleased 0.5.0 tester work.
 
 ## 0.4.1 — Correction-slot start window
 
