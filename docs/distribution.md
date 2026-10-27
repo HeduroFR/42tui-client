@@ -1,7 +1,7 @@
 # Distribution operations
 
-The Python package is `ft-tui`; 0.4.0 is prepared but not yet published. The latest
-confirmed stable release remains 0.3.0. This client repository owns publication
+The Python package is `ft-tui`; the latest confirmed stable release is 0.4.0,
+published to PyPI and GitHub. This client repository owns publication
 through `.github/workflows/release.yml`. Only explicitly authorized stable release
 tags publish packages; ordinary branch pushes do not publish.
 
@@ -22,7 +22,7 @@ PyPI Trusted Publishing must match GitHub owner
 The maintainer confirmed the PyPI configuration during the release cutover.
 The GitHub `pypi` environment permits only tags matching `v*`; the workflow also
 checks the exact stable version, release notes and main ancestry before publishing.
-The first successful publish verifies the end-to-end OIDC authorization.
+The 0.4.0 publication verified the end-to-end OIDC authorization.
 Preserve PyPI package ownership, protect main and stable tags, and retain original
 release artifacts. Published versions are immutable: never republish 0.3.0 merely
 to populate the new repository. New backend deployments are independent.
@@ -37,6 +37,11 @@ pushing that tag triggers package publication through the release workflow.
 Installer helper bytes and embedded SHA-256 checks are unchanged by the split.
 After any future helper edit, run `python release/installer_hashes.py --write`
 and review all entry points together. Package and installer rollback are distinct.
+
+If publication stops after uploading to PyPI, retain the tag and original CI
+artifacts and rerun only the failed job in the same workflow run. A newly created
+GitHub draft can briefly be invisible to a follow-up lookup; retrying resumes it.
+Do not rebuild or overwrite distributions for an already published version.
 
 ## Development changelog
 

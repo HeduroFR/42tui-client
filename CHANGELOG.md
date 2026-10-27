@@ -5,7 +5,7 @@
 No unreleased changes.
 
 See [DEV_CHANGELOG.md](DEV_CHANGELOG.md) for the development record and release
-readiness. The 0.4.0 notes below are prepared for publication.
+readiness.
 
 ## 0.4.0
 
