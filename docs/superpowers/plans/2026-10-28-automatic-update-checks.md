@@ -16,3 +16,16 @@ Keep current managed-install protections and post-exit installation unchanged.
   the installation-updates scope. Update CHANGELOG.md and DEV_CHANGELOG.md.
 
 No API, dependencies, installer, package version or release changes are required.
+
+## 0.5.0 integration status
+
+Implemented in `ee60aa2` on `fix/automatic-update-checks`. DEV_CHANGELOG.md records
+70 installation-updates tests and 2 settings UI tests passed, scope ownership,
+whitespace checks and read-only review. These are focused checks, not a final
+release-candidate validation.
+
+This fix belongs to the agreed 0.5.0 testers/update-reliability scope in
+[the roadmap](../../../TODO.md#050--testers-and-update-reliability). Main integration
+and required PR/release checks remain pending. Keep its user-facing Unreleased
+notes alongside the tester notes. Native tester validation remains a separate
+release blocker; no new backend/API change is required.

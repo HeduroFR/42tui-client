@@ -1,5 +1,44 @@
 # TODO
 
+## 0.5.0 — Testers and update reliability
+
+Status: **scope agreed; release preparation pending**. Latest published stable
+release remains 0.4.1. This roadmap does not bump the package version or authorize
+publication.
+
+| Item | Integration status | 0.5.0 scope |
+| --- | --- | --- |
+| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
+| Stable update check on every startup, then every 12 hours while running | Implemented in `ee60aa2` on `fix/automatic-update-checks`; 70 update tests and 2 settings UI tests recorded as passed | Include; main integration and final candidate validation pending |
+| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| GitHub button in Settings and persistent one-time star reminder | Planning only on `docs/github-roadmap` | Deferred beyond 0.5.0 |
+
+### Integration and release checklist
+
+- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
+  and French/Spanish translations.
+- [x] Implement and locally validate update reliability in `ee60aa2`: check on
+  every stable startup despite a recent check, repeat every 12 hours and check
+  immediately when automatic updates are re-enabled. Preserve opt-out, offline
+  behavior, managed-install protections and post-exit installation. The development
+  log records 70 installation-updates tests, 2 settings UI tests and read-only review.
+- [ ] Integrate `fix/automatic-update-checks` into main after required PR checks.
+- [x] Record both features' user-facing notes in CHANGELOG.md and validation
+  records in DEV_CHANGELOG.md on this branch; preserve them through integration.
+- [ ] Validate real tester setup, image build and execution on school Linux with
+  accessible Docker/BuildKit and on native macOS, including installation/retry.
+- [ ] Run the tester and installation-updates regression scopes and required CI
+  on the exact integrated release candidate; verify locale coverage.
+- [ ] Complete package/version/installer checks and the compatibility checks
+  required by [API compatibility](docs/api-compatibility.md), recording exact
+  revisions and healthy deployed-backend evidence where required. No new backend
+  feature, schema migration or API change is required by this scope.
+- [ ] Prepare the 0.5.0 version and final release notes after review, then obtain
+  separate publication authorization and verify published artifacts/update path.
+
+Standalone binaries, a broader README redesign and the complete keyboard/keymap
+redesign are separate future work; they do not expand this release's scope.
+
 ## 0.4.1 — Correction-slot start window
 
 Status: **published and verified** on PyPI and GitHub.
@@ -86,6 +125,32 @@ Verification evidence: all seven GitHub release assets match SHA256SUMS; wheel
 and sdist are byte-identical to release CI artifacts and PyPI digests. Actual
 `42tui update` upgraded a disposable uv installation from 0.4.0 to 0.4.1 and the
 installed CLI/resources passed smoke checks. No live Intra write was performed.
+
+## Future major milestone — Complete keyboard navigation and keymaps redesign
+
+Status: **planned, version and date undecided**. This is a dedicated future
+milestone, outside the current 0.5.0 scope. Schedule it when the main screens and
+user journeys have settled, before extending inconsistent keyboard conventions
+to more features. Reassess the timing during each release planning cycle; do not
+wait for an arbitrary version number.
+
+- [ ] Audit navigation and bindings across every screen, pane and dialog,
+  including actions currently requiring a mouse and terminal key conflicts.
+- [ ] Redesign the keyboard interaction model and keymaps together: consistent
+  movement, pane switching, search, primary actions, back/cancel and shortcuts.
+- [ ] Make focus predictable on entry, after dialogs and after background refreshes;
+  preserve text entry and accessible, visible focus throughout the app.
+- [ ] Keep contextual help, shortcut hints and the command palette aligned with
+  the actual available bindings, so users can discover actions without memorizing
+  the entire keymap.
+- [ ] Plan the transition for existing users: document changed shortcuts, retain
+  compatible aliases where possible and explain unavoidable breaking changes.
+- [ ] Validate the main journeys without a mouse, including small terminals,
+  supported platforms and regression tests for focus, bindings and navigation.
+
+Treat this as a major user-experience change. Choose the package version at
+scoping time using the current pre-1.0/release policy; do not reserve 1.0.0,
+5.0.0 or 7.0.0 solely for this work. No API major change is implied.
 
 ## Distribution and documentation backlog
 

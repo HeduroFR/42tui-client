@@ -2,7 +2,10 @@
 
 Latest release: **0.4.1** ([`v0.4.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.1)).
 Package version: **0.4.1**, published to PyPI and GitHub.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
+Suggested next release: **0.5.0** (minor), focused on testers and update
+reliability. Tester setup is merged; automatic-update checks are implemented in
+`ee60aa2` on `fix/automatic-update-checks`, with focused validation recorded below.
+Main integration and final candidate validation remain. See [TODO.md](TODO.md).
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
 
@@ -37,7 +40,7 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   before accepting results. Keep post-exit installation, managed-tool detection,
   development/pinned protections and offline failure behavior unchanged.
   Regression tests first reproduced both suppressed relaunch and missing periodic
-  detection. Reference: `fix/automatic-update-checks`.
+  detection. Reference: `ee60aa2` (`fix/automatic-update-checks`).
   Validation: all 70 installation-updates scope tests passed; scope ownership
   and diff whitespace checks passed; 2 campus-settings UI tests passed.
   Independent read-only review passed. Live PyPI lookup returned 0.4.1. No release
@@ -46,6 +49,20 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   alone is patch-sized (0.4.2 if released separately without tester changes).
 
 ### Internal changes and documentation
+
+- **2026-10-28 · no release required · Roadmap alignment:** bring the agreed
+  0.5.0 scope and future keyboard-navigation milestone onto
+  `fix/automatic-update-checks` from roadmap commits `3ebcf07` and `80ea4b9`.
+  Replace the stale uncommitted-update status with implemented commit `ee60aa2`
+  and its recorded focused validation; separate completed implementation/notes
+  from pending main integration, native tester checks and final candidate CI.
+  Keep GitHub/star reminder, standalone binaries and broader README work deferred.
+  Reference: uncommitted documentation on `fix/automatic-update-checks`.
+  Checks: documentation diff, relative links and whitespace reviewed; existing
+  behavioral test results retained as recorded evidence, not rerun for this task.
+  Release impact: no release required for this planning change. The accumulated
+  tester feature and update fix merit 0.5.0 preparation; main integration, native
+  tester validation and final release-candidate checks still block publication.
 
 - **2026-10-27 · no release required · Verified 0.4.1 publication:** publish the
   isolated correction-slot candidate `30e124509489c5017cacc5320ecc7f23ab395273`
@@ -74,8 +91,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
-The 0.4.1 publication is verified. Pending release work belongs to 0.5.0 tester
-setup; the successful patch release does not validate native tester installation.
+The 0.4.1 publication is verified. The 0.5.0 scope covers tester setup and update
+reliability. The update fix is implemented and locally validated in `ee60aa2`,
+but still requires main integration and final candidate checks. The successful
+patch release does not validate native tester installation. See
+[the 0.5.0 checklist](TODO.md#050--testers-and-update-reliability).
 
 ### Tester setup validation (2026-10-27)
 
