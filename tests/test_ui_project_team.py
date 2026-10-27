@@ -1,5 +1,6 @@
 import copy
 import unittest
+from time import monotonic
 from textual.app import App
 from textual.widgets import Input, Static
 from textual.screen import ModalScreen
@@ -107,21 +108,35 @@ class TeamTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(80, 35)) as pilot:
             await pilot.pause(); await pilot.pause()
             screen = app.screen
+            save = screen.query_one('#team-save', Button)
+
+            async def click_save():
+                # Textual ignores clicks while its active-feedback timer is
+                # running. UI idleness alone does not wait for that timer.
+                deadline = monotonic() + 10
+                while save.has_class('-active') or screen.busy:
+                    self.assertLess(monotonic(), deadline, 'Team save never became interactive')
+                    await pilot.pause(.01)
+                self.assertFalse(save.disabled)
+                self.assertTrue(await pilot.click(save))
+                await screen.workers.wait_for_complete()
+                await pilot.pause()
+
             self.assertIsNone(screen.selected)
             self.assertFalse(screen.query_one('#team-invitations').display)
             self.assertEqual(screen.query_one('#team-name', Input).value, "me's team")
             screen.query_one('#team-name', Input).value = ''
-            await pilot.click('#team-save'); await pilot.pause()
+            await click_save()
             self.assertFalse(app.provider.calls)
             self.assertTrue(screen.query_one('#team-form-error', Static).display)
             screen.query_one('#team-name', Input).value = 'Our new team'
-            await pilot.click('#team-save'); await pilot.pause(); await pilot.pause()
+            await click_save()
             self.assertEqual(app.provider.calls, [{'action': 'save', 'team_id': None,
                                                    'name': 'Our new team', 'invite_ids': []}])
             self.assertTrue(screen.query_one('#team-invitations').display)
             screen.choose(FriendSuggestions.Chosen({'user_id': '43', 'login': 'mate'}))
             await pilot.press('enter'); await pilot.pause()
-            await pilot.click('#team-save'); await pilot.pause(); await pilot.pause()
+            await click_save()
             self.assertEqual(app.provider.calls[-1], {'action': 'save', 'team_id': 8,
                                                      'name': 'Our new team', 'invite_ids': [43]})
             self.assertEqual(screen.selected, 8)
