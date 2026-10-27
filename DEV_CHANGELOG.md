@@ -28,6 +28,12 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Fixes
 
+- **2026-10-27 · patch · Cached UI lifecycle:** reject activity renders as soon as
+  Textual starts removing the screen, and skip status updates after removal.
+  Make Friends cache tests wait for tab readiness and the actual sync worker
+  instead of an initial idle flag. Reproduced the activity crash in repeated
+  local runs; the deterministic removal regression failed before the fix.
+  Reference: PR #7 (`feat/version-title`). Final checks recorded below.
 - **2026-10-27 · patch · Friend search:** refresh readiness/status when suggestion
   results change independently of the highlighted row. Reference: `682f4f4`.
 - **2026-10-27 · patch · Installation website:** redirect `/github` to the new
@@ -74,6 +80,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
+- Cached UI lifecycle fix: **90 release-tooling scope tests, 9 project activity
+  tests and 4 friend-project preview tests passed**. All 8 cache UI tests passed
+  in **10 consecutive runs** after the original activity crash reproduced on
+  the third pre-fix run. The deterministic pruning regression failed before
+  the fix. Diff checks passed; the full suite is left to PR CI.
 - Header change: **4 focused locale/header tests passed**, including installed,
   alpha, beta, RC and final version strings across all supported languages and
   connection states. Regression-scope ownership and diff checks passed; a

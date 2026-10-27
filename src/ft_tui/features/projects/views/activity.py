@@ -182,7 +182,8 @@ class ProjectActivityScreen(Screen):
             self.query_one('#activity-body').set_class(event.size.width < 90, 'compact')
 
     def _same_account(self):
-        return (self._alive and self.is_attached and not self._invalidated
+        # Textual hides pruning screens before detaching their children or sending Unmount.
+        return (self._alive and self.display and self.is_attached and not self._invalidated
                 and self._current_scope()
                 and getattr(self.app, 'provider', None) is self.provider
                 and getattr(self.app, 'account_id', None) == self.account_id
@@ -219,7 +220,7 @@ class ProjectActivityScreen(Screen):
         return False
 
     def _check_identity(self):
-        if not self._alive or not self.is_mounted:
+        if not self._alive or not self.is_mounted or not self.display:
             return
         if not self._same_account() and not self._invalidated:
             self._invalidate('Account changed. Close this screen and reopen it.')
@@ -227,6 +228,8 @@ class ProjectActivityScreen(Screen):
             self._show_source_status()
 
     def _show_source_status(self):
+        if not self._same_account():
+            return
         language = getattr(self.app, 'language', 'en')
         if self.history:
             status = source_text('Attempts', self.history['source'], language)

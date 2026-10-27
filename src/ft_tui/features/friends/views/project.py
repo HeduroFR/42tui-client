@@ -178,7 +178,8 @@ class FriendProjectPreview(ProjectActivityScreen, AppModal):
 
     def _show_source_status(self):
         super()._show_source_status()
-        if self.history and not self.history['teams'] and self.history['source']['status']=='available' and not self.history['source']['stale']:
+        if (self._same_account() and self.history and not self.history['teams']
+                and self.history['source']['status'] == 'available' and not self.history['source']['stale']):
             self.query_one('#activity-status', Static).update(self.t('No evaluation team for this attempt.'))
 
     async def _display_history(self, value, epoch, previous=None):
