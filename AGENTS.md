@@ -1,5 +1,9 @@
 # Collaboration
 
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before implementing changes.
+For API, version or rollout changes, also read [API compatibility](docs/api-compatibility.md).
+Do not release a dependent client until its exact revision is tested with the backend and the required backend is verified deployed. Auto-update does not eliminate older supported clients.
+
 Preserve unrelated local work. Use dedicated feat/, fix/ or docs/ branches and pull requests to main.
 Do not commit, push, tag, publish, deploy or change repository visibility without authorization.
 Use a one-line English Conventional Commit matching the branch prefix.

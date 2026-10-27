@@ -133,6 +133,10 @@ link and documented-command review rather than a full behavioral test run.
    consuming client. Preserve old routes for rollback. Breaking API behavior needs
    a new API major and an overlap period, not a simultaneous mandatory upgrade.
 
+The private backend coordinator performs manually selected pinned-pair checks; see
+[API compatibility](docs/api-compatibility.md#cross-repository-verification-and-failed-deployments).
+Keep public CI independent of private backend access.
+
 ## Review, releases and private data
 
 Use one-line English Conventional Commits matching the branch prefix, for example
