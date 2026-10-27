@@ -191,13 +191,13 @@ class TesterDockerTests(unittest.TestCase):
                 patch.object(self.service, "_cleanup"):
             self.service.install(self.tester, terminal)
         calls = [call.args[0] for call in terminal.run.call_args_list]
-        self.assertIn(self.tester.ref, calls[2])
-        self.assertEqual(calls[4][:4], ["docker", "build", "--platform", "linux/amd64"])
-        self.assertEqual(calls[5][:3], ["docker", "image", "tag"])
+        self.assertEqual(calls[0][-1], f"{self.tester.repository}#{self.tester.ref}")
+        self.assertEqual(calls[0][:4], ["docker", "build", "--platform", "linux/amd64"])
+        self.assertEqual(calls[1][:3], ["docker", "image", "tag"])
         self.assertFalse(any("install.sh" in " ".join(args) for args in calls))
 
     def test_network_build_failure_and_interrupt_never_publish_install(self):
-        for failure_at in ("fetch", "build", "tag"):
+        for failure_at in ("build", "tag"):
             for failure in (OSError("network unavailable"), subprocess.CalledProcessError(1, "docker"), KeyboardInterrupt()):
                 with self.subTest(step=failure_at, failure=type(failure)):
                     terminal = Mock()
@@ -208,15 +208,14 @@ class TesterDockerTests(unittest.TestCase):
                     with patch.object(self.service, "_require_ready", return_value="docker"), \
                             patch.object(self.service, "installed", side_effect=[False, True]), \
                             patch.object(self.service, "_cleanup") as cleanup:
-                        expected = TesterError if isinstance(failure, subprocess.CalledProcessError) and failure_at != "fetch" else type(failure)
+                        expected = TesterError if isinstance(failure, subprocess.CalledProcessError) else type(failure)
                         with self.assertRaises(expected):
                             self.service.install(self.tester, terminal)
                         calls = [call.args[0] for call in terminal.run.call_args_list]
-                        if failure_at in {"fetch", "build"}:
+                        if failure_at == "build":
                             self.assertFalse(any("tag" in args for args in calls))
-                        if failure_at != "fetch":
-                            cleanup.assert_called_once()
-                            self.assertNotEqual(cleanup.call_args.args[0][-1], self.tester.image)
+                        cleanup.assert_called_once()
+                        self.assertNotEqual(cleanup.call_args.args[0][-1], self.tester.image)
 
     def test_run_keeps_spaces_quotes_and_shell_arguments_and_cleans_interruption(self):
         project = self.root / 'my project, "quoted" $(touch nope)'
@@ -257,26 +256,16 @@ class TesterDockerTests(unittest.TestCase):
             self.assertTrue(self.service.busy)
         self.assertFalse(self.service.busy)
 
-    def test_docker_installation_plans_are_platform_specific_and_not_executed(self):
-        for host, supported in ((Host("linux", "amd64", "ubuntu", "noble"), True),
-                                (Host("linux", "arm64", "debian", "trixie"), True),
-                                (Host("linux", "amd64", "ubuntu", "old"), False),
-                                (Host("linux", "amd64", "arch", ""), False),
-                                (Host("win32", "amd64"), False)):
-            service = TesterDocker(self.root, host)
-            plan = service.installation()
-            self.assertEqual(plan is not None, supported)
-            if plan:
-                self.assertIn(f"https://download.docker.com/linux/{host.distribution}", plan.source)
-                self.assertTrue(all(command[0] == "sudo" for command in plan.commands))
+    def test_docker_installation_plans_are_user_only_and_not_executed(self):
+        for host in (Host("linux", "amd64", "ubuntu", "noble"), Host("linux", "arm64", "debian", "trixie"),
+                     Host("win32", "amd64"), Host("darwin", "riscv64")):
+            self.assertIsNone(TesterDocker(self.root, host).installation())
         for architecture in ("amd64", "arm64"):
             service = TesterDocker(self.root, Host("darwin", architecture))
-            with patch("ft_tui.features.projects.adapters.tester_docker.shutil.which", return_value=None):
-                plan = service.installation()
-                self.assertIn(f"/mac/main/{architecture}/Docker.dmg", plan.commands[0][-1])
-                self.assertEqual(plan.commands[-1][0], "open")
-            with patch("ft_tui.features.projects.adapters.tester_docker.shutil.which", return_value="/opt/homebrew/bin/brew"):
-                self.assertEqual(service.installation().commands[0][1:], ("install", "--cask", "docker-desktop"))
+            plan = service.installation()
+            self.assertIn(f"/mac/main/{architecture}/Docker.dmg", plan.commands[0][-1])
+            self.assertEqual(plan.commands[-1], ("open", str(Path.home() / "Applications/Docker.app")))
+            self.assertTrue(all(command[0] != "sudo" for command in (*plan.commands, *plan.cleanup)))
 
     def test_mac_cli_discovery_without_path_changes(self):
         service = TesterDocker(self.root, Host("darwin", "arm64"))
@@ -566,3 +555,300 @@ class DockerConnectionTests(unittest.TestCase):
         plan = self.service.installation()
         self.service.install_docker(plan, terminal)
         terminal.run.assert_not_called()
+
+
+class TesterAutomaticSetupTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
+        self.tester = load_catalog(self.root / 'absent').testers[0]
+        self.terminal = Mock()
+        desktop = patch.object(self.service, '_desktop_installed', return_value=True)
+        desktop.start()
+        self.addCleanup(desktop.stop)
+
+    def test_run_installs_missing_image_and_uses_one_connection(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        with (patch.object(self.service, 'status', return_value=DockerStatus('ready')),
+              patch.object(self.service, 'connection', side_effect=nullcontext) as connection,
+              patch.object(self.service, '_install') as install,
+              patch.object(self.service, '_run_tester') as run):
+            self.service.prepare_and_run(self.tester, str(self.root), self.terminal)
+        connection.assert_called_once()
+        install.assert_called_once_with(self.tester, self.terminal)
+        run.assert_called_once_with(self.tester, str(self.root), self.terminal)
+
+    def test_missing_folder_prevents_all_setup(self):
+        with patch.object(self.service, 'status') as status, self.assertRaisesRegex(TesterError, 'local project folder'):
+            self.service.prepare_and_run(self.tester, str(self.root / 'absent'), self.terminal)
+        status.assert_not_called()
+        self.terminal.run.assert_not_called()
+
+    def test_mac_missing_docker_requires_approved_plan(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        with patch.object(self.service, 'status', return_value=DockerStatus('missing')):
+            with self.assertRaisesRegex(TesterError, 'approval'):
+                self.service.prepare_and_run(self.tester, str(self.root), self.terminal)
+        self.terminal.run.assert_not_called()
+
+    def test_approved_mac_install_continues_to_run(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        plan = self.service.installation()
+        with (patch.object(self.service, 'status', side_effect=[DockerStatus('missing'), DockerStatus('ready')]),
+              patch.object(self.service, 'install_docker') as install_docker,
+              patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_install'), patch.object(self.service, '_run_tester') as run):
+            self.service.prepare_and_run(self.tester, str(self.root), self.terminal, plan=plan)
+        install_docker.assert_called_once_with(plan, self.terminal)
+        run.assert_called_once()
+
+    def test_desktop_starts_and_waits_before_running(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        with (patch.object(self.service, 'status', side_effect=[DockerStatus('stopped'), DockerStatus('ready')]),
+              patch.object(self.service, '_docker_endpoint', return_value='unix:///Users/test/.docker/run/docker.sock'),
+              patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_install'), patch.object(self.service, '_run_tester') as run,
+              patch('ft_tui.features.projects.adapters.tester_docker.time.sleep')):
+            self.service.prepare_and_run(self.tester, str(self.root), self.terminal)
+        self.terminal.run.assert_called_once_with(['open', '-a', 'Docker'])
+        run.assert_called_once()
+
+    def test_timeout_and_denied_access_never_build_or_run(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        for state in ('stopped', 'denied', 'incompatible'):
+            with (self.subTest(state=state),
+                  patch.object(self.service, 'status', return_value=DockerStatus(state)),
+                  patch.object(self.service, '_docker_endpoint', return_value='unix:///Users/test/.docker/run/docker.sock'),
+                  patch.object(self.service, '_install') as install,
+                  patch.object(self.service, '_run_tester') as run,
+                  patch('ft_tui.features.projects.adapters.tester_docker.time.monotonic', side_effect=[0, 181]),
+                  self.assertRaises(TesterError)):
+                self.service.prepare_and_run(self.tester, str(self.root), self.terminal)
+            install.assert_not_called()
+            run.assert_not_called()
+
+    def test_linux_startup_plan_respects_remote_and_rootless_contexts(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        for endpoint, expected in [
+            ('ssh://remote', None), ('tcp://localhost:2376', None), ('unix:///var/run/docker.sock', None),
+            (f'unix:///run/user/{os.getuid()}/docker.sock', ('systemctl', '--user', 'start', 'docker')),
+        ]:
+            with (self.subTest(endpoint=endpoint),
+                  patch.dict(os.environ, {'DOCKER_HOST': endpoint, 'DOCKER_CONTEXT': ''})):
+                plan = self.service.setup_plan(DockerStatus('stopped'))
+                self.assertEqual(plan.commands[0] if plan else None, expected)
+
+    def test_setup_interruption_never_runs_tester(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        plan = self.service.installation()
+        with (patch.object(self.service, 'status', return_value=DockerStatus('missing')),
+              patch.object(self.service, 'install_docker', side_effect=KeyboardInterrupt),
+              patch.object(self.service, '_run_tester') as run, self.assertRaises(KeyboardInterrupt)):
+            self.service.prepare_and_run(self.tester, str(self.root), self.terminal, plan=plan)
+        run.assert_not_called()
+
+    def test_mac_dmg_detaches_even_after_copy_failure(self):
+        self.service.host = Host('darwin', 'arm64')
+        plan = self.service.installation()
+        def run(command):
+            if command[0] == 'ditto':
+                raise subprocess.CalledProcessError(1, command)
+        self.terminal.run.side_effect = run
+        with (patch.object(self.service, '_desktop_installed', return_value=False),
+              self.assertRaises(subprocess.CalledProcessError)):
+            self.service.install_docker(plan, self.terminal)
+        self.assertTrue(any('detach' in call.args[0] for call in self.terminal.run.call_args_list))
+
+    def test_remote_mac_context_never_starts_local_desktop(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        with (patch.object(self.service, 'status', return_value=DockerStatus('stopped')),
+              patch.dict(os.environ, {'DOCKER_HOST': 'ssh://remote', 'DOCKER_CONTEXT': ''}),
+              self.assertRaisesRegex(TesterError, 'selected context')):
+            self.service.prepare_and_run(self.tester, str(self.root), self.terminal)
+        self.terminal.run.assert_not_called()
+
+    def test_standalone_mac_cli_still_offers_desktop_installation(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.service.host = Host('darwin', 'arm64')
+        with (patch.object(self.service, '_desktop_installed', return_value=False),
+              patch.object(self.service, '_docker_endpoint', return_value='unix:///var/run/docker.sock'),
+              patch.object(self.service, 'installation') as installation):
+            self.assertIs(self.service.setup_plan(DockerStatus('stopped')), installation.return_value)
+            self.service.status = Mock(side_effect=[DockerStatus('stopped'), DockerStatus('ready')])
+            with (patch.object(self.service, 'install_docker') as install,
+                  patch.object(self.service, 'connection', side_effect=nullcontext),
+                  patch.object(self.service, '_install'), patch.object(self.service, '_run_tester') as run):
+                self.service.prepare_and_run(self.tester, str(self.root), self.terminal, plan=installation.return_value)
+            install.assert_called_once()
+            run.assert_called_once()
+
+
+class TesterUnprivilegedTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.tester = load_catalog(self.root / 'absent.toml').testers[0]
+        self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
+
+    def test_linux_never_offers_system_installation_or_system_service_start(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        self.assertIsNone(self.service.installation())
+        with patch.object(self.service, '_docker_endpoint', return_value='unix:///var/run/docker.sock'):
+            self.assertIsNone(self.service.setup_plan(DockerStatus('stopped')))
+
+    def test_mac_installation_stays_under_home_without_privileged_helpers(self):
+        self.service.host = Host('darwin', 'arm64')
+        with patch('pathlib.Path.home', return_value=self.root):
+            plan = self.service.installation()
+        commands = (*plan.commands, *plan.cleanup)
+        self.assertTrue(any(command[0] == 'mv' and command[-1] == str(self.root / 'Applications/Docker.app')
+                            for command in commands))
+        self.assertFalse(any(Path(command[0]).name in {'sudo', 'su', 'doas', 'pkexec', 'brew', 'apt-get'}
+                             for command in commands))
+        self.assertFalse(any('/Contents/MacOS/install' in part for command in commands for part in command))
+
+    def test_build_fetches_pinned_source_in_builder_without_host_git(self):
+        terminal = Mock()
+        with (patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_require_ready', return_value='docker'),
+              patch.object(self.service, 'installed', side_effect=[False, True]),
+              patch.object(self.service, 'architecture', return_value='amd64'),
+              patch.object(self.service, '_cleanup'),
+              patch('ft_tui.features.projects.adapters.tester_docker.shutil.which', return_value=None),
+              patch.dict(os.environ, {'DOCKER_BUILDKIT': '0'})):
+            self.service.install(self.tester, terminal)
+        commands = [call.args[0] for call in terminal.run.call_args_list]
+        self.assertEqual(commands[0][-1], f'{self.tester.repository}#{self.tester.ref}')
+        self.assertEqual(terminal.run.call_args_list[0].kwargs['env']['DOCKER_BUILDKIT'], '1')
+        self.assertTrue(all(command[0] == 'docker' for command in commands))
+
+    def test_linux_missing_or_denied_docker_never_changes_machine(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        terminal = Mock()
+        for state in ('missing', 'denied', 'stopped'):
+            with (self.subTest(state=state),
+                  patch.object(self.service, 'status', return_value=DockerStatus(state)),
+                  patch.object(self.service, '_docker_endpoint', return_value='unix:///var/run/docker.sock'),
+                  self.assertRaisesRegex(TesterError, 'school|accessible|staff')):
+                self.service.prepare_and_run(self.tester, str(self.root), terminal)
+        terminal.run.assert_not_called()
+
+
+    def test_existing_rootless_service_starts_without_system_access(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        terminal = Mock()
+        with (patch.object(self.service, '_docker_endpoint', return_value=f'unix:///run/user/{os.getuid()}/docker.sock'),
+              patch.object(self.service, 'status', side_effect=[DockerStatus('stopped'), DockerStatus('ready')]),
+              patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_install'), patch.object(self.service, '_run_tester') as run):
+            plan = self.service.setup_plan(DockerStatus('stopped'))
+            self.service.prepare_and_run(self.tester, str(self.root), terminal, plan=plan)
+        terminal.run.assert_called_once_with(['systemctl', '--user', 'start', 'docker'])
+        run.assert_called_once()
+
+    def test_user_app_cli_and_launch_are_discovered_without_path_changes(self):
+        self.service.host = Host('darwin', 'arm64')
+        app = self.root / 'Applications/Docker.app'
+        binary = app / 'Contents/Resources/bin/docker'
+        binary.parent.mkdir(parents=True)
+        binary.write_text('fixture')
+        with (patch('pathlib.Path.home', return_value=self.root),
+              patch('ft_tui.features.projects.adapters.tester_docker.shutil.which', return_value=None)):
+            self.assertEqual(self.service.docker(), str(binary))
+            self.assertEqual(self.service._desktop_command(), ['open', str(app)])
+
+    def test_privileged_commands_and_shell_wrappers_are_rejected_before_execution(self):
+        from ft_tui.features.projects.adapters.tester_docker import DockerInstallation
+        for command in [('sudo', 'true'), ('/usr/bin/sudo', 'true'), ('pkexec', 'true'),
+                        ('systemctl', 'start', 'docker'), ('sh', '-c', 'sudo true'), ('apt-get', 'update')]:
+            with self.subTest(command=command), self.assertRaises(ValueError):
+                DockerInstallation((command,))
+
+    def test_remote_build_context_keeps_subdirectory_and_rejects_escape(self):
+        for context in ('../outside', '/outside', 'docker files'):
+            terminal = Mock()
+            tester = replace(self.tester, context=context)
+            with (patch.object(self.service, 'connection', side_effect=nullcontext),
+                  patch.object(self.service, '_require_ready', return_value='docker'),
+                  patch.object(self.service, 'architecture', return_value='amd64'),
+                  patch.object(self.service, 'installed', side_effect=[False, True]),
+                  patch.object(self.service, '_cleanup')):
+                if context == 'docker files':
+                    self.service.install(tester, terminal)
+                    self.assertEqual(terminal.run.call_args_list[0].args[0][-1],
+                                     f'{tester.repository}#{tester.ref}:docker%20files')
+                else:
+                    with self.assertRaises(TesterError):
+                        self.service.install(tester, terminal)
+                    terminal.run.assert_not_called()
+
+    def test_failed_mac_copy_leaves_no_installed_bundle_and_can_retry(self):
+        import shutil
+        self.service.host = Host('darwin', 'arm64')
+        terminal = Mock()
+        copied = []
+        def run(command):
+            if command[0] == 'ditto':
+                partial = Path(command[-1])
+                partial.mkdir(parents=True)
+                copied.append(partial)
+                raise subprocess.CalledProcessError(1, command)
+            if command[0] == 'rm':
+                shutil.rmtree(command[-1], ignore_errors=True)
+        terminal.run.side_effect = run
+        with patch('pathlib.Path.home', return_value=self.root):
+            plan = self.service.installation()
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.service.install_docker(plan, terminal)
+            self.assertFalse(self.service._desktop_installed())
+            self.assertFalse(copied[0].exists())
+            terminal.run = Mock()
+            self.service.install_docker(self.service.installation(), terminal)
+            self.assertTrue(terminal.run.called)
+
+    def test_non_git_suffix_never_falls_back_to_an_unpinned_http_build(self):
+        terminal = Mock()
+        tester = replace(self.tester, repository='https://example.com/tester')
+        with (patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_require_ready', return_value='docker'),
+              patch.object(self.service, 'architecture', return_value='amd64'),
+              patch.object(self.service, 'installed', return_value=False),
+              patch('ft_tui.features.projects.adapters.tester_docker.shutil.which', return_value=None),
+              self.assertRaisesRegex(TesterError, 'clone URL')):
+            self.service.install(tester, terminal)
+        terminal.run.assert_not_called()
+
+    def test_custom_clone_without_git_suffix_keeps_existing_git_checkout_support(self):
+        terminal = Mock()
+        tester = replace(self.tester, repository='https://example.com/tester')
+        with (patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_require_ready', return_value='docker'),
+              patch.object(self.service, 'architecture', return_value='amd64'),
+              patch.object(self.service, 'installed', side_effect=[False, True]),
+              patch.object(self.service, '_cleanup'),
+              patch('ft_tui.features.projects.adapters.tester_docker.shutil.which', return_value='/usr/bin/git')):
+            self.service.install(tester, terminal)
+        commands = [call.args[0] for call in terminal.run.call_args_list]
+        self.assertTrue(any('fetch' in command and tester.ref in command for command in commands))
+        build = next(command for command in commands if 'build' in command)
+        self.assertFalse(build[-1].startswith('https://'))
+
+    def test_remote_build_preserves_git_metadata_for_custom_dockerfiles(self):
+        terminal = Mock()
+        with (patch.object(self.service, 'connection', side_effect=nullcontext),
+              patch.object(self.service, '_require_ready', return_value='docker'),
+              patch.object(self.service, 'architecture', return_value='amd64'),
+              patch.object(self.service, 'installed', side_effect=[False, True]),
+              patch.object(self.service, '_cleanup')):
+            self.service.install(self.tester, terminal)
+        build = terminal.run.call_args_list[0].args[0]
+        self.assertIn('BUILDKIT_CONTEXT_KEEP_GIT_DIR=1', build)

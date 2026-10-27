@@ -86,6 +86,29 @@ can find `42tui` on its `PATH`, or set the executable path in the plugin.
 Tracking needs no account connection; file contents are not read and file paths
 are not retained.
 
+## Project testers
+
+Configure an existing local project folder, open **Testers** (or press `t` in
+Projects), then choose **Run Francinette**. The same button handles setup and retries.
+
+On Linux, an accessible Docker engine with BuildKit support must already be
+available. Check with `docker info` from your normal account. 42TUI can start an
+existing rootless user service; it does not install system packages, start system
+services, change socket permissions or use `sudo`. If Docker is missing or access
+is denied at school, ask school staff to make an engine available.
+
+On macOS, the setup button can install Docker Desktop in `~/Applications` without
+using Homebrew or a privileged installer. Keep Docker's user-level defaults:
+user CLI tools, no default system socket and no privileged port mapping. Accept
+Docker's terms if prompted, then testing continues automatically. Existing local
+or remote Docker contexts remain supported. See Docker's
+[Mac permission requirements](https://docs.docker.com/desktop/setup/install/mac-permission-requirements/).
+
+The bundled tester builds its pinned source inside Docker, so host Git and C
+compiler installation are unnecessary. Custom tester clone URLs without a `.git`
+suffix retain support through an existing Git installation; use an HTTPS `.git`
+clone URL to build those without host Git.
+
 ## Everyday use
 
 Press `?` or `F1` for shortcuts. `F2` opens Projects, `F3` opens Notes, and `F5`
