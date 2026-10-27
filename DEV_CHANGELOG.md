@@ -44,6 +44,12 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Publication cutover:** activate the existing
+  stable tag workflow as `.github/workflows/release.yml`, preserving validation,
+  CI, OIDC permissions and immutable artifact checks. The maintainer confirmed
+  PyPI setup; the GitHub `pypi` environment is restricted to `v*` tags. Update
+  contributor and distribution guidance. Reference: `feat/enable-release-publishing`.
+  No tag or publication is performed by this task; final checks are recorded below.
 - **2026-10-27 · no additional release impact · Release preparation:** prepare
   stable package 0.4.0 and its user-facing notes; preserve the 0.3.0 published
   baseline and all pending development entries until publication is verified.
@@ -86,6 +92,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
+- Publication cutover: **6 focused release tests passed**. Workflow YAML, tag-only
+  trigger, CI dependency, `pypi` environment and job-scoped OIDC permissions were
+  checked; the renamed workflow is byte-for-byte identical to its disabled
+  predecessor. GitHub environment reads confirmed only `v*` tag deployments.
+  The maintainer confirmed PyPI setup; an actual OIDC upload is not yet verified.
 - 0.4.0 preparation: **6 focused release tests passed** after refreshing editable
   package metadata. Tag/version validation, wheel/sdist contents, a wheel rebuilt
   from the sdist, fresh installed-package entry points/resources, app-header
@@ -93,10 +104,9 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   and documentation diff checks passed. PyPI version 0.4.0 and remote tag v0.4.0
   were absent during preparation. Artifacts are in ignored
   `.local/release-0.4.0/dist/`; unrelated local files are excluded.
-- The merged source baseline `1782b27` passed all PR #8 CI checks. The new release
-  preparation still needs its own PR CI and review, then validation on the exact
-  merged release revision. The publication workflow remains disabled pending
-  publisher/ownership review; no tag, upload or deployment has been performed.
+- The merged release preparation `54acfcc` passed all PR #9 CI checks. The workflow
+  cutover still needs its own PR CI/review and merge, then validation on the exact
+  release revision. No tag, upload or deployment has been performed.
 - Cached UI lifecycle fix: **90 release-tooling scope tests, 9 project activity
   tests and 4 friend-project preview tests passed**. All 8 cache UI tests passed
   in **10 consecutive runs** after the original activity crash reproduced on

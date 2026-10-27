@@ -170,8 +170,9 @@ versions do not need to match. Documentation/internal refactors do not require a
 release. For an authorized client release, prepare the version and changelog on
 `main`, validate the exact commit with `python release/check_version.py vX.Y.Z`,
 then separately authorize the tag/publication. Never reuse a published version.
-The release workflow is currently disabled; enabling/configuring it is a separate
-reviewed operation. See [distribution operations](docs/distribution.md).
+The release workflow publishes only validated stable release tags. Trusted
+Publishing and release ownership are documented in
+[distribution operations](docs/distribution.md).
 
 Never commit credentials, populated `.env` files, user databases, browser profiles,
 sessions, `.local/`, generated analysis graphs or backend internals. Keep shared
