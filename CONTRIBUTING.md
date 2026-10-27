@@ -143,6 +143,21 @@ Keep public CI independent of private backend access.
 
 ## Review, releases and private data
 
+Read [DEV_CHANGELOG.md](DEV_CHANGELOG.md) before starting a task and update it with
+every change, including documentation, tests and CI. Record the implemented result,
+date, release impact, available commit/PR reference and validation. Keep one entry
+per meaningful change and update it as the work evolves. The log covers everything
+since the latest successful release; its maintenance and reset procedure is in
+[distribution operations](docs/distribution.md#development-changelog).
+At task completion, review the accumulated log and advise whether a release is now
+worth preparing, its recommended version and why, and what still blocks publication.
+Documentation-only or internal work does not by itself require a release.
+
+Also update CHANGELOG.md under Unreleased for user-facing features, behavior
+changes, fixes and user documentation improvements. Explain the visible effect;
+keep CI/CD, tests, release tooling and internal restructuring in DEV_CHANGELOG.md.
+Use the same user-facing scope for published release notes.
+
 Use one-line English Conventional Commits matching the branch prefix, for example
 `feat: add club invitations` or `docs: document contributor workflows`. Stage only
 task files. PRs target `main` and explain the problem, resulting behavior, tests,
