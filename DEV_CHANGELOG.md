@@ -42,6 +42,18 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Friend-search test readiness:** wait for
+  the Add button's ResultsChanged handler before asserting it is enabled; table
+  rows can appear before that queued UI message is processed. The unchanged
+  v0.4.1 release run hit this test race twice. Preserve the immutable tag and all
+  release gates; no product behavior or release artifact is changed by this test.
+  Carry forward the partial-publication recovery guidance from superseded PR #11;
+  close that obsolete 0.4.0 documentation PR instead of restoring its old baseline.
+  Reference: `fix/friend-suggestions-test-readiness`. Friends scope: 52 tests
+  passed, 1 optional integration skipped; independent read-only review passed.
+  The bounded wait still fails if the button never becomes enabled, and the
+  subsequent click and exact request assertion remain unchanged.
+
 - **2026-10-27 · no release required · Final readiness record:** client PR #12
   merged as `4e48e9b`, with the same Git tree as PR head `a3cfc09`; CI run
   `40590113023` passed all 21 jobs (14 regression scopes, four platforms,

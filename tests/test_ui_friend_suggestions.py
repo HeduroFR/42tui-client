@@ -92,7 +92,8 @@ class FriendSuggestionsUITests(unittest.IsolatedAsyncioTestCase):
                         field.value = 'alice'; field.focus()
                         await self.wait_for(pilot, lambda: suggestions.query == 'alice'
                             and suggestions.display and suggestions.timer is None
-                            and table.row_count == 1 and not suggestions.loading)
+                            and table.row_count == 1 and not suggestions.loading
+                            and not workspace.query_one('#friends-open-search').disabled)
                         self.assertFalse(workspace.query_one('#friends-open-search').disabled)
                     await pilot.click('#friends-open-search')
                     self.assertNotIsInstance(app.screen, FriendSearchScreen)
