@@ -2,16 +2,10 @@
 
 ## 0.4.1 — Correction-slot start window
 
-Status: original tag v0.4.1 at 4e48e9b failed a UI-test race in three workflow
-attempts; neither PyPI nor GitHub received a release. Backend remains deployed.
-Corrected isolated candidate: `30e124509489c5017cacc5320ecc7f23ab395273`.
-Runtime is identical to the original candidate; only tests/docs changed. Its
-CI and main integration are in progress; compatibility run 40596520184 passed. Replacing the unpublished
-tag requires explicit authorization after validation.
-This progress-only documentation follows that candidate and must not silently
-replace the tested revision when creating the release tag.
-The latest published version remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
-exam filtering and other 0.5.0 work are outside this release.
+Status: **published and verified** on PyPI and GitHub.
+Tag `v0.4.1` points to `30e124509489c5017cacc5320ecc7f23ab395273`.
+Release workflow `40597765312` succeeded after retrying only GitHub publication
+with its original CI artifacts. Later tester features remain unreleased for 0.5.0.
 
 ### Main fixes
 
@@ -32,7 +26,7 @@ exam filtering and other 0.5.0 work are outside this release.
 - [x] Postman HTTP simulation: 2 tests passed, including 10:30 rejected without
   upstream dispatch and 10:45 accepted at 10:18. This uses synthetic Intra data.
 
-### Remaining before release
+### Release verification completed
 
 - [x] Independently review both fixes and open linked PRs:
   [client #12](https://github.com/HeduroFR/42tui-client/pull/12), backend #5.
@@ -51,7 +45,7 @@ exam filtering and other 0.5.0 work are outside this release.
   compatibility pairs described in
   [API compatibility](docs/api-compatibility.md). The existing friend-preview
   scenario alone does not verify correction-slot behavior.
-  Final private compatibility run `40590735918` passed all three pairs for
+  Original-candidate compatibility run `40590735918` passed all three pairs for
   candidate `4e48e9b` and deployed backend `e917aca`, with supported client 0.4.0.
   The readiness checker accepted the candidate receipt and manually observed
   Dokploy deployment evidence; neither is a signed attestation.
@@ -72,15 +66,26 @@ exam filtering and other 0.5.0 work are outside this release.
 - [x] Validate `v0.4.1`, wheel/sdist contents, installed-package resources and
   entry points. CI covered package, installers, regressions and supported
   platforms; exact merged-candidate compatibility receipts passed. The tag
-  workflow must rebuild and check the exact authorized candidate before publishing.
+  workflow rebuilt and checked the exact authorized candidate before publishing.
 - [x] Obtain original tag/publication authorization and push v0.4.1 at 4e48e9b.
   Workflow 40593923756 failed its friend UI assertion three times; no publication.
-- [ ] Validate corrected candidate 30e1245 and integrate its tests into main.
-- [ ] Obtain authorization to replace the unpublished tag, reverify backend readiness,
+- [x] Validate corrected candidate 30e1245 and integrate its tests through PR #16.
+  CI 40596753649 passed all 21 jobs; compatibility 40596520184 passed all three
+  pairs. Clean archived package/version/smoke checks passed; runtime source is
+  unchanged from the original tag.
+- [x] Obtain authorization to replace the unpublished tag, reverify backend readiness,
   then publish the tested immutable client artifacts through the release workflow.
-- [ ] Verify both PyPI distributions and GitHub release assets/checksums, smoke
+- [x] Verify both PyPI distributions and GitHub release assets/checksums, smoke
   test the published package and update path, then advance DEV_CHANGELOG to the
   verified 0.4.1 baseline while retaining any later changes.
+
+Published release wheel SHA-256:
+`8d3a5b36d4943184c1dcd57bf8adb69dc9eee25203ec004c174d11a3b0a7eabf`.
+
+Verification evidence: all seven GitHub release assets match SHA256SUMS; wheel
+and sdist are byte-identical to release CI artifacts and PyPI digests. Actual
+`42tui update` upgraded a disposable uv installation from 0.4.0 to 0.4.1 and the
+installed CLI/resources passed smoke checks. No live Intra write was performed.
 
 ## Distribution and documentation backlog
 
