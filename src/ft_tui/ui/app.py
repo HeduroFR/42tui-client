@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from dataclasses import replace
+from importlib.metadata import version
 from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -130,7 +131,6 @@ class FortyTwoTuiApp(
     ALLOW_SELECT = False  # Prevent container double-clicks from highlighting the UI.
     CSS = APP_CSS
     TITLE = "42 TUI"
-    SUB_TITLE = "Local projects"
     COMMANDS = App.COMMANDS | {FortyTwoTuiCommandProvider}
 
     BINDINGS = [
@@ -188,6 +188,7 @@ class FortyTwoTuiApp(
         startup_service=None,
     ) -> None:
         super().__init__()
+        self.sub_title = version('ft-tui')
         self.project_state = ProjectState()
         self.settings_state = SettingsState()
         self.account_state = AccountState()
@@ -520,8 +521,6 @@ class FortyTwoTuiApp(
             "cluster-map": "Cluster Map",
             "settings": "Settings",
         }
-        source_subtitle = "Connected 42 account" if self.account_connected else "Local projects"
-        self.sub_title = translate(source_subtitle, self.language)
         tabs = self.query_one(TabbedContent).query_one("Tabs")
         for pane in self.query(TabPane):
             if pane.id in labels:

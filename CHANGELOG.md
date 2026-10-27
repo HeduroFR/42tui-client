@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show the installed version in the app header instead of account connection
+  status, including alpha, beta or release-candidate suffixes when present.
 - Require a connected 42 account to complete first-run setup. Remove Skip setup
   and the Escape bypass, and prevent completion if the connection is lost.
   Existing completed installations keep their current setup status.

@@ -14,6 +14,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Changed behavior
 
+- **2026-10-27 · patch · App header:** show the installed package version instead
+  of account connection status; preserve alpha, beta and release-candidate
+  suffixes through language and connection changes. No version bump or changes
+  to stable-only publication/update rules. Reference: uncommitted
+  `feat/version-title`. Validation recorded below.
 - **2026-10-27 · minor (pre-1.0 breaking change) · Onboarding:** remove Skip setup
   and the Escape bypass; require a connected 42 account before advancing or
   finishing. Reject completion if the connection is lost. Update French and
@@ -33,6 +38,11 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-27 · no release required · Contributor checks:** require focused local
+  checks for affected features and leave the full suite to PR CI; a full local
+  run is optional. Keep relevant packaging and compatibility checks. Reference:
+  uncommitted `feat/version-title`. Reviewed the documentation diff, command/link
+  targets and matching backend policy; no test suites rerun for this docs change.
 - **2026-10-27 · no release required · Repository split:** separate the public
   client from the private backend, with independent contribution, CI and release
   ownership. Keep the current HTTP v1 contract and package version. Client
@@ -64,6 +74,15 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
+- Header change: **4 focused locale/header tests passed**, including installed,
+  alpha, beta, RC and final version strings across all supported languages and
+  connection states. Regression-scope ownership and diff checks passed; a
+  headless 100×30 render shows `42 TUI — 0.3.0` from installed metadata.
+- Full client suite for the header change on merged-main base `58a67fc`:
+  **795 tests, passed, 4 skipped** (opt-in Friends, social, OAuth and catalog-cache
+  simulations). The target remains 0.4.0 for the accumulated
+  onboarding change; prerelease publishing is not implemented, and publication
+  ownership, live OAuth and compatibility/deployment checks remain blockers.
 - Last recorded local client suite at `e5e42a3`: **794 tests, passed, 4 skipped**;
   regression-scope ownership and diff checks also passed.
 - The development tracking change is documentation-only; local links and diff

@@ -1,5 +1,6 @@
 """First-run locale detection must not replace a saved preference."""
 import unittest
+from importlib.metadata import version
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -31,6 +32,26 @@ class LanguageDetectionTests(unittest.TestCase):
 
 
 class OnboardingLanguageTests(unittest.IsolatedAsyncioTestCase):
+    async def test_header_keeps_package_version_across_language_and_connection_changes(self):
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+            for package_version in (version('ft-tui'), '0.4.0a1', '0.4.0b1', '0.4.0rc1', '0.4.0'):
+                with self.subTest(version=package_version), patch('ft_tui.ui.app.version', return_value=package_version):
+                    app = FortyTwoTuiApp(factory, None)
+                    async with app.run_test(size=(140, 50)):
+                        self.assertEqual(app.title, '42 TUI')
+                        self.assertEqual(app.sub_title, package_version)
+                        for language in ('en', 'fr', 'es'):
+                            for connected in (False, True):
+                                app.language = language
+                                app.account_connected = connected
+                                app._apply_language()
+                                self.assertEqual(app.sub_title, package_version)
+        finally:
+            factory.kw['bind'].dispose()
+
     async def test_detected_language_is_visible_and_persisted_after_connected_setup(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "ui.sqlite"}')
