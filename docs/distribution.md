@@ -1,6 +1,7 @@
 # Distribution operations
 
-The Python package remains `ft-tui` at 0.3.0. Keep published version/tag ownership
+The Python package is `ft-tui`; 0.4.0 is prepared but not yet published. The latest
+confirmed stable release remains 0.3.0. Keep published version/tag ownership
 with the original repository until an explicit release cutover is authorized.
 The copied workflow is `.github/workflows/release.yml.disabled`, deliberately
 inactive. Do not rename it until the Trusted Publisher and release ownership have

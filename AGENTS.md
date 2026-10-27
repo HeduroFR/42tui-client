@@ -5,6 +5,8 @@ For API, version or rollout changes, also read [API compatibility](docs/api-comp
 Do not release a dependent client until its exact revision is tested with the backend and the required backend is verified deployed. Auto-update does not eliminate older supported clients.
 
 Preserve unrelated local work. Use dedicated feat/, fix/ or docs/ branches and pull requests to main.
+Always run `git -C 42tui-client fetch origin` from the shared workspace before
+creating a new branch. Base new task branches on the freshly fetched `origin/main`.
 Do not commit, push, tag, publish, deploy or change repository visibility without authorization.
 Use a one-line English Conventional Commit matching the branch prefix and repository scope: `type(client): description` (for example, `docs(client): clarify contributor workflow`).
 Keep credentials, .env files, user databases, browser profiles, sessions and .local/ out of Git.
