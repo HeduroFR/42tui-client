@@ -30,7 +30,7 @@ class ProviderMetadataTests(unittest.TestCase):
   self.assertEqual(HttpProjectProvider(api=Api()).list_campuses()[0]['id'],44)
 
  def test_campus_directory_rejects_invalid_or_duplicate_records(self):
-  from ft_tui.api.campus_types import campus_directory
+  from ft_tui.features.accounts.campuses import campus_directory
   valid={'id':1,'name':'Paris','country':'France','city':'Paris','active':True}
   for rows in [[{**valid,'id':0}],[valid,valid],[{**valid,'country':42}],[{**valid,'active':'yes'}]]:
    with self.subTest(rows=rows),self.assertRaises(ValueError):

@@ -4,11 +4,11 @@ from time import monotonic
 from textual.app import App
 from textual.widgets import Input, Static
 from textual.screen import ModalScreen
-from ft_tui.api.catalog_types import CatalogScope
-from ft_tui.api.team_types import team_state
+from ft_tui.features.catalog.models import CatalogScope
+from ft_tui.features.projects.registration.team_types import team_state
 from ft_tui.ui.button import Button
-from ft_tui.ui.friend_suggestions import FriendSuggestions
-from ft_tui.ui.project_team import ProjectTeamScreen
+from ft_tui.features.friends.views.suggestions import FriendSuggestions
+from ft_tui.features.projects.views.team import ProjectTeamScreen
 
 
 def state(members=None):

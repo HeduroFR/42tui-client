@@ -5,7 +5,7 @@ from copy import deepcopy
 from textual.app import App
 from textual.widgets import Static, DataTable
 from ft_tui.ui.components import Button, Select
-from ft_tui.ui.user_profile import UserProfileScreen, open_user_profile
+from ft_tui.features.profiles.views.user_profile import UserProfileScreen, open_user_profile
 from tests.test_user_profile import profile, attendance
 from tests.friends_fixtures import snapshot, attempt
 
@@ -41,7 +41,7 @@ async def settle(screen,pilot):
 
 class ProfileUITests(unittest.IsolatedAsyncioTestCase):
     async def test_project_row_opens_preview_and_returns_to_student_profile(self):
-        from ft_tui.ui.friend_project import FriendProjectPreview
+        from ft_tui.features.friends.views.project import FriendProjectPreview
         app=Harness();app.provider=Provider()
         async with app.run_test(size=(100,36)) as pilot:
             open_user_profile(app,'alice','50');profile_screen=app.screen
@@ -57,8 +57,8 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
     async def test_recent_map_seat_is_available_before_profile_data(self):
         from datetime import datetime,timezone,timedelta
         from test_ui_cluster_map import MapHarness
-        from ft_tui.ui.cluster_map import ClusterMapWorkspace
-        from ft_tui.ui.friends import current_location
+        from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+        from ft_tui.features.friends.views.workspace import current_location
         app=MapHarness();app.account_connected=False
         async with app.run_test(size=(120,40)) as pilot:
             ws=app.query_one(ClusterMapWorkspace)
@@ -135,11 +135,10 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(screen.core)
             self.assertFalse(getattr(app,'_student_profile_cache',{}))
 
-
     async def test_cluster_profile_opens_in_tui_and_escape_restores_modal(self):
         from test_ui_cluster_map import MapHarness
-        from ft_tui.ui.cluster_map import ClusterMapWorkspace
-        from ft_tui.ui.cluster_map_grid import ClusterMapGrid
+        from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+        from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
         from ft_tui.db.database import make_session_factory
         class ClusterProvider(Provider):
             def get_cluster_map(self):
@@ -164,9 +163,9 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
         from tempfile import TemporaryDirectory
         from pathlib import Path
         from ft_tui.db.database import make_session_factory
-        from ft_tui.services.user_settings import save_settings
+        from ft_tui.features.settings.adapters.storage import save_settings
         from ft_tui.ui.app import FortyTwoTuiApp
-        from ft_tui.ui.friends import FriendsWorkspace
+        from ft_tui.features.friends.views.workspace import FriendsWorkspace
         from textual.widgets import TabbedContent
         with TemporaryDirectory() as directory:
             factory=make_session_factory(f'sqlite:///{Path(directory)/"profile.sqlite"}')
@@ -185,7 +184,6 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
                     await pilot.press('escape');await pilot.pause()
                     self.assertEqual(ws.selected_login,'alice')
             finally:factory.kw['bind'].dispose()
-
 
     async def test_cursus_switch_rejects_old_results_and_refresh_stays_enabled(self):
         class Switching(Provider):
@@ -239,7 +237,6 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('Reconnect',str(screen.query_one('#profile-status').render()))
             self.assertTrue(screen.core)
 
-
     async def test_successful_stale_response_obeys_retry_after(self):
         from time import monotonic
         class Limited(Provider):
@@ -274,7 +271,6 @@ class ProfileUITests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(screen.project_data)
             self.assertNotIn('03/11/2026',str(screen.query_one('#profile-goals').render()))
             self.assertEqual(screen.query_one('#profile-projects',DataTable).row_count,0)
-
 
     async def test_open_reopen_and_cursus_navigation_use_cache_but_refresh_is_explicit(self):
         class Recording(Provider):

@@ -1,12 +1,11 @@
 import unittest
 from copy import deepcopy
 from sqlalchemy import select
-from ft_tui.api.friends_types import friend_snapshot
+from ft_tui.features.friends.models import friend_snapshot
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Friend, FriendProjectProgress, FriendWatch, Project
-from ft_tui.services.friends import (cached_observations, comparison, level_rankings,
-    memberships, ongoing, remove_friend, save_observation)
+from ft_tui.features.friends.adapters.storage import cached_observations, comparison, level_rankings, memberships, ongoing, remove_friend, save_observation
 from tests.friends_fixtures import snapshot, attempt
 
 
@@ -83,7 +82,7 @@ class FriendStorageTests(unittest.TestCase):
 
     def test_observations_are_isolated_and_presence_is_not_restored_from_disk(self):
         with self.factory() as session:
-            from ft_tui.services.friends import cache_mutual_friends
+            from ft_tui.features.friends.adapters.storage import cache_mutual_friends
             cache_mutual_friends(session, '42', [{'account_id': '50', 'login': 'alice'}])
             save_observation(session, '42', snapshot())
             self.assertEqual(cached_observations(session, '43', 21), {})
@@ -100,7 +99,7 @@ class FriendStorageTests(unittest.TestCase):
 
 class FriendCurriculumRankTests(unittest.TestCase):
     def test_project_ranking_counts_unique_validations_with_ties_and_zero(self):
-        from ft_tui.services.friends import project_rankings, validated_project_count
+        from ft_tui.features.friends.adapters.storage import project_rankings, validated_project_count
         alice = snapshot(items=[attempt(id=1, validated=True), attempt(id=2, validated=True),
                                 attempt(2, id=3, validated=False)])
         bob = snapshot('bob', user_id='51', items=[attempt(validated=True)])
@@ -117,7 +116,7 @@ class FriendCurriculumRankTests(unittest.TestCase):
 
     def test_rank_leaderboard_uses_working_curriculum_with_ties_and_unknowns(self):
         from tests.friends_fixtures import curriculum_rank
-        from ft_tui.services.friends import curriculum_rankings
+        from ft_tui.features.friends.adapters.storage import curriculum_rankings
         rows = [snapshot('old', user_id='50', level=20), snapshot('new', user_id='51', level=1),
                 snapshot('zero', user_id='52', level=9), snapshot('unknown', user_id='53', level=99)]
         rows[0]['curriculum_rank'] = curriculum_rank(3, 'old')
@@ -177,7 +176,7 @@ class FriendCoreProviderTests(unittest.TestCase):
         values = provider.get_friend_summaries(['alice', 'bob'], 21)
         self.assertEqual(values[0]['login'], 'alice')
         self.assertEqual(api.call[1], '/v1/friends/summaries')
-        from ft_tui.services.friends import validated_project_count
+        from ft_tui.features.friends.adapters.storage import validated_project_count
         self.assertIsNone(validated_project_count(values[0]))
         for changed in (
             {'missing': []}, {'missing': ['bob', 'bob']}, {'missing': ['other']},

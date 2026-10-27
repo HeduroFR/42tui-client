@@ -2,7 +2,7 @@ import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.db.models import Project,Cursus,ProjectCursus
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import Select,ListView,ProjectEntry,ProjectRankHeader,Input
@@ -53,7 +53,7 @@ class OnlineCatalogTests(unittest.IsolatedAsyncioTestCase):
    f=make_session_factory(f'sqlite:///{Path(d)/"online.sqlite"}')
    with f() as s:save_settings(s,{'onboarding_completed':'true','default_cursus_id':'21','project_view_21':'all'})
    # A different campus's cached projects must not flash as unranked at startup.
-   from ft_tui.services.catalog_cache import apply_catalog_page
+   from ft_tui.features.catalog.adapters.cache import apply_catalog_page
    with f() as session:
     apply_catalog_page(session,{'items':[row(1001,'new'),row(1002,'shared')],
                               'snapshot_id':'other-campus','meta':{'cursus_id':21,'campus_id':99}})
@@ -81,7 +81,7 @@ class OnlineCatalogTests(unittest.IsolatedAsyncioTestCase):
    f.kw['bind'].dispose()
 
  async def test_failed_second_catalog_page_preserves_the_previous_catalog_cache(self):
-  from ft_tui.services.catalog_cache import apply_catalog_page,cache_key
+  from ft_tui.features.catalog.adapters.cache import apply_catalog_page, cache_key
   from ft_tui.db.models import CatalogCache
   class Provider:
    def get_curriculum(self,scope):return {'account_id':'42','cursus_id':21,'campus_id':31,'track':{'track':'new','source':'quest'},'rank':{'rank':1,'source':'quest'},'registration':{'status':'unknown'}}
@@ -107,7 +107,7 @@ class OnlineCatalogTests(unittest.IsolatedAsyncioTestCase):
 
 class StartupCursusTests(unittest.IsolatedAsyncioTestCase):
  async def test_startup_keeps_saved_main_cursus_when_piscine_is_first(self):
-  from ft_tui.services.user_settings import get_setting
+  from ft_tui.features.settings.adapters.storage import get_setting
   with TemporaryDirectory() as directory:
    factory=make_session_factory(f'sqlite:///{Path(directory)/"startup.sqlite"}')
    try:
@@ -125,7 +125,7 @@ class StartupCursusTests(unittest.IsolatedAsyncioTestCase):
 
  async def test_legacy_piscine_default_is_repaired_but_manual_choice_is_preserved(self):
   from ft_tui.api.client_interface import CursusSnapshot
-  from ft_tui.services.user_settings import get_setting
+  from ft_tui.features.settings.adapters.storage import get_setting
   for source,expected in [('',21),('auto',21),('manual',9)]:
    with self.subTest(source=source),TemporaryDirectory() as directory:
     factory=make_session_factory(f'sqlite:///{Path(directory)/"legacy.sqlite"}')

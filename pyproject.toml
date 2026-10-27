@@ -32,7 +32,7 @@ include = ["ft_tui", "ft_tui.*"]
 
 [tool.setuptools.package-data]
 ft_tui = ["locales/*.json", "testers.toml"]
-"ft_tui.cluster_map" = ["layout.json"]
+"ft_tui.features.cluster_map" = ["layout.json"]
 
 [tool.ruff]
 line-length = 120

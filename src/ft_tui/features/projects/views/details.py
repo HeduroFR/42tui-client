@@ -112,7 +112,7 @@ class ProjectDetailsMixin(SubjectMixin):
                     f"{names}[/bold red]"
                 )
         intra_url = f"https://projects.intra.42.fr/{quote(project.slug, safe='')}/mine"
-        from ft_tui.services.project_presentation import catalog_details as format_catalog_details
+        from ft_tui.features.catalog.views.presentation import catalog_details as format_catalog_details
         catalog_details = format_catalog_details(project, getattr(self,"project_curriculum",{}), self.language)
         if project.slug:
             catalog_details += f'[link="{intra_url}"]{intra_url}[/link]\n\n'
@@ -209,7 +209,7 @@ class ProjectDetailsMixin(SubjectMixin):
         if self.query_one(TabbedContent).active != "projects-tab":
             return
         if self.selected_project_key:
-            from ft_tui.ui.project_technical_details import ProjectTechnicalDetailsScreen
+            from ft_tui.features.projects.views.technical_details import ProjectTechnicalDetailsScreen
             self.push_screen(ProjectTechnicalDetailsScreen(getattr(self, "_project_technical_details", "")))
 
     async def _inspect_project_git_status(

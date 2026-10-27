@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from ft_tui.features.settings.service import SettingsService
-from ft_tui.services.curriculum_selection import preference_key
+from ft_tui.features.catalog.preferences import preference_key
 
 class Repository:
     def __init__(self): self.values={}; self.writes=[]
@@ -83,12 +83,3 @@ class SettingsPersistenceTests(unittest.TestCase):
             self.assertEqual(service.get('broken','absent'),'absent')
         finally:
             factory.kw['bind'].dispose()
-
-    def test_legacy_modules_preserve_shared_helper_and_view_patch_identity(self):
-        from importlib import import_module
-        from unittest.mock import patch
-        for old,new in [('ft_tui.ui.settings','ft_tui.features.settings.views.workspace'),
-                        ('ft_tui.services.user_settings','ft_tui.features.settings.adapters.storage')]:
-            self.assertIs(import_module(old),import_module(new))
-        with patch('ft_tui.services.user_settings.UserConfig', sentinel := object()):
-            self.assertIs(import_module('ft_tui.features.settings.adapters.storage').UserConfig,sentinel)

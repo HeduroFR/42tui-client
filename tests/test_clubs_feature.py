@@ -63,13 +63,3 @@ class ClubsFeatureTests(unittest.IsolatedAsyncioTestCase):
             return {'id': club}
         self.assertIsNone(await self.service.mutate(SimpleNamespace(club_action=action), {'action': 'join'},
                                                    lambda: active[0], club_id='campus-31'))
-
-    def test_contract_and_view_legacy_imports_keep_canonical_identity(self):
-        from ft_tui.api import clubs_types
-        from ft_tui.features.clubs import models
-        from ft_tui.ui import clubs, club_announcements, club_inbox
-        from ft_tui.features.clubs.views import workspace, announcements, inbox
-        self.assertIs(clubs_types, models)
-        self.assertIs(clubs, workspace)
-        self.assertIs(club_announcements, announcements)
-        self.assertIs(club_inbox, inbox)

@@ -1,6 +1,6 @@
 """Physical gaps and terminal resizing must never hide or move a workstation."""
 import unittest
-from ft_tui.cluster_map.geometry import load_layout, fit_tiles, neighbor, positions, row_heights
+from ft_tui.features.cluster_map.geometry import load_layout, fit_tiles, neighbor, positions, row_heights
 
 
 class GeometryTests(unittest.TestCase):

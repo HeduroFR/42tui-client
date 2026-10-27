@@ -1,4 +1,3 @@
-import importlib
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -99,14 +98,8 @@ class StudentProfileServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await service.portrait('https://cdn.intra.42.fr/a', lambda: True, loader=loader))['status'], 'ready')
         loader.assert_called_once_with('https://cdn.intra.42.fr/a')
 
-    async def test_legacy_module_and_helper_identity(self):
-        for old, new in [('ft_tui.api.user_profile_types', 'ft_tui.features.profiles.models'),
-                         ('ft_tui.services.user_profile', 'ft_tui.features.profiles.adapters.portraits'),
-                         ('ft_tui.ui.user_profile', 'ft_tui.features.profiles.views.user_profile'),
-                         ('ft_tui.ui.profile_view', 'ft_tui.features.profiles.views.profile_view'),
-                         ('ft_tui.ui.profile_sections', 'ft_tui.features.profiles.views.profile_sections')]:
-            self.assertIs(importlib.import_module(old), importlib.import_module(new))
-        from ft_tui.services.user_profile import latest_attempts
+    async def test_portrait_adapter_reuses_profile_projection(self):
+        from ft_tui.features.profiles.adapters.portraits import latest_attempts
         from ft_tui.features.profiles.projections import latest_attempts as canonical
         self.assertIs(latest_attempts, canonical)
 

@@ -1,5 +1,5 @@
 import unittest
-from ft_tui.api.goals_types import goals_response
+from ft_tui.features.profiles.goals import goals_response
 
 
 class GoalsTypesTests(unittest.TestCase):

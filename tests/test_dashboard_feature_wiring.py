@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project, DevNote
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import ListView
 

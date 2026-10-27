@@ -7,10 +7,10 @@ from unittest.mock import patch
 from textual.widgets import DataTable, Input, ProgressBar, TabbedContent
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import FriendWatch
-from ft_tui.services.friends import memberships, cached_observations, save_observation, cache_mutual_friends
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.friends.adapters.storage import memberships, cached_observations, save_observation, cache_mutual_friends
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.friends import FriendsWorkspace
+from ft_tui.features.friends.views.workspace import FriendsWorkspace
 from tests.friends_fixtures import snapshot, attempt, curriculum_rank
 
 
@@ -187,7 +187,7 @@ class FriendsUITests(unittest.IsolatedAsyncioTestCase):
     async def test_project_enter_and_access_open_a_preview_without_changing_workspace(self):
         from ft_tui.db.models import Project
         from ft_tui.ui.components import Button, Select
-        from ft_tui.ui.friend_project import FriendProjectPreview
+        from ft_tui.features.friends.views.project import FriendProjectPreview
         from textual.widgets import Static
         with TemporaryDirectory() as directory:
             factory=make_session_factory(f'sqlite:///{Path(directory)/"preview.sqlite"}')
@@ -354,7 +354,7 @@ class FriendsUITests(unittest.IsolatedAsyncioTestCase):
                     workspace = app.query_one(FriendsWorkspace)
                     await self._settle(workspace, pilot)
                     await pilot.pause()
-                    from ft_tui.ui.friend_search import FriendSearchScreen
+                    from ft_tui.features.friends.views.search import FriendSearchScreen
                     workspace.search_screen = FriendSearchScreen(workspace)
                     await app.push_screen(workspace.search_screen)
                     await pilot.pause()
@@ -543,9 +543,9 @@ class FriendsUITests(unittest.IsolatedAsyncioTestCase):
 class FreshnessTests(unittest.TestCase):
     def test_relative_age_units_and_future_clock_skew(self):
         from datetime import datetime, timedelta, timezone
-        from ft_tui.ui.friends import freshness
+        from ft_tui.features.friends.views.workspace import freshness
         now = datetime(2026, 10, 25, tzinfo=timezone.utc)
-        with patch('ft_tui.ui.friends.datetime') as clock:
+        with patch('ft_tui.features.friends.views.workspace.datetime') as clock:
             clock.now.return_value = now
             clock.fromisoformat.side_effect = datetime.fromisoformat
             for seconds, expected in [(0, '0s ago'), (59, '59s ago'), (60, '1m ago'),

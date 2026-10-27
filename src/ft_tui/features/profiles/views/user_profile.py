@@ -12,7 +12,7 @@ from textual.widgets import DataTable, Static
 
 from ft_tui.i18n import translate
 from ft_tui.features.profiles.adapters.portraits import download_portrait
-from ft_tui.ui.cluster_portrait import ClusterPortrait, PortraitCache
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait, PortraitCache
 from ft_tui.ui.components import Button, Select
 from ft_tui.features.profiles.views.profile_sections import goals_text
 from ft_tui.features.profiles.views.profile_view import ProfileViewMixin

@@ -1,6 +1,6 @@
 """Paged catalog browser with exclusive Common Core track filtering."""
 from ft_tui.features.catalog.read_models import curriculum_projects
-from ft_tui.services.fuzzy_search import fuzzy_score
+from ft_tui.shared.fuzzy_search import fuzzy_score
 from ft_tui.ui.components import Button, Input, ListView, ProjectEntry, ProjectRankHeader, Select, Static
 
 

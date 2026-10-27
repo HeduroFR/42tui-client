@@ -1,8 +1,8 @@
 """Account shell storage and concrete transport composition."""
 import json
 from ft_tui.features.settings.adapters.storage import get_setting, save_settings
-from ft_tui.services.cursus import is_main_cursus, select_default_cursus
-from ft_tui.services.project_catalog import sync_cursuses
+from ft_tui.features.accounts.cursus import is_main_cursus, select_default_cursus
+from ft_tui.features.catalog.adapters.cursuses import sync_cursuses
 
 
 def supports_session_check(client):

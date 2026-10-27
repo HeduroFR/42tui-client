@@ -2,10 +2,10 @@ import unittest
 from textual.widgets import TabbedContent, Collapsible
 from textual.containers import VerticalScroll
 from test_ui_cluster_map import MapHarness
-from ft_tui.ui.cluster_map import ClusterMapWorkspace
-from ft_tui.ui.cluster_workstation import ClusterWorkstationModal
-from ft_tui.ui.cluster_map_grid import ClusterMapGrid
-from ft_tui.cluster_map.state import SeatState
+from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
+from ft_tui.features.cluster_map.views.cluster_workstation import ClusterWorkstationModal
+from ft_tui.features.cluster_map.views.cluster_map_grid import ClusterMapGrid
+from ft_tui.features.cluster_map.state import SeatState
 
 
 class ModalTests(unittest.IsolatedAsyncioTestCase):
@@ -209,7 +209,7 @@ class ModalTests(unittest.IsolatedAsyncioTestCase):
         from textual.app import App
         from textual.geometry import Region
         from unittest.mock import patch
-        from ft_tui.ui.cluster_portrait import PortraitSixelImage,_PortraitSixelImpl
+        from ft_tui.features.cluster_map.views.portrait import PortraitSixelImage, _PortraitSixelImpl
         class PortraitApp(App):
             def compose(self):
                 image=PortraitSixelImage(Image.new('RGB',(32,32),'red'))
@@ -230,8 +230,8 @@ class ModalTests(unittest.IsolatedAsyncioTestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
         from ft_tui.db.database import make_session_factory
-        from ft_tui.services.user_settings import save_settings
-        from ft_tui.services.friends import memberships
+        from ft_tui.features.settings.adapters.storage import save_settings
+        from ft_tui.features.friends.adapters.storage import memberships
         from ft_tui.ui.app import FortyTwoTuiApp
         from ft_tui.ui.components import Static,Button
         from tests.friends_fixtures import snapshot
@@ -331,7 +331,7 @@ class ModalTests(unittest.IsolatedAsyncioTestCase):
             modal.action_close()
 
     async def test_person_reference_layout_has_large_portrait_beside_grouped_details(self):
-        from ft_tui.ui.cluster_portrait import ClusterPortrait
+        from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
         from ft_tui.ui.components import Static
         app=MapHarness()
         async with app.run_test(size=(160,50)) as pilot:
@@ -351,7 +351,7 @@ class ModalTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_host_details_and_cached_portrait_render_without_waiting_for_refresh(self):
         from PIL import Image
-        from ft_tui.ui.cluster_portrait import ClusterPortrait
+        from ft_tui.features.cluster_map.views.portrait import ClusterPortrait
         from ft_tui.ui.components import Static
         app=MapHarness()
         async with app.run_test(size=(80,24)) as pilot:
@@ -443,17 +443,16 @@ class ModalTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(modal.query(Collapsible)),0)
             self.assertFalse(modal.query_one('#cluster-issue-counts').display)
 
-
     async def test_lock_duration_ticks_in_hover_and_person_and_clears_on_unlock(self):
         from datetime import datetime, timezone
         from dataclasses import replace
         from unittest.mock import patch
         from ft_tui.ui.components import Static
-        from ft_tui.cluster_map.state import session_label
+        from ft_tui.features.cluster_map.state import session_label
         now=datetime(2026,10,23,10,2,3,tzinfo=timezone.utc)
         def label(seat,t):return session_label(seat,t,now)
         app=MapHarness()
-        with patch('ft_tui.ui.cluster_seat_preview.session_label',side_effect=label),patch('ft_tui.ui.cluster_workstation.session_label',side_effect=label):
+        with patch('ft_tui.features.cluster_map.views.cluster_seat_preview.session_label',side_effect=label),patch('ft_tui.features.cluster_map.views.cluster_workstation.session_label',side_effect=label):
             async with app.run_test(size=(160,50)) as pilot:
                 ws=app.query_one(ClusterMapWorkspace);await ws.reload();await pilot.pause()
                 grid=ws.query_one(ClusterMapGrid)

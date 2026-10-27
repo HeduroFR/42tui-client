@@ -26,7 +26,7 @@ class TesterTerminalTests(unittest.TestCase):
             source = f'''
 import json, os, sys, termios
 from pathlib import Path
-from ft_tui.services.tester_terminal import TerminalSession
+from ft_tui.features.projects.adapters.tester_terminal import TerminalSession
 root = Path({str(root)!r})
 before = termios.tcgetattr(0)
 interrupted = False

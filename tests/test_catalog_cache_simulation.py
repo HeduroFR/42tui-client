@@ -9,9 +9,9 @@ import httpx
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.api.oauth_client import DeviceCredentials, OAuthClient
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.catalog_cache import cache_key, complete_catalog, load_context_projects
+from ft_tui.features.catalog.adapters.cache import cache_key, complete_catalog, load_context_projects
 from ft_tui.db.models import CatalogCache
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import Input, Select
 from tests.test_oauth_client import MemoryStore

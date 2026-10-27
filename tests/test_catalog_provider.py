@@ -1,6 +1,6 @@
 import unittest
 from ft_tui.api.http_client import HttpProjectProvider
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 class ProviderTests(unittest.TestCase):
  def test_one_page_and_mixed_track_rejected(self):
   calls=[]
@@ -25,6 +25,6 @@ class ProviderTests(unittest.TestCase):
   with self.assertRaises(ValueError):HttpProjectProvider(api=Api({**base,'items':base['items']*2})).get_account_projects(21)
 
  def test_public_project_projection_discards_personal_and_unknown_fields(self):
-  from ft_tui.api.catalog_types import project_summary
+  from ft_tui.features.catalog.models import project_summary
   clean=project_summary({'project_id':1,'name':'P','slug':'p','kind':'exam','track':'new','section':'common-core','final_mark':100,'state':'done','cookie':'synthetic-secret','xp':0,'duration':None})
   for key in ('final_mark','state','cookie'):self.assertNotIn(key,clean)

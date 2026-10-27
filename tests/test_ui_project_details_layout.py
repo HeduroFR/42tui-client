@@ -6,13 +6,13 @@ from tempfile import TemporaryDirectory
 from textual.widgets import Static, TabbedContent
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 
 
 class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
     async def test_checkout_completion_refreshes_editor_without_changing_view(self):
-        from ft_tui.services.project_checkout import CheckoutResult
+        from ft_tui.features.projects.adapters.checkout import CheckoutResult
 
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "checkout.sqlite"}')
@@ -42,13 +42,13 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
     async def test_git_inspection_requires_development_remote(self):
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
-        from ft_tui.ui.project_details import ProjectDetailsMixin
+        from ft_tui.features.projects.views.details import ProjectDetailsMixin
 
         project = Project(id=1, slug='libft', name='Libft', local_path='/workspace/libft')
         app = SimpleNamespace(selected_project_key=project.ui_key,
                               projects={project.ui_key: project},
                               _render_project_details=Mock(), notify=Mock())
-        with patch('ft_tui.ui.project_details.inspect_repository') as inspect:
+        with patch('ft_tui.features.projects.views.details.inspect_repository') as inspect:
             for remote in (None, '', '   '):
                 project.dev_repo_url = remote
                 await ProjectDetailsMixin._inspect_project_git_status(app, project.ui_key, project.local_path)

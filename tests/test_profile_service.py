@@ -67,9 +67,6 @@ class ProfileServiceTests(unittest.IsolatedAsyncioTestCase):
         await self.service.refresh_goals(SimpleNamespace(get_goals=lambda *args: {'status': 'pending'}), self.scope, lambda: True, client=None)
         self.assertEqual(self.service.state.goals, {'status': 'pending'})
 
-    def test_cache_compatibility_module_has_one_canonical_implementation(self):
-        from ft_tui.services import dashboard_cache
-        from ft_tui.features.profiles.adapters import cache
-        self.assertIs(dashboard_cache, cache)
+    def test_cached_reads_preserve_profile_and_stale_goals(self):
         self.assertEqual(self.service.cached_profile(None)['login'], 'cached')
         self.assertTrue(self.service.cached_goals('42', 21)['stale'])

@@ -33,7 +33,3 @@ class ProjectFeatureTests(unittest.TestCase):
     def test_checkout_is_a_supplied_capability(self):
         self.service.setup_checkout('/local',dev_remote_url='origin',vogsphere_url=None)
         self.assertEqual(self.calls,[('/local',{'dev_remote_url':'origin','vogsphere_url':None})])
-    def test_legacy_adapter_aliases_keep_identity(self):
-        from ft_tui.services import project_checkout,tester_docker,project_navigation
-        from ft_tui.features.projects.adapters import checkout,navigation,tester_docker as canonical
-        self.assertIs(project_checkout,checkout);self.assertIs(project_navigation,navigation);self.assertIs(tester_docker,canonical)

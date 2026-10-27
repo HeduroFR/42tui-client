@@ -8,12 +8,12 @@ from unittest.mock import Mock, patch
 
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project
-from ft_tui.services.tester_catalog import load_catalog
-from ft_tui.services.tester_docker import DockerStatus, Host, TesterDocker, TesterError
-from ft_tui.services.user_settings import save_settings
+from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+from ft_tui.features.projects.adapters.tester_docker import DockerStatus, Host, TesterDocker, TesterError
+from ft_tui.features.settings.adapters.storage import save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import Button
-from ft_tui.ui.project_testers import DockerInstallScreen, ProjectTesters, TesterAction, TesterRemoveButton
+from ft_tui.features.projects.views.testers import DockerInstallScreen, ProjectTesters, TesterAction, TesterRemoveButton
 
 
 class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
@@ -98,8 +98,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             for error in (None, TesterError("build failure"), KeyboardInterrupt()):
                 service.install = Mock(side_effect=error)
                 with patch.object(app, "suspend", side_effect=suspend), \
-                        patch("ft_tui.ui.project_testers.wait_for_key") as key, \
-                        patch("ft_tui.ui.project_testers.TerminalSession"):
+                        patch("ft_tui.features.projects.views.testers.wait_for_key") as key, \
+                        patch("ft_tui.features.projects.views.testers.TerminalSession"):
                     widget._start("install", app.tester_catalog.testers[0])
                     widget._start("install", app.tester_catalog.testers[0])
                     self.assertTrue(widget._operating)
@@ -190,8 +190,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.installed.return_value = False
             service.remove = Mock(side_effect=removed)
             with patch.object(app, "suspend", side_effect=nullcontext), \
-                    patch("ft_tui.ui.project_testers.wait_for_key"), \
-                    patch("ft_tui.ui.project_testers.TerminalSession"):
+                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
+                    patch("ft_tui.features.projects.views.testers.TerminalSession"):
                 remove.press()
                 remove.press()
                 await pilot.pause(.4)
@@ -214,8 +214,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(widget.query_one(TesterAction).disabled)
             self.assertFalse(widget.query_one(TesterRemoveButton).disabled)
             with patch.object(app, "suspend", side_effect=nullcontext), \
-                    patch("ft_tui.ui.project_testers.wait_for_key"), \
-                    patch("ft_tui.ui.project_testers.TerminalSession"):
+                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
+                    patch("ft_tui.features.projects.views.testers.TerminalSession"):
                 widget._start("remove", app.tester_catalog.testers[0])
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()

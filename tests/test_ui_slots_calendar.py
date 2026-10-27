@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 
 from textual.app import App
 
-from ft_tui.slots.model import Slot, interval
-from ft_tui.ui.slots_calendar import SlotsCalendar
+from ft_tui.features.corrections.model import Slot, interval
+from ft_tui.features.corrections.calendar import SlotsCalendar
 
 DAY = date(2026, 10, 26)
 
@@ -32,7 +32,7 @@ def position(cal, day, row):
 
 class CalendarTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        clock = patch('ft_tui.ui.slots_calendar.datetime', wraps=datetime)
+        clock = patch('ft_tui.features.corrections.calendar.datetime', wraps=datetime)
         self.clock = clock.start()
         self.clock.now.return_value = datetime(2026, 10, 25, 10, tzinfo=timezone.utc)
         self.addCleanup(clock.stop)

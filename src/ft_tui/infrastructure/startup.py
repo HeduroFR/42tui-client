@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from ft_tui.db.models import Cursus,UserConfig
 from ft_tui.api.client_interface import CursusSnapshot
-from ft_tui.services.project_catalog import load_cursus_projects,load_project_curriculum
+from ft_tui.features.catalog.adapters.cursuses import load_cursus_projects, load_project_curriculum
 from ft_tui.features.catalog.adapters.cache import load_branches
 from ft_tui.features.settings.adapters.storage import save_settings
 

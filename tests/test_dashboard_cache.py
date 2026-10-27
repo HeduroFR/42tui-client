@@ -9,11 +9,9 @@ from types import SimpleNamespace
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.api.oauth_client import DeviceCredentials, OAuthClient
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.catalog_cache import apply_catalog_page, save_account_data
-from ft_tui.services.dashboard_cache import (
-    PROFILE_KEY, load_goals, load_profile, save_goals, save_profile,
-)
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.catalog.adapters.cache import apply_catalog_page, save_account_data
+from ft_tui.features.profiles.adapters.cache import PROFILE_KEY, load_goals, load_profile, save_goals, save_profile
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import ProjectRankHeader, Static
 from tests.test_oauth_client import MemoryStore
@@ -59,9 +57,8 @@ class DashboardCacheTests(unittest.TestCase):
         finally:
             factory.kw['bind'].dispose()
 
-
     def test_unknown_curriculum_keeps_saved_rank_until_a_concrete_replacement(self):
-        from ft_tui.services.catalog_cache import load_curriculum
+        from ft_tui.features.catalog.adapters.cache import load_curriculum
         factory = make_session_factory('sqlite:///:memory:')
         context = {'account_id': '42', 'cursus_id': 21, 'campus_id': 31}
         try:

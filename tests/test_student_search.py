@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from ft_tui.api.friends_types import student_search_result, friend_snapshot
+from ft_tui.features.friends.models import student_search_result, friend_snapshot
 from ft_tui.api.http_client import HttpProjectProvider
 from tests.friends_fixtures import snapshot
 
@@ -52,7 +52,7 @@ class StudentSearchTests(unittest.TestCase):
 
     def test_legacy_logins_survive_search_snapshot_and_url_encoding(self):
         from urllib.parse import quote
-        from ft_tui.api.friends_types import LOGIN
+        from ft_tui.features.friends.models import LOGIN
         for login in ('_Legacy42', 'UpperCase', 'Étudiant', 'a/b', 'A?B#C%', ' user '):
             with self.subTest(login=login):
                 result = self.result(); result['items'][0]['login'] = login

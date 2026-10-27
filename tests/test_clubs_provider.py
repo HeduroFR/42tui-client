@@ -39,7 +39,7 @@ class ClubsProviderTests(unittest.TestCase):
             provider.poll_clubs()
 
     def test_explicit_capability_and_announcement_metadata_are_validated(self):
-        from ft_tui.api.clubs_types import overview
+        from ft_tui.features.clubs.models import overview
         value = fixture()
         value['clubs'][0]['can_announce'] = 'true'
         with self.assertRaises(ValueError):

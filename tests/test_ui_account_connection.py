@@ -12,9 +12,9 @@ from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Cursus, Project, ProjectCursus, UserConfig
 from ft_tui.i18n import translate
-from ft_tui.services.user_settings import get_setting
+from ft_tui.features.settings.adapters.storage import get_setting
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.project_settings import ProjectSettingsScreen
+from ft_tui.features.projects.views.settings import ProjectSettingsScreen
 
 
 class FakeOAuthClient:
@@ -57,7 +57,7 @@ class FakeOAuthClient:
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
     async def test_connect_button_starts_pairing_and_reports_failed_browser_launch(self):
         from textual.app import App
-        from ft_tui.ui.account_connection import AccountConnectionScreen
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
 
         client = FakeOAuthClient()
         client.pairing_status = "pending"
@@ -76,7 +76,7 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_manual_pairing_link_can_be_copied_and_cleared_on_timeout(self):
         from textual.app import App
-        from ft_tui.ui.account_connection import AccountConnectionScreen
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
 
         client = FakeOAuthClient()
         client.pairing_status = "pending"
@@ -95,7 +95,7 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(screen._authorization_url, "")
 
     async def test_expired_session_prompts_once_and_later_keeps_local_workspace(self):
-        from ft_tui.ui.account_connection import SessionExpiredScreen
+        from ft_tui.features.accounts.views.connection import SessionExpiredScreen
         from ft_tui.ui.app import SessionExpired
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
@@ -118,7 +118,7 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(isinstance(app.screen, SessionExpiredScreen))
 
     async def test_expired_session_reconnect_starts_pairing_without_second_click(self):
-        from ft_tui.ui.account_connection import AccountConnectionScreen
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
         from ft_tui.ui.app import SessionExpired
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
@@ -137,7 +137,7 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(app.screen.query_one("#account-connect").disabled)
 
     async def test_expiry_while_account_dialog_is_open_prompts_after_cancel(self):
-        from ft_tui.ui.account_connection import SessionExpiredScreen
+        from ft_tui.features.accounts.views.connection import SessionExpiredScreen
         from ft_tui.ui.app import SessionExpired
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
@@ -157,7 +157,7 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
     async def test_startup_auth_failure_from_worker_opens_popup_but_outage_does_not(self):
         import httpx
         from ft_tui.api.oauth_client import OAuthClient, DeviceCredentials
-        from ft_tui.ui.account_connection import SessionExpiredScreen
+        from ft_tui.features.accounts.views.connection import SessionExpiredScreen
         from tests.test_oauth_client import MemoryStore
         for status in (401, 503):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:

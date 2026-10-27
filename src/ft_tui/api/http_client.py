@@ -131,7 +131,7 @@ class HttpProjectProvider:
         return cluster_issue_page(value,hostname,include_resolved)
 
     def list_campuses(self):
-        from .campus_types import campus_directory
+        from ft_tui.features.accounts.campuses import campus_directory
         return campus_directory(self.api.request('GET', '/v1/campuses'))
 
     def __init__(self,api=None,*,base_url="https://api.42tui.app",oauth_client=None):

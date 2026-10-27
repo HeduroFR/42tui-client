@@ -34,13 +34,13 @@ class WorklogTests(unittest.TestCase):
 
     def test_timer_switch_and_stop_keep_one_running_timer_and_credited_totals(self):
         at=datetime(2026,10,27,12)
-        with patch('ft_tui.services.time_tracking._utc_naive_now',return_value=at):
+        with patch('ft_tui.features.worklog.adapters.accounting._utc_naive_now',return_value=at):
             self.assertEqual(self.service.toggle_timer(self.a).action,'started')
-        with patch('ft_tui.services.time_tracking._utc_naive_now',return_value=at+timedelta(seconds=30)):
+        with patch('ft_tui.features.worklog.adapters.accounting._utc_naive_now',return_value=at+timedelta(seconds=30)):
             outcome=self.service.toggle_timer(self.b)
             self.assertTrue(outcome.switched)
             self.assertEqual(self.service.timer(self.a).total_seconds,30)
-        with patch('ft_tui.services.time_tracking._utc_naive_now',return_value=at+timedelta(seconds=45)):
+        with patch('ft_tui.features.worklog.adapters.accounting._utc_naive_now',return_value=at+timedelta(seconds=45)):
             self.assertEqual(self.service.toggle_timer(self.b).action,'stopped')
             self.assertIsNone(self.service.timer(self.b).active)
             self.assertEqual(self.service.timer(self.b).total_seconds,15)
@@ -54,11 +54,3 @@ class WorklogTests(unittest.TestCase):
             self.assertEqual(result.credited_seconds,0)
             self.assertEqual(self.service.heartbeat(Path(directory)/'main.c',occurred_at=at+timedelta(seconds=120)).credited_seconds,120)
             self.assertEqual(self.service.heartbeat(Path(directory)/'main.c',occurred_at=at+timedelta(seconds=241)).credited_seconds,0)
-
-    def test_accounting_and_view_legacy_imports_have_single_canonical_identity(self):
-        from ft_tui.services import time_tracking
-        from ft_tui.features.worklog.adapters import accounting
-        from ft_tui.ui import dev_log
-        from ft_tui.features.worklog.views import notes
-        self.assertIs(time_tracking,accounting)
-        self.assertIs(dev_log,notes)

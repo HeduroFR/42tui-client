@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.user_settings import get_setting, save_settings
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.select import Select
 

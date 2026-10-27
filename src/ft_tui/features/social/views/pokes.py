@@ -8,7 +8,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.await_complete import AwaitComplete
 
 from ft_tui.features.profiles.adapters.portraits import download_portrait
-from ft_tui.ui.cluster_portrait import ClusterPortrait, PortraitCache
+from ft_tui.features.cluster_map.views.portrait import ClusterPortrait, PortraitCache
 from ft_tui.ui.components import Button, Static
 from ft_tui.ui.modal import AppModal
 from ft_tui.ui.terminal_capabilities import image_mode

@@ -9,7 +9,7 @@ from textual.message import Message
 from textual.geometry import Region
 from ft_tui.features.cluster_map.geometry import load_layout,positions,fit_tiles,neighbor,row_heights
 from ft_tui.i18n import translate
-from ft_tui.ui.cluster_portrait import portrait_lines,ClusterPortrait,NATIVE_IMAGES
+from ft_tui.features.cluster_map.views.portrait import portrait_lines, ClusterPortrait, NATIVE_IMAGES
 from ft_tui.features.cluster_map.views.cluster_seat_preview import ClusterSeatPreview
 from ft_tui.ui.terminal_capabilities import image_mode
 

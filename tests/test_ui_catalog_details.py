@@ -1,6 +1,6 @@
 import unittest
 from ft_tui.db.models import Project
-from ft_tui.services.project_presentation import catalog_details,expression_label
+from ft_tui.features.catalog.views.presentation import catalog_details, expression_label
 class DetailTests(unittest.TestCase):
  def test_exam_zero_xp_failed_zero_mark_and_advice_are_distinct(self):
   p=Project(official_project_id=1001,slug='exam',name='Exam')
@@ -11,9 +11,9 @@ class DetailTests(unittest.TestCase):
 
 class ReadableConditionsTests(unittest.TestCase):
  def test_nested_conditions_use_readable_language_and_keep_negation(self):
-  from ft_tui.services.project_presentation import readable_condition
+  from ft_tui.features.catalog.views.presentation import readable_condition
   expression={'op':'not','child':{'op':'all','children':[{'op':'predicate','ref':'42cursus-libft','action':'validated','target':'project'}]}}
   self.assertEqual(readable_condition(expression), 'Must not satisfy: Libft completed')
  def test_unknown_conditions_are_not_presented_as_known_requirements(self):
-  from ft_tui.services.project_presentation import readable_condition
+  from ft_tui.features.catalog.views.presentation import readable_condition
   self.assertIsNone(readable_condition({'op':'mystery','text':'opaque rule'}))

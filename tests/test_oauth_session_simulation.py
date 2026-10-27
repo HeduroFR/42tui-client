@@ -7,7 +7,7 @@ from ft_tui.api.oauth_client import DeviceCredentials, OAuthClient
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.db.database import make_session_factory
 from ft_tui.ui.app import FortyTwoTuiApp
-from ft_tui.ui.account_connection import SessionExpiredScreen
+from ft_tui.features.accounts.views.connection import SessionExpiredScreen
 from tests.test_oauth_client import MemoryStore
 
 

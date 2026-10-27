@@ -6,8 +6,8 @@ from tempfile import TemporaryDirectory
 
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Cursus
-from ft_tui.services.user_settings import get_setting, save_settings
-from ft_tui.services.curriculum_selection import preference_key
+from ft_tui.features.settings.adapters.storage import get_setting, save_settings
+from ft_tui.features.catalog.preferences import preference_key
 from ft_tui.ui.app import FortyTwoTuiApp
 from ft_tui.ui.components import Select
 

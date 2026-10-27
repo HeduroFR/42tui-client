@@ -33,32 +33,13 @@ class ArchitectureBoundaryTests(unittest.TestCase):
         self.assertFalse(any(x.startswith(('sqlalchemy','ft_tui.db')) for x in imports(path)))
 
     def test_profile_download_does_not_import_a_widget(self):
-        self.assertFalse(any(x.startswith('ft_tui.ui') for x in imports(ROOT/'services/user_profile.py')))
-
-    def test_compatibility_imports_keep_canonical_catalog_class_and_patch_identity(self):
-        from ft_tui.api import catalog_types
-        from ft_tui.features.catalog import models
-        from ft_tui.services import catalog_cache
-        from ft_tui.features.catalog.adapters import cache
-        self.assertIs(catalog_types, models)
-        self.assertIs(catalog_cache, cache)
-        self.assertIs(catalog_types.CatalogScope, models.CatalogScope)
+        self.assertFalse(any(x.startswith('ft_tui.ui') for x in imports(ROOT/'features/profiles/adapters/portraits.py')))
 
     def test_dashboard_presentation_has_no_storage_or_direct_network_operations(self):
         path = ROOT/'features/dashboard/views/home.py'
         tree = ast.parse(path.read_text())
         self.assertFalse(any(isinstance(n, ast.Attribute) and n.attr=='session_factory' for n in ast.walk(tree)))
         self.assertFalse(any(x.startswith(('sqlalchemy','ft_tui.db','httpx','ft_tui.features.profiles.adapters')) for x in imports(path)))
-
-    def test_dashboard_and_profile_legacy_modules_have_canonical_identity(self):
-        from ft_tui.ui import dashboard
-        from ft_tui.features.dashboard.views import home
-        from ft_tui.services import dashboard_cache, project_curriculum
-        from ft_tui.features.profiles.adapters import cache
-        from ft_tui.features.catalog import read_models
-        self.assertIs(dashboard, home)
-        self.assertIs(dashboard_cache, cache)
-        self.assertIs(project_curriculum, read_models)
 
     def test_note_and_project_setup_views_do_not_open_database_sessions(self):
         for rel in ('features/worklog/views/notes.py','features/projects/views/setup.py'):
@@ -79,18 +60,6 @@ class ArchitectureBoundaryTests(unittest.TestCase):
                                              and call.func.attr=='session_factory',str(path))
                 self.assertFalse(any(x.startswith(('sqlalchemy','ft_tui.db')) for x in imports(path)),str(path))
 
-    def test_community_views_and_dtos_preserve_legacy_module_identity(self):
-        from ft_tui.ui import friends,clubs,social
-        from ft_tui.features.friends.views import workspace as friend_view
-        from ft_tui.features.clubs.views import workspace as club_view
-        from ft_tui.features.social.views import inbox
-        from ft_tui.api import friends_types,clubs_types,social_types
-        from ft_tui.features.friends import models as friend_models
-        from ft_tui.features.clubs import models as club_models
-        from ft_tui.features.social import models as social_models
-        self.assertIs(friends,friend_view);self.assertIs(clubs,club_view);self.assertIs(social,inbox)
-        self.assertIs(friends_types,friend_models);self.assertIs(clubs_types,club_models);self.assertIs(social_types,social_models)
-
     def test_cluster_and_corrections_views_do_not_open_database_sessions(self):
         for feature in ('cluster_map','corrections'):
             for path in list((ROOT/f'features/{feature}/views').glob('*.py')) + ([ROOT/'features/corrections/views.py',ROOT/'features/corrections/calendar.py'] if feature == 'corrections' else []):
@@ -101,13 +70,6 @@ class ArchitectureBoundaryTests(unittest.TestCase):
                             self.assertFalse(isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute)
                                              and call.func.attr in ('session_factory','factory'),str(path))
                 self.assertFalse(any(x.startswith(('sqlalchemy','ft_tui.db')) for x in imports(path)),str(path))
-
-    def test_campus_feature_legacy_module_identities_remain_canonical(self):
-        from ft_tui.ui import cluster_map,correction_slots
-        from ft_tui.features.cluster_map.views import cluster_map as workspace
-        from ft_tui.features.corrections import views as corrections_workspace
-        self.assertIs(cluster_map,workspace)
-        self.assertIs(correction_slots,corrections_workspace)
 
     def test_settings_and_update_views_do_not_own_database_sessions(self):
         for feature in ('settings', 'installation'):
@@ -122,19 +84,6 @@ class ArchitectureBoundaryTests(unittest.TestCase):
                             self.assertFalse(isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
                                              and call.func.attr in ('session_factory', 'factory'), str(path))
                 self.assertFalse(any(x.startswith(('sqlalchemy', 'ft_tui.db')) for x in imports(path)), str(path))
-
-    def test_settings_and_installation_facades_keep_canonical_patch_identity(self):
-        from ft_tui.ui import settings, updates
-        from ft_tui.services import user_settings, updates as runtime, installation
-        from ft_tui.features.settings.views import workspace
-        from ft_tui.features.settings.adapters import storage
-        from ft_tui.features.installation.views import updates as update_view
-        from ft_tui.features.installation.adapters import runtime as update_runtime, maintenance
-        self.assertIs(settings, workspace)
-        self.assertIs(updates, update_view)
-        self.assertIs(user_settings, storage)
-        self.assertIs(runtime, update_runtime)
-        self.assertIs(installation, maintenance)
 
     def test_remaining_workflow_views_do_not_open_database_sessions(self):
         for rel in ('projects/views/registration.py', 'projects/views/team.py',
@@ -151,8 +100,3 @@ class ArchitectureBoundaryTests(unittest.TestCase):
                         self.assertFalse(isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
                                          and call.func.attr in ('session_factory', 'factory'), rel)
             self.assertFalse(any(x.startswith(('sqlalchemy', 'ft_tui.db')) for x in imports(path)), rel)
-
-    def test_goals_validator_keeps_canonical_identity(self):
-        from ft_tui.api import goals_types
-        from ft_tui.features.profiles import goals
-        self.assertIs(goals_types, goals)

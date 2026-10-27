@@ -2,7 +2,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
-from ft_tui.slots.model import Slot
+from ft_tui.features.corrections.model import Slot
 from ft_tui.features.corrections.service import (
     CorrectionsService, MutationFailure, StaleCorrectionsContext,
 )
@@ -126,15 +126,3 @@ class CorrectionsServiceTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await service.save(slot, begin, end, current=lambda: True)
         self.assertEqual(provider.calls, [])
-
-    def test_legacy_module_and_dataclass_and_patch_identity(self):
-        from importlib import import_module
-        for old, new in (('ft_tui.slots.model', 'model'),
-                         ('ft_tui.api.slots_types', 'types'),
-                         ('ft_tui.ui.correction_slots', 'views'),
-                         ('ft_tui.ui.slots_calendar', 'calendar')):
-            self.assertIs(import_module(old), import_module('ft_tui.features.corrections.' + new))
-        from ft_tui.features.corrections.model import Slot as OwnedSlot
-        self.assertIs(Slot, OwnedSlot)
-        with patch('ft_tui.ui.slots_calendar.datetime', sentinel := object()):
-            self.assertIs(import_module('ft_tui.features.corrections.calendar').datetime, sentinel)

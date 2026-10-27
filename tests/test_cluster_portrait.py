@@ -6,9 +6,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from io import BytesIO
 from PIL import Image
-from ft_tui.ui.cluster_portrait import decode_portrait, portrait_lines
-from ft_tui.ui.cluster_portrait import PortraitCache
-from ft_tui.ui.cluster_portrait import prepare_portrait
+from ft_tui.features.cluster_map.views.portrait import decode_portrait, portrait_lines
+from ft_tui.features.cluster_map.views.portrait import PortraitCache
+from ft_tui.features.cluster_map.views.portrait import prepare_portrait
 
 
 class PortraitTests(unittest.TestCase):

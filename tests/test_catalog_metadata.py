@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 from ft_tui.db.database import make_session_factory
 from ft_tui.db.models import Project,DevNote,TimeLog
-from ft_tui.services.catalog_cache import apply_catalog_page
+from ft_tui.features.catalog.adapters.cache import apply_catalog_page
 class MetadataTests(unittest.TestCase):
  def test_refresh_preserves_local_checkout_notes_and_timers(self):
   factory=make_session_factory('sqlite:///:memory:')
@@ -18,8 +18,8 @@ class MetadataTests(unittest.TestCase):
   factory.kw['bind'].dispose()
 
  def test_team_mode_survives_validation_and_local_cache(self):
-  from ft_tui.api.catalog_types import project_summary
-  from ft_tui.services.catalog_cache import load_context_projects
+  from ft_tui.features.catalog.models import project_summary
+  from ft_tui.features.catalog.adapters.cache import load_context_projects
   data={'project_id':1001,'slug':'libft','name':'Libft','kind':'project','xp':None,'rank':None,'track':'new','section':'common-core','project_mode':'solo','team_size':1}
   clean=project_summary(data)
   self.assertEqual(clean.get('project_mode'),'solo')

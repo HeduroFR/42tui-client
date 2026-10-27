@@ -22,7 +22,7 @@ from textual_image.widget.sixel import _ImageSixelImpl
 from textual_image._terminal import get_cell_size
 from ft_tui.i18n import translate
 from ft_tui.shared.portraits import MAX_PORTRAIT_BYTES
-from .terminal_capabilities import CAPABILITIES, image_mode
+from ft_tui.ui.terminal_capabilities import CAPABILITIES, image_mode
 
 
 # Importing textual-image probes capabilities before Textual starts its input

@@ -1,7 +1,7 @@
 import json
 import unittest
 from pathlib import Path
-from ft_tui.services.fuzzy_search import fuzzy_score
+from ft_tui.shared.fuzzy_search import fuzzy_score
 
 
 class FuzzySearchTests(unittest.TestCase):

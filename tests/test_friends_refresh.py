@@ -10,7 +10,7 @@ import httpx
 from ft_tui.api.http_client import HttpProjectProvider
 from ft_tui.api.oauth_client import DeviceCredentials, OAuthClient
 from ft_tui.db.database import make_session_factory
-from ft_tui.ui.friends import FriendsWorkspace
+from ft_tui.features.friends.views.workspace import FriendsWorkspace
 from tests.test_oauth_client import MemoryStore
 
 
@@ -152,7 +152,7 @@ class FriendsRefreshSimulationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(stats['peak'], 2)
                 self.assertEqual(stats['completed'], 15)
                 self.assertEqual(stats['invalid'], 0)
-                from ft_tui.services.friends import cached_observations
+                from ft_tui.features.friends.adapters.storage import cached_observations
                 with factory() as session:
                     self.assertEqual(len(cached_observations(session, '42', 21, origin=url)), 15)
             finally:

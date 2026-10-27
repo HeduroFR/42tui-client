@@ -23,11 +23,11 @@ from time import perf_counter
 from textual.app import App
 from textual.widgets import DataTable, Static, TabbedContent, TabPane
 
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.db.database import make_session_factory
-from ft_tui.services.friends import cache_mutual_friends, save_observation
-from ft_tui.ui.friends import FriendsWorkspace
-from ft_tui.ui.project_activity import ProjectActivityScreen, open_project_activity
+from ft_tui.features.friends.adapters.storage import cache_mutual_friends, save_observation
+from ft_tui.features.friends.views.workspace import FriendsWorkspace
+from ft_tui.features.projects.views.activity import ProjectActivityScreen, open_project_activity
 from activity_fixtures import history, evaluations
 from friends_fixtures import snapshot
 
@@ -292,8 +292,8 @@ async def main(args):
     from hashlib import sha256
     report = {'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
               'source_sha256': {str(path): sha256(path.read_bytes()).hexdigest() for path in [
-                  Path('src/ft_tui/ui/friends.py'), Path('src/ft_tui/ui/project_activity.py'),
-                  Path('src/ft_tui/services/read_cache.py'), Path(__file__).relative_to(Path.cwd())] if path.exists()},
+                  Path('src/ft_tui/features/friends/views/workspace.py'), Path('src/ft_tui/features/projects/views/activity.py'),
+                  Path('src/ft_tui/app/read_cache.py'), Path(__file__).relative_to(Path.cwd())] if path.exists()},
               'environment': {'python': platform.python_version(), 'textual': version('textual'),
                   'platform': platform.platform(), 'machine': platform.machine(), 'terminal': [120, 40]},
               'dataset': {'friends': 1, 'account_profiles': 1, 'teams': 2, 'evaluations_per_team': 2},

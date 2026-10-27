@@ -8,9 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import httpx
-from ft_tui.services.updates import (
-    Installation, apply_update, detect_installation, latest_stable, release_notes, stable_version,
-)
+from ft_tui.features.installation.adapters.runtime import Installation, apply_update, detect_installation, latest_stable, release_notes, stable_version
 
 
 class ReleaseCheckTests(unittest.TestCase):
@@ -116,7 +114,7 @@ class InstallationTests(unittest.TestCase):
         return run
 
     def apply(self, run):
-        with patch('ft_tui.services.updates.detect_installation', return_value=self.installation):
+        with patch('ft_tui.features.installation.adapters.runtime.detect_installation', return_value=self.installation):
             return apply_update(self.installation, '0.3.0', self.tmp.name, run=run)
 
     def test_upgrade_and_verify(self):
@@ -136,7 +134,7 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(self.calls[2][1:3], ['upgrade', 'ft-tui'])
 
     def test_installation_changed_after_check(self):
-        with patch('ft_tui.services.updates.detect_installation', return_value=None):
+        with patch('ft_tui.features.installation.adapters.runtime.detect_installation', return_value=None):
             with self.assertRaises(ValueError):
                 apply_update(self.installation, '0.3.0', self.tmp.name, run=self.fake_run())
         self.assertEqual(len(self.calls), 1)
@@ -170,7 +168,7 @@ class MainUpdateTests(unittest.TestCase):
                 stack.enter_context(patch('ft_tui.config.settings.data_dir', return_value=Path('/unused')))
                 stack.enter_context(patch('ft_tui.config.settings.database_url', return_value='sqlite://'))
                 service = SimpleNamespace(installation=object())
-                stack.enter_context(patch('ft_tui.services.updates.UpdateService.for_current_installation',
+                stack.enter_context(patch('ft_tui.features.installation.adapters.runtime.UpdateService.for_current_installation',
                                           return_value=service))
                 app = stack.enter_context(patch('ft_tui.ui.app.FortyTwoTuiApp')).return_value
                 app.pending_update = '0.3.0'
@@ -180,7 +178,7 @@ class MainUpdateTests(unittest.TestCase):
                     if crashes:
                         raise RuntimeError('UI failed')
                 app.run.side_effect = run
-                installer = stack.enter_context(patch('ft_tui.services.updates.apply_update',
+                installer = stack.enter_context(patch('ft_tui.features.installation.adapters.runtime.apply_update',
                                                       side_effect=lambda *args: events.append('install')))
                 stack.enter_context(patch('builtins.print'))
                 if crashes:

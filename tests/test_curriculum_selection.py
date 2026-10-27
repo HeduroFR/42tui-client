@@ -1,5 +1,5 @@
 import unittest
-from ft_tui.services.curriculum_selection import select_track,select_rank
+from ft_tui.features.catalog.preferences import select_track, select_rank
 class SelectionTests(unittest.TestCase):
  def test_empty_evidence_requires_setting_and_never_mixes_tracks(self):
   self.assertIsNone(select_track({},None)['track'])

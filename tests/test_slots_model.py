@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
-from ft_tui.slots.model import Slot, group_slots, local_datetime, interval
+from ft_tui.features.corrections.model import Slot, group_slots, local_datetime, interval
 
 
 def at(hour, minute=0):

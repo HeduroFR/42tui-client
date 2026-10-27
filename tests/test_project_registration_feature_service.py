@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
-from ft_tui.api.catalog_types import CatalogScope
+from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.features.projects.registration.service import RegistrationService, StaleRegistrationContext
 from tests.registration_fixtures import registration_state, operation
 
@@ -112,19 +112,6 @@ class RegistrationServiceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(StaleRegistrationContext):
             await RegistrationService().team(provider,1001,SCOPE,'42',current=lambda:False)
 
-    def test_legacy_modules_preserve_canonical_helpers_dataclass_and_patch_identity(self):
-        from importlib import import_module
-        for old,new in [('ft_tui.ui.project_registration','views.registration'),
-                        ('ft_tui.ui.project_team','views.team'),
-                        ('ft_tui.services.project_registration','registration.presentation'),
-                        ('ft_tui.api.registration_types','registration.types'),
-                        ('ft_tui.api.team_types','registration.team_types')]:
-            self.assertIs(import_module(old),import_module('ft_tui.features.projects.'+new))
-        from ft_tui.services.project_registration import RegistrationView
-        from ft_tui.features.projects.registration.presentation import RegistrationView as OwnedView
-        self.assertIs(RegistrationView,OwnedView)
-        with patch('ft_tui.ui.project_registration.datetime',sentinel := object()):
-            self.assertIs(import_module('ft_tui.features.projects.views.registration').datetime,sentinel)
 
     async def test_queued_registration_uses_reviewed_snapshot_and_original_project_after_selection_switch(self):
         from ft_tui.features.projects.views.registration import ProjectRegistrationMixin
