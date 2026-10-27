@@ -1,5 +1,7 @@
 # 42TUI client
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, review and cross-repository workflows.
+
 Offline-first terminal workspace for École 42 students: projects, time tracking,
 notes and optional account-connected features. Source: [HeduroFR/42tui-client](https://github.com/HeduroFR/42tui-client).
 
