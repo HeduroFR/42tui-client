@@ -1,56 +1,109 @@
-# 42TUI client
+# 42TUI
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development, review and cross-repository workflows.
+Your 42 projects, notes, and coding activity in the terminal. Connect your
+42 account, track time with editor plugins, and jump to project folders with
+`42goto`.
 
-Offline-first terminal workspace for École 42 students: projects, time tracking,
-notes and optional account-connected features. Source: [HeduroFR/42tui-client](https://github.com/HeduroFR/42tui-client).
+## Features
 
-Python >=3.12 is required. The distribution remains `ft-tui`, version **0.3.0**;
-commands remain `42tui`, `42goto`, and `42tui-zed-lsp`.
+- Browse projects, read subjects, open your editor, and run supported testers.
+- Keep project notes and coding activity locally, available offline.
+- Track coding time with plugins for Vim, Neovim, VS Code, and Zed.
+- Jump to local projects with `42goto`, with shell completion.
+- Follow account progress, manage correction slots, and explore your campus's
+  cluster map.
+- Follow friends and join club conversations and events.
 
-## Development
+Account and campus features require a connected 42 account and available data.
+Some project testers require Docker.
 
-```sh
-python3.12 -m venv .venv
-. .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-42tui --version
-python release/regression_scopes.py --check
-python -m unittest discover -s tests
-```
+## Install and launch
 
-The interface stores personal data locally. Use a disposable environment for UI
-smoke checks. Online features use `https://oauth.42wip.in`; override it with
-`FT_TUI_API_URL`. See [API compatibility](docs/api-compatibility.md).
-
-## Install and maintain
+For Linux (glibc) and macOS, on x86_64 or ARM64:
 
 ```sh
 curl -fsSL https://tui.42wip.in/install.sh | sh
+```
+
+You can [inspect the installer](https://tui.42wip.in/install.sh) first. It needs
+`curl`, internet access, and a writable home directory. It installs `uv` and
+Python 3.12 if needed, without administrator rights.
+
+Restart your terminal, then run:
+
+```sh
+42tui
+```
+
+## Connect your 42 account
+
+1. Choose **Connect 42 account** during setup, or open **Settings → Profile**
+   with `F5`.
+2. Choose **Connect / reconnect**, then sign in and approve access in your browser.
+   If no browser opens, use **Copy login link** to open it yourself.
+3. Return to 42TUI and finish setup: projects folder, editor, theme, and language.
+
+Your project list loads after connection. To change cursus, open
+**Settings → Curriculum → Default cursus**. You can skip connection and work
+with saved projects and local notes.
+
+Your password stays with 42; device credentials use your OS credential store.
+
+## `42goto`
+
+Configure your project's local folder in 42TUI, then enable shell navigation.
+Add the matching line to your shell config:
+
+```sh
+# Zsh: ~/.zshrc, after compinit
+eval "$(command 42goto --shell-init zsh)"
+
+# Bash: ~/.bashrc
+eval "$(command 42goto --shell-init bash)"
+```
+
+Restart your shell, then jump to a project:
+
+```sh
+42goto libft
+42goto          # Use the active or most recently tracked project
+```
+
+Press `Tab` to complete project slugs. Local folders must exist. If `42goto`
+cannot choose a project automatically, pass its name or slug.
+
+## Editor plugins
+
+Configure each project's local folder in 42TUI, then install your editor's plugin:
+
+- [Vim](integrations/README.md#vim)
+- [Neovim](integrations/README.md#neovim)
+- [VS Code](integrations/vscode/README.md) — development extension setup
+- [Zed](integrations/zed/README.md) — development extension setup
+
+The plugins call `42tui heartbeat` locally as you work. Make sure your editor
+can find `42tui` on its `PATH`, or set the executable path in the plugin.
+Tracking needs no account connection; file contents are not read and file paths
+are not retained.
+
+## Everyday use
+
+Press `?` or `F1` for shortcuts. `F2` opens Projects, `F3` opens Notes, and `F5`
+opens Settings.
+
+For installer-managed installations:
+
+```sh
 42tui update
 42tui uninstall
 ```
 
-Review scripts before executing them. Windows installation through
-`https://tui.42wip.in/install.ps1` is experimental. Uninstall preserves application
-data and credentials. Editable installs are maintained through their original manager.
-See [distribution operations](docs/distribution.md) and [editor integrations](integrations/README.md).
+Uninstalling preserves local data and credentials. To disconnect first, choose
+**Settings → Profile → Manage 42 account → Disconnect this device**.
+Other installations should be maintained with their original package manager.
 
-## Local checks
+If `42tui` is not found, restart your terminal and check the installer's printed
+executable directory is on your `PATH`. If icons look wrong, select a Nerd Font
+in your terminal settings.
 
-```sh
-uv build
-python release/check_package.py dist
-python release/installer_hashes.py
-sh -n distribution/install.sh
-sh -n distribution/uninstall.sh
-```
-
-The backend is separately maintained. This checkout needs no backend source to
-build, install or run its unit/UI tests. Optional HTTP simulations are described
-in [simulation checks](postman/README.md). No new release is created by this split.
-
-## Architecture
-
-Feature ownership, dependency rules and the remaining migration stages are
-described in [the architecture guide](docs/architecture.md).
+For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
