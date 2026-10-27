@@ -2,12 +2,13 @@
 
 Latest release: **0.4.0** ([`v0.4.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.0)).
 Package version: **0.4.1**, prepared but not published.
-Prepared patch candidate: **0.4.1**, for correction-slot start selection.
+Prepared patch candidate: **0.4.1**, client `4e48e9b`, validated with deployed
+backend `e917aca`; awaiting separate tag/publication authorization.
 Suggested release including tester setup: **0.5.0** (minor), because the tester flow
 adds user-visible setup and execution behavior after published 0.4.0. Keep the
 existing 0.4.1 preparation unchanged; tester changes may follow that patch release.
-Publication remains blocked on the relevant CI, native platform checks and exact-pair
-verification. Version preparation does not authorize deployment or publication.
+The later tester release still requires its relevant CI, native platform checks
+and exact-pair verification. Version preparation does not authorize deployment or publication.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -40,6 +41,27 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   Requires the matching backend change deployed before releasing the client.
 
 ### Internal changes and documentation
+
+- **2026-10-27 · no release required · Final readiness record:** client PR #12
+  merged as `4e48e9b`, with the same Git tree as PR head `a3cfc09`; CI run
+  `40590113023` passed all 21 jobs (14 regression scopes, four platforms,
+  packaging/installers, distribution container and campus-Python installation).
+  Its exact wheel passed installed-package smoke and the synthetic slot HTTP
+  roundtrip through the real client provider and backend routes/service/transport.
+  Final compatibility run `40590735918` passed all three pairs against deployed
+  backend `e917aca`, including supported client 0.4.0. The readiness checker
+  accepted the candidate receipt and observed Dokploy deployment evidence.
+  Update TODO.md to freeze the tested release candidate and leave only explicit
+  publication authorization, tag/publish, and post-release verification pending.
+  These documentation changes follow the candidate; do not retag a later head.
+  Live Intra write acceptance remains unverified. No tag/publication performed.
+  Checks: documentation diff, links, recorded CI and deployment evidence reviewed.
+
+- **2026-10-27 · no release required · Readiness reconciliation:** merge the
+  later tester work from main into the documentation branch without changing it.
+  Preserve its minor-release advice and validation separately from the frozen
+  0.4.1 patch candidate. Only DEV_CHANGELOG.md required textual conflict resolution;
+  the release candidate remains 4e48e9b. Documentation diff/conflict checks passed.
 
 - **2026-10-27 · no release required · PR #13 reconciliation:** merge current
   main into `feat/tester-one-click`. Preserve the published 0.4.0 baseline,
@@ -94,9 +116,10 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 - Post-release documentation diff/link checks passed. Runtime suites were not
   repeated for this documentation-only update.
 - Correction-slot scope: 52 tests passed; regression-scope ownership checked.
-- Backend deployment was verified as described above. HTTP simulations remain
-  synthetic; real Intra acceptance and final exact-pair evidence are pending.
-- Prepare 0.4.1 after review; do not publish before the required backend is verified.
+- Backend deployment and final exact-pair evidence for patch candidate 4e48e9b
+  passed as recorded above. Slot HTTP checks remain synthetic; real Intra
+  acceptance is unverified. Obtain separate tag/publication approval and reverify
+  backend readiness immediately before publication.
 
 ### Tester setup validation (2026-10-27)
 
