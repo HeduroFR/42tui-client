@@ -1,5 +1,72 @@
 # TODO
 
+## 0.4.1 — Correction-slot start window
+
+Status: 0.4.1 prepared; backend fix merged and deployed. Client PR/CI and final
+release evidence remain in progress; publication is not authorized.
+The latest published version remains 0.4.0. This patch contains only the correction-slot fix; the dashboard,
+exam filtering and other 0.5.0 work are outside this release.
+
+### Main fixes
+
+- [x] Use current quarter-hour rounded down + 30 minutes: 10:18 → 10:45.
+- [x] Align calendar selection and Add availability with that limit.
+- [x] Recheck the start when publishing and before dispatch; retain deletion of
+  nearby existing availability.
+- [x] Align backend validation without changing payloads or error codes.
+- [x] Update French/Spanish messages and user-facing release notes.
+- [x] Commit fixes: client `82f583b`; backend `880ce27`.
+
+### Local validation completed
+
+- [x] Client correction scope: 52 tests passed; locale tests: 2 passed.
+- [x] Backend suite: 472 passed, 34 skipped, no failures.
+- [x] Backend TypeScript check, Prisma generation and schema validation passed.
+  Schema validation used a dummy database URL; it did not connect to PostgreSQL.
+- [x] Postman HTTP simulation: 2 tests passed, including 10:30 rejected without
+  upstream dispatch and 10:45 accepted at 10:18. This uses synthetic Intra data.
+
+### Remaining before release
+
+- [x] Independently review both fixes and open linked PRs:
+  [client #12](https://github.com/HeduroFR/42tui-client/pull/12), backend #5.
+- [x] Obtain green backend CI and merge backend #5 as `e917aca`.
+- [ ] Obtain green final client CI and merge client #12. The first run found
+  two throttled-sync test assumptions; both tests now explicitly force sync.
+- [x] Confirm the published 0.4.0 baseline in GitHub and align distribution
+  documentation with the development changelog.
+- [x] Select 0.4.0 as the oldest supported client for this release.
+- [x] Run the initial three-pair compatibility workflow successfully:
+  backend Actions run `40589486585` (client `0c22b9a`, backend `880ce27`,
+  supported client 0.4.0, prior deployed backend `731b7cd`).
+- [ ] Refresh exact candidate/deployed backend evidence and run the three
+  compatibility pairs described in
+  [API compatibility](docs/api-compatibility.md). The existing friend-preview
+  scenario alone does not verify correction-slot behavior.
+- [ ] Verify the correction-slot behavior with the candidate pair, including
+  10:18 → 10:45, quarter-hour rollover, stale editor validation and deletion.
+  Record any remaining real-Intra acceptance limitation explicitly.
+- [x] Deploy backend `e917aca` through Dokploy with separate authorization.
+  Its API image ID is `sha256:d87af92f735c42324fd95a344e0be777cc3d84bdd19b93c4cdb8bfe9de08d7ef`.
+  Deployment finished; deployed slot-source hash matches that revision; 22
+  synthetic slot tests pass inside the API container. Read-only PostgreSQL
+  SELECT 1, Redis PING and API health probes passed. No real Intra write was made.
+- [x] Prepare version 0.4.1 and its CHANGELOG section with authorization; retain
+  pending DEV_CHANGELOG entries until publication has been fully verified.
+- [ ] On the final reviewed release revision, validate `v0.4.1` with
+  `release/check_version.py`; obtain package, installer, regression and supported
+  platform checks from CI. Record compatibility evidence for the exact candidate.
+- [ ] Obtain separate tag/publication authorization, reverify backend readiness,
+  then publish the tested immutable client artifacts through the release workflow.
+- [ ] Verify both PyPI distributions and GitHub release assets/checksums, smoke
+  test the published package and update path, then advance DEV_CHANGELOG to the
+  verified 0.4.1 baseline while retaining any later changes.
+
+## Distribution and documentation backlog
+
+- [ ] Add standalone Linux x64/ARM64 and macOS Intel/Apple Silicon builds to GitHub releases.
+  - Set up dedicated packaging and tests for each supported platform and architecture.
+
 - [ ] Rework `README.md` into an appealing, readable introduction for users.
   - Lead with what 42TUI is, who it helps and its key benefits.
   - Explain the main features with short, concrete examples of everyday use.

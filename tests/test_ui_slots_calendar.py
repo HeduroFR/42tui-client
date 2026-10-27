@@ -37,6 +37,30 @@ class CalendarTests(unittest.IsolatedAsyncioTestCase):
         self.clock.now.return_value = datetime(2026, 10, 25, 10, tzinfo=timezone.utc)
         self.addCleanup(clock.stop)
 
+    async def test_first_available_quarter_and_nearby_existing_slot(self):
+        self.clock.now.return_value = datetime(2026, 10, 26, 10, 18, tzinfo=timezone.utc)
+        app = Harness()
+        async with app.run_test(size=(110, 26)) as pilot:
+            cal = app.query_one(SlotsCalendar)
+            self.assertEqual(cal.first_row(0), 43)
+            cal.request_edit(0, 42)
+            await pilot.pause()
+            self.assertEqual(app.edits, [])
+            cal.request_edit(0, 43)
+            await pilot.pause()
+            self.assertEqual(app.edits[0].begin.hour, 10)
+            self.assertEqual(app.edits[0].begin.minute, 45)
+            self.assertEqual(cal.first_row(0, adding=False), 41)
+            nearby = Slot(('1',), *interval(DAY, 41, 44, timezone.utc))
+            cal.set_slots((nearby,)); cal.show_time(40); await pilot.pause()
+            await pilot.mouse_down(cal, offset=position(cal, 0, 42))
+            await pilot.hover(cal, offset=position(cal, 0, 43))
+            await pilot.mouse_up(cal, offset=position(cal, 0, 43)); await pilot.pause()
+            self.assertEqual(app.deletes[0].slots, (nearby,))
+            self.clock.now.return_value = datetime(2026, 10, 26, 23, 48, tzinfo=timezone.utc)
+            self.assertEqual(cal.first_row(0), 96)
+            self.assertEqual(cal.first_row(1), 1)
+
     async def test_redraw_reuses_cells_and_invalidates_deleted_slots(self):
         app = Harness()
         async with app.run_test(size=(110, 26)) as p:

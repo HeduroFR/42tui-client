@@ -5,7 +5,7 @@ from textual.screen import ModalScreen
 from textual.widgets import TabbedContent
 from ft_tui.ui.components import Button, Input, Select, Static
 from ft_tui.features.corrections.calendar import SlotsCalendar
-from ft_tui.features.corrections.model import Slot, interval, local_datetime, local_zone
+from ft_tui.features.corrections.model import Slot, earliest_start, interval, local_datetime, local_zone
 from ft_tui.i18n import translate
 from .service import CorrectionsService, MutationFailure, StaleCorrectionsContext
 
@@ -87,6 +87,9 @@ class SlotEditor(ModalScreen):
             begin = self.read_time('begin')
             end = self.read_time('end')
             Slot(('1',), begin, end)
+            if begin < earliest_start(datetime.now(self.zone)):
+                self.query_one('#slot-editor-error', Static).update('Choose a later start time.')
+                return
             if end - begin > timedelta(hours=48):
                 raise ValueError()
         except ValueError:
@@ -323,6 +326,9 @@ class CorrectionSlotsWorkspace(Vertical):
                 Slot(('1',), begin, end)
             except ValueError:
                 return
+            if begin < earliest_start(datetime.now(self.zone)):
+                self.query_one('#slots-status', Static).update('Choose a later start time.')
+                return
         context = self.scope(); epoch = self.epoch; provider = self.app.provider
         self.busy = True; self.trusted = False
         cal = self.query_one(SlotsCalendar)
@@ -379,7 +385,7 @@ class CorrectionSlotsWorkspace(Vertical):
             'slot_outcome_unknown': 'The change outcome is unknown. Review the calendar before trying again.',
             'slot_operation_pending': 'Another slot operation is pending. Refresh before trying again.',
             'slot_permission_denied': 'Reconnect your 42 account with projects permission to edit slots.',
-            'slot_window_invalid': 'Choose availability at least 30 minutes ahead and within the next two weeks.',
+            'slot_window_invalid': 'Choose availability from the current quarter-hour plus 30 minutes and within the next two weeks.',
             'slot_overlap': 'This interval overlaps existing availability. Refresh and choose another time.',
             'slot_booked': 'This slot has been booked and cannot be changed.',
             'slot_changed': 'This slot changed on Intra. Review the calendar before editing.',
@@ -468,8 +474,7 @@ class CorrectionSlotsWorkspace(Vertical):
                 cal.row = datetime.now(self.zone).hour * 4
                 cal.show_time(cal.row)
         elif key == 'slots-add' and cal.writable:
-            now = datetime.now(self.zone) + timedelta(hours=1)
-            now = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+            now = earliest_start(datetime.now(self.zone))
             try:
                 begin, _ = interval(self.week + timedelta(days=cal.day), cal.row, cal.row, self.zone)
             except ValueError:
