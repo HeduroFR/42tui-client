@@ -10,6 +10,31 @@ Use a one-line English Conventional Commit matching the branch prefix and reposi
 Keep credentials, .env files, user databases, browser profiles, sessions and .local/ out of Git.
 Use relative paths in shared instructions. Review the diff and run relevant checks before delivery.
 
+# Development changelog
+
+Read [DEV_CHANGELOG.md](DEV_CHANGELOG.md) before making changes. Every task that
+changes tracked files must add or update an entry there before delivery, including
+code, tests, configuration, CI and documentation changes. Record the date, concrete
+result, release impact (patch, minor, major or no release required), and a commit/PR
+reference when available. Record checks actually run and remaining release blockers;
+do not describe planned work or unverified deployments as complete.
+
+Keep the baseline at the latest successfully published stable release, not the
+working package version. Reassess the suggested next version from the highest
+accumulated impact using [distribution operations](docs/distribution.md#development-changelog).
+At the end of every task, review the accumulated entries and advise the developer
+whether a new release is warranted now. State the recommended bump and version,
+the concrete reason (for example a useful completed feature, an important fix or
+changed compatibility), and any checks or rollout blockers before publication.
+Distinguish “a release is worth preparing” from “the release is ready to publish.”
+Do not recommend releases based only on commit count or elapsed time. If accumulated
+changes do not justify a release, say so briefly. Include the recommendation in the
+delivery and keep DEV_CHANGELOG.md consistent with it.
+Do not bump versions or publish without authorization. Preserve pending entries
+through release preparation, drafts, failures and partial publication. Only after a
+clean release is verified, preserve its notes in CHANGELOG.md, clear entries included
+in that release, advance the baseline and retain any later development changes.
+
 # Git command location
 
 Always run Git commands from the shared `42TUI/` workspace folder containing

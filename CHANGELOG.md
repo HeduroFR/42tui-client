@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+See [DEV_CHANGELOG.md](DEV_CHANGELOG.md) for development progress, release impact
+and the suggested next version. Published release notes remain below.
+
 ## 0.3.0
 
 - Add `42tui update`, `42tui uninstall` and its `remove` alias for uv/pipx installations.
