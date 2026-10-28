@@ -112,27 +112,22 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                         self.assertIn("build failure", widget._messages["francinette"])
             self.assertEqual(len(list((root / "testers/logs").glob("*.log"))), 3)
 
-    async def test_projects_heading_and_shortcut_reveal_actions_on_small_screens(self):
+    async def test_testers_below_registration_and_shortcut_reveals_actions_on_small_screens(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, root):
             projects["libft"].local_path = str(root)
             from textual.containers import VerticalScroll
 
             await self.select(widget, projects["libft"], pilot)
-            heading = app.query_one("#show-project-testers", Button)
-            self.assertFalse(heading.disabled)
+            self.assertFalse(app.query("#show-project-testers"))
+            self.assertEqual(widget.parent.id, "project-overview")
             for width, height in ((140, 65), (80, 24)):
                 await pilot.resize_terminal(width, height)
                 await pilot.pause()
                 scroll = app.query_one("#project-details-scroll", VerticalScroll)
                 scroll.scroll_end(animate=False)
                 await pilot.pause()
-                self.assertTrue(app.screen.region.contains_region(heading.region))
-                await pilot.click("#show-project-testers")
-                await pilot.pause()
                 action = widget.query_one(TesterAction)
-                self.assertIs(app.focused, action)
-                self.assertTrue(scroll.content_region.contains_region(action.region),
-                                (width, height, scroll.content_region, action.region))
+                self.assertGreaterEqual(widget.region.y, app.query_one("#project-registration").region.bottom)
                 scroll.scroll_home(animate=False)
                 await pilot.pause()
                 app.set_focus(None)
@@ -143,7 +138,22 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                                 (width, height, scroll.content_region, action.region))
             app.selected_project_key = None
             app._clear_project_details()
-            self.assertTrue(heading.disabled)
+            await pilot.pause()
+            self.assertIsNone(widget.project)
+
+    async def test_long_docker_diagnostic_does_not_expand_the_status_message(self):
+        async with self.workspace() as (_app, widget, service, projects, pilot, _root):
+            detail = '\n'.join(f'Docker diagnostic line {index}' for index in range(20))
+            service.status.return_value = DockerStatus('stopped', detail)
+            await self.select(widget, projects['libft'], pilot)
+            status = widget.query_one('#tester-status')
+            text = str(status.render())
+            self.assertNotIn(detail, text)
+            self.assertEqual(status.tooltip, detail)
+            self.assertIn('Configure an existing local project folder', text)
+            scroll = widget.query_one('#tester-status-scroll')
+            self.assertLessEqual(scroll.size.height, 5)
+            self.assertEqual(scroll.max_scroll_y, 0)
 
     async def test_testers_shortcut_respects_text_input_and_other_tabs(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, _root):

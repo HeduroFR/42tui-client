@@ -36,6 +36,13 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause()
                     self.assertEqual(app.selected_project_key, project.ui_key)
                     self.assertFalse(app.query_one('#open-project-editor').disabled)
+                    self.assertFalse(app.query_one('#open-project-folder').disabled)
+                    for destination in ('dev', 'vog', 'all'):
+                        self.assertFalse(app.query_one(f'#project-push-{destination}').disabled)
+                    app._clear_project_details()
+                    self.assertTrue(app.query_one('#open-project-folder').disabled)
+                    for destination in ('dev', 'vog', 'all'):
+                        self.assertTrue(app.query_one(f'#project-push-{destination}').disabled)
             finally:
                 factory.kw['bind'].dispose()
 
@@ -94,7 +101,19 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                                             app.query_one('#notes-title').region.bottom)
                     await pilot.press('d')
                     await pilot.pause()
-                    self.assertIn('secret-snapshot', str(app.screen.query_one('#technical-content', Static).render()))
+                    technical = '\n'.join(str(widget.render()) for widget in app.screen.query('#technical-content Static'))
+                    self.assertIn('secret-snapshot', technical)
+                    self.assertIn('Build your C library.', technical)
+                    self.assertEqual(len(app.screen.query('.technical-section')), 3)
+                    self.assertEqual(str(app.screen.query_one('#technical-project-name').render()), project.name)
+                    self.assertLessEqual(app.screen.query_one('#technical-dialog').region.width, 96)
+                    actions = app.screen.query_one('#technical-actions').content_region
+                    close = app.screen.query_one('#close-technical-details').region
+                    self.assertLessEqual(abs((close.x - actions.x) - (actions.right - close.right)), 1)
+                    await pilot.resize_terminal(80, 24)
+                    await pilot.pause()
+                    self.assertTrue(app.screen.region.contains_region(app.screen.query_one('#close-technical-details').region))
+                    self.assertGreater(app.screen.query_one('#technical-scroll').max_scroll_y, 0)
                     await pilot.press('escape')
                     await pilot.resize_terminal(80, 40)
                     await pilot.pause()
@@ -102,3 +121,245 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                                             app.query_one('#project-overview').region.bottom)
             finally:
                 factory.kw['bind'].dispose()
+
+
+class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_review_partial_results_and_retry_only_failed_destination(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.git import PushPlan, PushResult, PushTarget
+        from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
+
+        dev = PushTarget('dev', 'origin', '/disposable/dev.git', 'work')
+        vog = PushTarget('vog', 'vogsphere', '/disposable/vog.git', 'master')
+        initial = PushPlan(Path('/disposable/project'), 'work', 'a' * 40, 2, (dev, vog))
+        retry = PushPlan(initial.path, 'work', 'a' * 40, 2, (vog,))
+        screen = ProjectGitPushScreen('Original project', str(initial.path), 'all',
+                                      dev_remote_url=dev.url, vogsphere_url=vog.url)
+        app = App()
+        app.language = 'en'
+        with patch('ft_tui.features.projects.views.git_push.plan_project_push',
+                   side_effect=[initial, retry]) as prepare, patch(
+                       'ft_tui.features.projects.views.git_push.push_project',
+                       side_effect=[(PushResult(dev, True, 'Published'), PushResult(vog, False, 'Rejected')),
+                                    (PushResult(vog, True, 'Published'),)]) as push:
+            async with app.run_test(size=(110, 35)) as pilot:
+                app.push_screen(screen)
+                await pilot.pause()
+                await screen.workers.wait_for_complete()
+                review = str(screen.query_one('#git-push-review', Static).render())
+                for text in ('Original project', str(initial.path), initial.commit, dev.url, vog.url,
+                             'Source branch: work', 'Uncommitted changes excluded: 2', 'master'):
+                    self.assertIn(text, review)
+                push.assert_not_called()
+                await pilot.click('#git-push-confirm')
+                await pilot.pause()
+                self.assertTrue(screen.query_one('#git-push-retry-dev').disabled)
+                self.assertFalse(screen.query_one('#git-push-retry-vog').disabled)
+                results = str(screen.query_one('#git-push-results', Static).render())
+                self.assertIn('origin → work: Succeeded', results)
+                self.assertIn('vogsphere → master: Failed', results)
+                await pilot.click('#git-push-retry-vog')
+                await pilot.pause()
+                self.assertEqual(push.call_count, 1)
+                self.assertEqual(prepare.call_args.args, (str(initial.path), 'vog'))
+                await pilot.click('#git-push-confirm')
+                await pilot.pause()
+                self.assertEqual(push.call_args.args, (retry,))
+                self.assertTrue(screen.query_one('#git-push-retry-vog').disabled)
+                await pilot.press('escape')
+                self.assertIsNot(app.screen, screen)
+
+    async def test_preparation_is_threaded_and_cannot_close_or_dispatch_while_busy(self):
+        import asyncio
+        from threading import Event, get_ident
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.git import ProjectGitError
+        from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
+
+        started, release = Event(), Event()
+        thread_ids = []
+        def prepare(*args, **kwargs):
+            thread_ids.append(get_ident())
+            started.set()
+            release.wait(5)
+            raise ProjectGitError('No committed HEAD')
+        app = App()
+        app.language = 'en'
+        screen = ProjectGitPushScreen('Project', '/disposable/project', 'all')
+        with patch('ft_tui.features.projects.views.git_push.plan_project_push', side_effect=prepare), patch(
+                'ft_tui.features.projects.views.git_push.push_project') as push:
+            try:
+                async with app.run_test() as pilot:
+                    app.push_screen(screen)
+                    for _ in range(100):
+                        if started.is_set():
+                            break
+                        await asyncio.sleep(.01)
+                    self.assertTrue(started.is_set())
+                    self.assertNotEqual(thread_ids, [get_ident()])
+                    self.assertTrue(screen.query_one('#git-push-confirm').disabled)
+                    screen.action_close()
+                    await screen._push()
+                    self.assertIs(app.screen, screen)
+                    push.assert_not_called()
+                    release.set()
+                    await screen.workers.wait_for_complete()
+                    self.assertIn('No committed HEAD', str(screen.query_one('#git-push-review', Static).render()))
+                    screen.action_close()
+            finally:
+                release.set()
+
+    async def test_editor_recovery_captures_path_and_blocks_overlap(self):
+        import asyncio
+        from threading import Event
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
+        from ft_tui.features.projects.adapters.checkout import CheckoutSetupError
+
+        class NavigationHarness(ProjectNavigationMixin):
+            is_mounted = True
+        harness = NavigationHarness()
+        original = SimpleNamespace(name='Original', local_path='/disposable/original',
+                                   dev_repo_url='/disposable/dev.git', vogsphere_url='/disposable/vog.git')
+        harness.projects = {'one': original}
+        harness.selected_project_key = 'one'
+        harness.notify = Mock()
+        harness._open_project_in_editor = Mock()
+        tasks = []
+        harness.run_worker = lambda coro: tasks.append(asyncio.create_task(coro))
+        started, release = Event(), Event()
+        def setup(*args, **kwargs):
+            started.set()
+            release.wait(5)
+        harness.project_service = SimpleNamespace(setup_checkout=Mock(side_effect=setup))
+        harness._open_selected_project_in_editor()
+        try:
+            for _ in range(100):
+                if started.is_set():
+                    break
+                await asyncio.sleep(.01)
+            self.assertTrue(started.is_set())
+            harness._open_selected_project_in_editor()
+            self.assertEqual(len(tasks), 1)
+            harness.selected_project_key = 'other'
+            original.local_path = '/disposable/changed'
+            release.set()
+            await tasks[0]
+            harness.project_service.setup_checkout.assert_called_once_with(
+                '/disposable/original', dev_remote_url='/disposable/dev.git', vogsphere_url='/disposable/vog.git')
+            harness._open_project_in_editor.assert_called_once_with('Original', Path('/disposable/original'))
+            self.assertFalse(harness._project_checkout_busy)
+            original.local_path = '/disposable/original'
+            harness.selected_project_key = 'one'
+            harness._open_selected_project_in_editor()
+            self.assertEqual(len(tasks), 1)  # Successful first-launch recovery is reused.
+            original.local_path = '/disposable/failure'
+            harness.project_service.setup_checkout.side_effect = CheckoutSetupError('Divergent history')
+            harness._open_project_in_editor.reset_mock()
+            harness._open_selected_project_in_editor()
+            await tasks[-1]
+            harness._open_project_in_editor.assert_not_called()
+            self.assertIn('Divergent history', harness.notify.call_args.args[0])
+            self.assertFalse(harness._project_checkout_busy)
+            harness.project_service.setup_checkout.side_effect = None
+            warning = 'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.'
+            harness.project_service.setup_checkout.return_value = SimpleNamespace(warnings=(warning,))
+            original.local_path = '/disposable/off-campus'
+            harness._open_selected_project_in_editor()
+            await tasks[-1]
+            harness._open_project_in_editor.assert_called_once_with('Original', Path(original.local_path))
+            harness.notify.assert_called_with(warning, severity='warning', timeout=10)
+            self.assertFalse(any(key[0] == original.local_path for key in harness._editor_recovered_checkouts))
+            # An unverified remote is checked again on the next editor launch.
+            previous_count = len(tasks)
+            harness._open_selected_project_in_editor()
+            await tasks[-1]
+            self.assertEqual(len(tasks), previous_count + 1)
+            harness._open_project_in_editor.reset_mock()
+            harness.is_mounted = False
+            await harness._recover_project_for_editor('Original', Path(original.local_path),
+                                                      (original.local_path, original.dev_repo_url, original.vogsphere_url))
+            harness._open_project_in_editor.assert_not_called()
+        finally:
+            release.set()
+            await asyncio.gather(*tasks)
+
+
+    async def test_late_git_results_ignore_unmounted_screen(self):
+        import asyncio
+        from threading import Event
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.git import PushPlan, PushResult, PushTarget
+        from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
+
+        target = PushTarget('dev', 'origin', '/disposable/dev.git', 'work')
+        plan = PushPlan(Path('/disposable/project'), 'work', 'a' * 40, 0, (target,))
+        started, release = Event(), Event()
+        def push(_plan):
+            started.set()
+            release.wait(5)
+            return (PushResult(target, True, 'Published'),)
+        app = App()
+        app.language = 'fr'
+        screen = ProjectGitPushScreen('Project', str(plan.path), 'dev')
+        with patch('ft_tui.features.projects.views.git_push.plan_project_push', return_value=plan), patch(
+                'ft_tui.features.projects.views.git_push.push_project', side_effect=push) as dispatch:
+            async with app.run_test() as pilot:
+                app.push_screen(screen)
+                await pilot.pause()
+                await screen.workers.wait_for_complete()
+                task = asyncio.create_task(screen._push())
+                try:
+                    for _ in range(100):
+                        if started.is_set():
+                            break
+                        await asyncio.sleep(.01)
+                    self.assertTrue(started.is_set())
+                    await screen._push()  # A second dispatch while pending is ignored.
+                    dispatch.assert_called_once_with(plan)
+                    await app.pop_screen()
+                    release.set()
+                    await task
+                    self.assertFalse(screen.is_current)
+                    self.assertFalse(screen.busy)
+                finally:
+                    release.set()
+                    await task
+
+
+class ProjectExplorerTests(unittest.TestCase):
+    def test_platform_launches_and_clear_missing_folder_or_tool_errors(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from ft_tui.features.projects.adapters.explorer import open_project_folder
+
+        with TemporaryDirectory(prefix='project folder ') as directory:
+            for platform, command in (('darwin', 'open'), ('linux', 'xdg-open')):
+                with self.subTest(platform=platform), patch(
+                    'ft_tui.features.projects.adapters.explorer.sys.platform', platform
+                ), patch('ft_tui.features.projects.adapters.explorer.shutil.which', return_value=f'/bin/{command}'), patch(
+                    'ft_tui.features.projects.adapters.explorer.subprocess.run',
+                    return_value=SimpleNamespace(returncode=0, stderr='')
+                ) as run:
+                    open_project_folder(directory)
+                    self.assertEqual(run.call_args.args[0], [f'/bin/{command}', str(Path(directory).resolve())])
+            with patch('ft_tui.features.projects.adapters.explorer.sys.platform', 'win32'), patch(
+                    'ft_tui.features.projects.adapters.explorer.os.startfile', create=True) as startfile:
+                open_project_folder(directory)
+                startfile.assert_called_once_with(str(Path(directory).resolve()))
+            with patch('ft_tui.features.projects.adapters.explorer.sys.platform', 'linux'), patch(
+                    'ft_tui.features.projects.adapters.explorer.shutil.which', return_value=None):
+                with self.assertRaisesRegex(OSError, 'xdg-open was not found'):
+                    open_project_folder(directory)
+            with patch('ft_tui.features.projects.adapters.explorer.sys.platform', 'linux'), patch(
+                    'ft_tui.features.projects.adapters.explorer.shutil.which', return_value='/bin/xdg-open'), patch(
+                    'ft_tui.features.projects.adapters.explorer.subprocess.run',
+                    return_value=SimpleNamespace(returncode=1, stderr='No file manager available')):
+                with self.assertRaisesRegex(OSError, 'No file manager available'):
+                    open_project_folder(directory)
+        with self.assertRaisesRegex(OSError, 'does not exist'):
+            open_project_folder(directory)

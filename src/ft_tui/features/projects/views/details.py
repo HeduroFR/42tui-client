@@ -117,10 +117,11 @@ class ProjectDetailsMixin(SubjectMixin):
         if project.slug:
             catalog_details += f'[link="{intra_url}"]{intra_url}[/link]\n\n'
         self._project_technical_details = (
-            catalog_details
-            + f"{translate('Local path', self.language)}: {escape(path)}\n{translate('Git', self.language)}: {git_status}\n"
-            + f"{translate('Dev remote', self.language)}: {escape(project.dev_repo_url or '—')}\n"
-            + f"{translate('Vogsphere', self.language)}: {escape(project.vogsphere_url or '—')}"
+            ('Catalog', catalog_details.rstrip()),
+            ('Workspace', f"[bold]{translate('Local path', self.language)}[/bold]\n{escape(path)}\n\n"
+             f"[bold]{translate('Git', self.language)}[/bold]\n{git_status}"),
+            ('Repository', f"[bold]{translate('Dev remote', self.language)}[/bold]\n{escape(project.dev_repo_url or '—')}\n\n"
+             f"[bold]{translate('Vogsphere', self.language)}[/bold]\n{escape(project.vogsphere_url or '—')}"),
         )
         data = project.catalog_data
         self.query_one("#project-heading", Static).update(
@@ -137,7 +138,7 @@ class ProjectDetailsMixin(SubjectMixin):
         registration_state=getattr(self,"_registration_state",None)
         if registration_state and registration_state['project_id']==project.official_project_id:
             self._render_project_registration(registration_state)
-        for selector in ("#configure-project", "#show-project-details", "#show-project-testers"):
+        for selector in ("#configure-project", "#show-project-details"):
             self.query_one(selector, Button).disabled = False
         workspace = (f"Folder · {escape(Path(project.local_path).name)}\nGit · {git_status}"
                      if has_local_folder(project.local_path)
@@ -163,7 +164,7 @@ class ProjectDetailsMixin(SubjectMixin):
     def _clear_project_details(self) -> None:
         self.query_one("#project-testers").set_project(None)
         self._clear_project_registration()
-        self._project_technical_details = ""
+        self._project_technical_details = ()
         self.query_one("#show-project-activity", Button).disabled = True
         for selector, text in (
             ("#project-heading", "Select a project"), ("#project-summary", ""),
@@ -175,7 +176,8 @@ class ProjectDetailsMixin(SubjectMixin):
             self.query_one(selector, Static).update(text)
         self.query_one("#project-notes-list").display = False
         self.query_one("#project-notes-empty").display = True
-        for selector in ("#configure-project", "#show-project-details", "#show-project-testers"):
+        for selector in ("#configure-project", "#show-project-details",
+                         "#open-project-folder", "#project-push-dev", "#project-push-vog", "#project-push-all"):
             self.query_one(selector, Button).disabled = True
 
     def action_project_team(self):
@@ -208,9 +210,12 @@ class ProjectDetailsMixin(SubjectMixin):
         from textual.widgets import TabbedContent
         if self.query_one(TabbedContent).active != "projects-tab":
             return
-        if self.selected_project_key:
+        project = self.projects.get(self.selected_project_key or "")
+        if project is not None:
             from ft_tui.features.projects.views.technical_details import ProjectTechnicalDetailsScreen
-            self.push_screen(ProjectTechnicalDetailsScreen(getattr(self, "_project_technical_details", "")))
+            self.push_screen(ProjectTechnicalDetailsScreen(
+                getattr(self, "_project_technical_details", ()), project_name=project.name,
+            ))
 
     async def _inspect_project_git_status(
         self,
@@ -308,7 +313,12 @@ class ProjectDetailsMixin(SubjectMixin):
         editor_button.set_source_label("Open editor")
         editor_button.tooltip = f"Open in {editor_names.get(self.favorite_editor, 'editor')}"
         project = self.projects.get(self.selected_project_key or "")
-        editor_button.disabled = project is None or not has_local_folder(project.local_path)
+        existing_folder = project is not None and has_local_folder(project.local_path)
+        editor_button.disabled = not (existing_folder or (project is not None and project.local_path
+                                     and (project.dev_repo_url or project.vogsphere_url)))
+        self.query_one("#open-project-folder", Button).disabled = not existing_folder
+        for destination in ("dev", "vog", "all"):
+            self.query_one(f"#project-push-{destination}", Button).disabled = not existing_folder
 
     @staticmethod
     def _status_label(status: str) -> str:

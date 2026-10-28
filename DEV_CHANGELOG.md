@@ -1,20 +1,145 @@
 # Development changelog
 
 Latest release: **0.4.4** ([`v0.4.4`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.4)).
-Package version: **0.4.4**. The working tree also contains unreleased tester
-changes; the published patch uses isolated candidate `bbb619d`.
-Suggested next release: **0.5.0** (minor), targeting the urgent project Git
-workflow; the tester rework moves to **0.6.0**. Existing unreleased tester code
-already on main still needs an explicit candidate inclusion/validation decision.
-The accumulated tester feature warrants a minor release, but 0.5.0 is not ready:
-its Git scope is unimplemented and exact-candidate release checks remain pending.
-This roadmap update alone requires no release or package-version bump.
+Package version: **0.5.0** (release candidate).
+Suggested next release: **0.5.0** (minor), for conservative project recovery,
+reviewed committed-history pushes and `42git`, including the existing one-button
+tester implementation. The tester workspace rework remains planned for **0.6.0**.
+The maintainer authorized preparation, PR, merge after green checks, tagging and
+publication on 2026-10-29 and confirmed the native Vogsphere/Linux/macOS tester
+checks. This is maintainer evidence, not an agent-observed native run.
+Exact-candidate CI, compatibility and OAuth backend rollout verification remain
+pending; do not mark publication complete until artifacts and update are verified.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.4
+
+- **2026-10-29 · minor · 0.5.0 release preparation:** integrate pushed Git
+  workflow `40d5f19` with main `cf86cb2`; retain OAuth theme handoff, tester
+  diagnostics, roadmap tasks and publication history. Set authoritative package
+  version and release notes to 0.5.0. Clarify that pushes publish committed history
+  and that separate Vogsphere selection/staging UI remains future work. `42git`
+  needs PATH only, without additional shell initialization. Preserve unrelated
+  untracked duplicate files. Maintainer confirmed native validation; agent CI,
+  packaging, compatibility and publication checks are recorded as they complete.
+  Branch: `feat/release-0.5.0`; PR pending. No backend implementation changed.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Project details dialog:**
+  replace the viewport-wide metadata dump with a width-capped, scrollable dialog,
+  selected-project heading and separate catalog, workspace and repository sections.
+  Keep all catalog rules/snapshot evidence, Intra link, Git status and remote/path
+  values. Use distinct field labels and a centered neutral Close button; preserve
+  Escape dismissal. Pass structured sections from the existing single caller,
+  without parsing translated text or changing shared catalog formatting.
+  Add French/Spanish Catalog headings. Branch: `feat/project-git-workflow`;
+  committed in `1a76c27`–`40d5f19`. Checks: eight project-layout, nine architecture and three
+  catalog-formatting tests passed, including 80×24 footer visibility/scrolling,
+  section grouping, project identity and centered Close alignment. French/Spanish
+  headings, fatal-error lint and whitespace passed. Full CI and native UI were
+  not run. Included in the pushed feature branch. Minor 0.5.0 remains worth preparing after review with existing
+  native/on-campus, tester and exact-candidate release gates; no API change.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Reconnect and Docker messages:**
+  center session-expiry actions, replace Later with Quit TUI (including Escape),
+  exit through the normal app shutdown path and remove the prompt's question mark.
+  Keep reconnect's single-click pairing behavior. Translate the new copy to French/
+  Spanish. Simplify tester Docker status to actionable summary/folder guidance,
+  retaining the raw diagnostic in a tooltip instead of the visible status body.
+  No expandable detail UI added. Branch: `feat/project-git-workflow`; commit/PR
+  pending. Checks: 29 account UI, two locale and 15 tester UI tests passed,
+  including centered buttons, Quit dispatch and hidden long Docker diagnostics.
+  Fatal-error lint and whitespace checks passed. Live OAuth/Docker and full CI
+  were not run. Included in the pushed feature branch; minor 0.5.0 remains worth preparing after review with existing
+  native/on-campus, tester and exact-candidate release gates. No API/backend change.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Tester section layout:**
+  move Testers below Registration/activity in the overview column and remove
+  the top-right shortcut button, its event route and enable/disable references.
+  Preserve the t shortcut and update UI/manual smoke callers and README.
+  Bound status diagnostics to five scrollable lines; keep the actionable summary
+  and missing-folder guidance before the full Docker detail. No diagnostic text
+  is discarded. Branch: `feat/project-git-workflow`; committed in `1a76c27`–`40d5f19`.
+  Checks: 15 tester UI tests, eight project-layout tests and nine architecture
+  tests passed. Regressions cover the removed header action, section placement,
+  small-terminal shortcut/focus and full long diagnostics in a five-line viewport.
+  All 885 tests have exactly one regression-scope owner; fatal-error lint and
+  whitespace passed. Real Docker/manual smoke and full CI not run.
+  Included in the pushed feature branch; minor 0.5.0 remains
+  worth preparing after review with the existing native/on-campus, tester and
+  exact-candidate release gates. No real tester/container execution in this task.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Git button layout:**
+  align editor, configuration and Git action rows to two equal-width columns
+  across the workspace. Push dev/Push vog sit side by side; Push all and Open
+  folder span both columns, with consistent spacing. Keep the explorer wording
+  in the folder tooltip. Use the short vog label and Vogsphere/master tooltip so translated
+  labels fit narrow sidebars. Keep shared button styling, action IDs and
+  disabled behavior. Put timer control on the right of wrapping time/status text.
+  Branch: `feat/project-git-workflow`; committed in `1a76c27`–`40d5f19`.
+  Eight UI tests and nine size/locale checks (80/140/160 columns × English/
+  French/Spanish) passed for matching row widths, full-row spans, spacing and
+  readable labels. Final timer-row checks: eight UI tests and nine size/locale
+  assertions passed for right alignment and contained time/status text.
+  Whitespace check passed. Preserve all action IDs and
+  disabled behavior.
+  Included in the pushed feature branch; preserve the unrelated local
+  uv.lock. Minor 0.5.0 remains worth preparing after review, subject to the
+  existing native/on-campus, tester and exact-candidate release gates.
+
+- **2026-10-28 · patch (accumulated minor 0.5.0) · Campus-only Vogsphere:**
+  reflect the maintainer-confirmed campus network requirement in CLI/TUI push
+  previews, French/Spanish copy and the concise README/detailed Git guide.
+  Vogsphere pushes are unavailable outside campus; real authentication checks
+  must run on campus using the student's existing Git/SSH setup. No network
+  bypass or campus detection added. CLI scope: four passed, including preview
+  guidance. The maintainer approved opening existing committed checkouts with
+  a warning when Vogsphere is unreachable; fresh/empty/unborn recovery and actual
+  history conflicts still block. Surface the warning in setup and editor flows;
+  retry verification next editor launch instead of caching an unverified result.
+  Document campus Push all, home Push dev, then development fast-forward on return.
+  Distinguish strictly-ahead development history and recommend an explicit
+  fetch/pull with --ff-only before retrying. Focused checks passed: 27 Git,
+  13 service, four CLI and eight UI tests; fatal-error lint and whitespace clean.
+  No live campus/Vogsphere verification. Changes committed on
+  `feat/project-git-workflow`; committed in `1a76c27`–`40d5f19`. Recommended release remains
+  minor 0.5.0, with the native/on-campus and exact-candidate gates above.
+
+- **2026-10-28 · minor · Project Git workflow:** recover nonempty Vogsphere
+  master before development work in a fresh folder; fetch/inspect existing
+  checkout history and stop for manual reconciliation instead of overwriting
+  local work. Preserve files, index, branches, remotes and pre-push hooks.
+  Review pinned committed HEAD, destination URL and branch before Push dev,
+  Push Vogsphere or Push all; report each outcome and retry failed destinations
+  separately. Development receives the current branch and Vogsphere receives
+  master; no automatic commit, reset or forced push. Add `42git status/push`
+  for the configured project containing the current directory, an explorer
+  action and French/Spanish UI strings. Wire recovery before first editor launch,
+  capture project identity across asynchronous operations and block overlap.
+  Include the 42git entry point in installer ownership checks and package smoke;
+  refresh installer helper digests. Keep README commands compact and link the
+  detailed guide. Bring in the agreed milestone order from
+  `origin/docs/tester-workspace-roadmap` (`96c2991`); no package-version change.
+  Branch: `feat/project-git-workflow`; committed in `1a76c27`–`40d5f19`. Focused checks:
+  22 disposable Git tests, 13 existing services tests, four CLI tests, eight
+  project-controls UI tests, nine architecture tests, two locale tests and
+  41 installer tests passed. Scope ownership covers 879 tests exactly once;
+  canonical import tests (three), fatal-error lint, installer hashes and shell
+  syntax passed. Wheel/sdist contents and installed entry points/resources,
+  including 42git help, passed. Integrated project scope: 132 passed in 87.759s.
+  Actual uv fresh/repeat/exact-version installation and uninstall passed with
+  a disposable HOME and this candidate wheel. Final integration review found
+  two edges, now fixed: hidden URL changes invalidate a reviewed push using
+  a non-secret fingerprint, and late worker completion cannot update an inactive
+  push screen or open an editor after app unmount. Final focused Git (22), CLI
+  (four) and UI (eight) checks passed after these changes. No real user repository,
+  credentials or remote writes used.
+  Minor 0.5.0 is worth preparing for this feature after review; not ready to
+  publish. Exact-candidate CI, supported-peer compatibility, native platform
+  checks and explicit validation/inclusion of the unreleased tester code still
+  gate release. No API/backend/schema changes or deployment required.
 
 - **2026-10-29 · no release required · OAuth branch sync:** merge current
   `main` (`1e9054f`) into `feat/oauth-terminal-page` for PR #37 without

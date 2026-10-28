@@ -100,6 +100,23 @@ Restart your shell, then jump to a project:
 Press `Tab` to complete project slugs. Local folders must exist. If `42goto`
 cannot choose a project automatically, pass its name or slug.
 
+## Project Git and `42git`
+
+Configure your folder and remotes in project settings. Use the project's push
+buttons, or run these commands inside its folder:
+
+```sh
+42git status     # Branch and local changes
+42git push dev   # Current branch → development
+42git push vog   # Committed work → Vogsphere master
+42git push all   # Both destinations, separate results
+```
+
+Each push asks for confirmation and leaves uncommitted edits untouched.
+Vogsphere pushes require the 42 campus network.
+**Open in file explorer** opens the project folder.
+See [recovery, branch rules and failed pushes](docs/project-git.md) for details.
+
 ## Editor plugins
 
 Configure each project's local folder in 42TUI, then install your editor's plugin:
@@ -116,8 +133,8 @@ are not retained.
 
 ## Project testers
 
-Configure an existing local project folder, open **Testers** (or press `t` in
-Projects), then choose **Run Francinette**. The same button handles setup and retries.
+Configure an existing local project folder, find **Testers** below Registration
+(or press `t` in Projects), then choose **Run Francinette**. The same button handles setup and retries.
 
 On Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an

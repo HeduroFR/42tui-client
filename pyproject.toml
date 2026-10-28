@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ft-tui"
-version = "0.4.4"
+version = "0.5.0"
 description = "Offline-first terminal workspace for École 42 students"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 42tui = "ft_tui.main:main"
 42goto = "ft_tui.goto:main"
+42git = "ft_tui.git:main"
 42tui-zed-lsp = "ft_tui.integrations.zed_lsp:main"
 
 [tool.setuptools.packages.find]
