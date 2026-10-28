@@ -1,5 +1,7 @@
 """Dashboard UI composition and behavior."""
 
+from textual.css.query import NoMatches
+
 from rich.markup import escape
 from rich.panel import Panel
 from rich.align import Align
@@ -104,6 +106,8 @@ class DashboardMixin:
 
     async def _refresh_dashboard(self) -> None:
         """Refresh project shortcuts, recent notes, local activity, and cursus progress."""
+        if not self.is_running or not self.query("#dashboard-login"):
+            return
         self.query_one("#dashboard-login", Static).update(
             username_text(self.account_login or ("Account connected" if self.account_connected else "Local profile"),
                           self.username_gradient)
@@ -209,14 +213,14 @@ class DashboardMixin:
         notes_list = self.query_one("#dashboard-recent-notes", ListView)
         if note_signature != self.dashboard_recent_notes_signature:
             await notes_list.clear()
-            if revision != self.dashboard_state.render_revision:
+            if revision != self.dashboard_state.render_revision or not notes_list.is_mounted or not self.is_running:
                 return
             if recent_notes:
                 await notes_list.extend(
                     DashboardNoteEntry(note_id, slug, project_name, title, updated_at)
                     for note_id, slug, project_name, title, updated_at in recent_notes
                 )
-                if revision != self.dashboard_state.render_revision:
+                if revision != self.dashboard_state.render_revision or not notes_list.is_mounted or not self.is_running:
                     return
                 notes_list.styles.display = "block"
                 self.query_one("#dashboard-notes-empty", Static).styles.display = "none"
@@ -318,12 +322,19 @@ class DashboardMixin:
 
     async def _refresh_activity_order(self) -> None:
         """Refresh recency/active state without disturbing the current selection."""
-        project_list = self.query_one("#project-list-view", ListView)
+        if not self.is_running:
+            return
+        try:
+            project_list = self.query_one("#project-list-view", ListView)
+        except NoMatches:
+            return  # The root view may already have been removed during shutdown.
         highlighted = project_list.highlighted_child
         selected_key = highlighted.key if isinstance(highlighted, ProjectEntry) else None
         previous_active = self.active_project_id
         self._load_project_activity()
         await self._refresh_dashboard()
+        if not self.is_running or not project_list.is_mounted:
+            return
 
         # A project folder may be removed while 42TUI is running. Keep its
         # visible path status in sync with the filesystem as the dashboard refreshes.

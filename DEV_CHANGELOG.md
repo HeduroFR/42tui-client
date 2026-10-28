@@ -1,41 +1,48 @@
 # Development changelog
 
-Latest release: **0.4.2** ([`v0.4.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.2)).
-Package version: **0.4.3**, prepared but not published.
-Suggested next release: **0.4.3** (patch), for automatic installer shell setup
-and compatible macOS Bash completion. This isolated candidate starts at v0.4.2;
-main's pending minor tester work remains outside this release.
+Latest release: **0.4.3** ([`v0.4.3`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3)).
+Package version: **0.4.4**, prepared but not published.
+Suggested next release: **0.4.4** (patch), for pre-launch automatic updates,
+unsaved-note protection and timer safety. This isolated candidate starts at
+published v0.4.3; main's unreleased minor tester work is excluded.
 
-## Changes since 0.4.2
+## Changes since 0.4.3
 
-- **2026-10-28 · patch · Installer shell setup:** carry the installer, navigation,
-  tests and user documentation from [PR #23](https://github.com/HeduroFR/42tui-client/pull/23)
-  (`9b3a271`). Configure managed blocks at the end of both Bash and Zsh rc files,
-  respecting ZDOTDIR. Preserve user content, manual functions, symlinks and modes;
-  quote paths, handle reinstall without duplicates, initialize Zsh completion and
-  stay quiet after uninstall. Attempt both shells independently and print source
-  commands. Refresh the helper digest in both bootstraps. Avoid Bash mapfile so
-  completion works on macOS Bash 3.2.
-- **2026-10-28 · documentation · Project direction:** include the author's exact
-  About this project README note about AI-assisted Python development, 420 monthly
-  active users for two consecutive months and a handwritten Rust rewrite.
-- **2026-10-28 · release preparation · 0.4.3:** prepare the package version and
-  matching user-facing notes on `fix/release-0.4.3-candidate` from published
-  v0.4.2. No API, backend, data schema, dependency or tester changes. No new plan
-  documents. Baseline remains 0.4.2 until verified publication.
+- **2026-10-28 · patch · Updates before launch:** include [PR #26](https://github.com/HeduroFR/42tui-client/pull/26)
+  (`30869d8`). Install managed stable updates before loading OAuth/TUI code and
+  restart into the installed entry point. Preserve offline/failure fallback,
+  opt-out, pin/development guards, update locks and the one-launch restart guard.
+  Background discoveries wait until the next launch. Include settings, README,
+  French/Spanish copy and focused regressions.
+- **2026-10-28 · patch · Note loss and timer safety:** include [PR #27](https://github.com/HeduroFR/42tui-client/pull/27).
+  Protect dirty notes with Save/Discard/Cancel across selection, new-note actions,
+  links and catalog refreshes, retaining project ownership and failed-save drafts. Translate operational
+  storage failures at the adapter boundary; preserve the selected note and editor
+  with localized retry guidance.
+  Stop/guard dashboard activity callbacks during shutdown, including after awaits.
+  Serialize SQLite manual start/stop/toggle transitions before their active-timer
+  reads, including sessions with an existing SQLAlchemy read transaction. Preserve
+  duration/switch accounting and history; existing duplicate active rows are not
+  automatically repaired. Include French/Spanish modal copy and regressions.
+- **2026-10-28 · release preparation · 0.4.4:** prepare the package version and
+  matching release notes on `fix/release-0.4.4-candidate`. No API, backend,
+  schema, dependency, installer-hosting or tester changes. No process documents.
+  Baseline remains 0.4.3 until publication is verified. No tag/publication.
 
 ## Validation and release readiness
 
-PR #23 passed all 21 CI checks. That validates the feature on main, not this
-new release candidate. This candidate passed 23 focused installer tests and all
-72 installation-updates tests, version v0.4.3, wheel/sdist build and package
-contents, helper hashes, POSIX syntax and 805-test scope ownership checks.
-Clean archived-package, installed smoke, full regression and paired compatibility
-checks remain pending. Retain 0.4.0 as
-the oldest supported client. The existing paired scenario covers synthetic friend
-preview only, not the entire API or live OAuth/Intra writes. This independent
-installer fix requires no new backend capability or deployment.
+The normal fix branch passed 43 focused UI/service/architecture/locale tests;
+three targeted regressions failed before implementation. Scope ownership and
+changed runtime undefined/unused-name checks passed. These results do not replace
+validation of this isolated candidate. Initial version, wheel/sdist content,
+installer-helper digest and POSIX shell syntax checks passed. All 824 candidate
+tests have exactly one scope owner. Exact-candidate package, full regressions,
+platform and main-ancestry validation remain required before publication.
 
-A 0.4.3 patch is worth preparing. Review/main-ancestry integration and exact
-candidate validation remain required. Tags, publication and installer-hosting
-deployment require separate approval; none has been performed.
+This client-only patch needs no new backend capability or deployment. The oldest
+supported client remains 0.4.0; existing synthetic friend-preview compatibility
+coverage does not cover the whole API or live OAuth/Intra writes.
+
+A 0.4.4 patch is worth preparing for these fixes. Main's unreleased tester work
+still warrants 0.5.0 separately. The user will review the exact candidate before
+any tag is pushed; no tag or publication is authorized by this preparation.

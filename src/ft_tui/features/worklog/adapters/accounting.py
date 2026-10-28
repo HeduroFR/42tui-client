@@ -109,14 +109,24 @@ def active_manual_timer(session: Session) -> TimeLog | None:
     )
 
 
+def lock_manual_timer(session: Session) -> None:
+    """Serialize timer reads and writes, including after SQLAlchemy autobegin."""
+    if session.get_bind().dialect.name == "sqlite":
+        connection = session.connection()
+        if not connection.connection.driver_connection.in_transaction:
+            connection.exec_driver_sql("BEGIN IMMEDIATE")
+
+
 def start_manual_timer(session: Session, project_id: int) -> tuple[TimeLog, bool]:
     """Start a project timer, stopping any other active manual session first.
 
     Returns the active log and whether a timer for another project was switched.
     """
+    lock_manual_timer(session)
     now = _utc_naive_now()
     current = active_manual_timer(session)
     if current is not None and current.project_id == project_id:
+        session.commit()
         return current, False
     switched = current is not None
     if current is not None:
@@ -130,8 +140,10 @@ def start_manual_timer(session: Session, project_id: int) -> tuple[TimeLog, bool
 
 def stop_manual_timer(session: Session, project_id: int | None = None) -> TimeLog | None:
     """Stop the running manual timer, optionally only if it belongs to a project."""
+    lock_manual_timer(session)
     current = active_manual_timer(session)
     if current is None or (project_id is not None and current.project_id != project_id):
+        session.commit()
         return None
     _finish_manual_log(current, _utc_naive_now())
     session.commit()

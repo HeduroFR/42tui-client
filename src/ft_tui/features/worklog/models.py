@@ -2,6 +2,10 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+class NoteSaveError(RuntimeError):
+    """Local storage could not persist the note; the editor must keep its draft."""
+
+
 @dataclass(frozen=True)
 class Note:
     id:int
