@@ -29,6 +29,15 @@ published v0.4.3; main's unreleased minor tester work is excluded.
   schema, dependency, installer-hosting or tester changes. No process documents.
   Baseline remains 0.4.3 until publication is verified. No tag/publication.
 
+- **2026-10-28 · documentation · Project workflow roadmap:** integrate the
+  planning content from `docs/project-workflow-roadmap` (`e5504f9`), preserving
+  the verified 0.4.3 baseline and this isolated patch scope. Include urgent Git
+  recovery/push workflows and proposed 42git, 0.6.0 dashboard/GitHub/Discord,
+  0.7.0 notifications/presence, 0.8.0 profiles/clubs and later initiatives.
+  Planning only; none of those features is implemented by 0.4.4. Review of links,
+  documentation diff and whitespace passed. Candidate revision changes, so fresh
+  exact-revision compatibility and archive/package checks are required.
+
 ## Validation and release readiness
 
 The normal fix branch passed 43 focused UI/service/architecture/locale tests;
