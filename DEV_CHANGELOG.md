@@ -30,6 +30,26 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   for these documents; minor 0.5.0 remains the Git target after implementation,
   candidate inclusion review and release validation.
 
+- **2026-10-28 · no release required · Milestone order:** assign the urgent
+  project Git workflow and proposed 42git to 0.5.0. Move testers to 0.6.0,
+  dashboard/interface work to 0.7.0, notifications/presence to 0.8.0 and
+  profiles/clubs to 0.9.0. Reorder TODO sections and update active references;
+  keep published release history and unversioned initiatives intact. Planning
+  only; no implementation, API or package-version changes. The Git scope and
+  candidate checks remain pending; already-merged tester code needs an explicit
+  inclusion/validation decision for 0.5.0. Checks: documentation diff, milestone
+  order, existing relative links and whitespace reviewed; no runtime tests for
+  this docs-only change. Branch: `docs/tester-workspace-roadmap`; commit/PR pending.
+
+- **2026-10-28 · no release required · Tester workspace roadmap:** record the
+  agreed tester rework (now scheduled for 0.6.0): extend the existing tester catalog, prefer validated native
+  execution, evaluate headless macOS containers, and show progress/results inside
+  a dedicated TUI workspace. Include disposable project copies, cancellation,
+  logs and a second tester to validate extensibility. Planning only; no runtime,
+  API or package-version changes. Branch: `docs/tester-workspace-roadmap`;
+  commit/PR pending. Checks: documentation diff, relative links and whitespace
+  reviewed; no behavioral tests for this documentation-only task. Accumulated
+  tester rework targets minor 0.6.0 after implementation and release validation.
 - **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
   project evaluation-slot booking and upcoming evaluations on the dashboard for
   0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
