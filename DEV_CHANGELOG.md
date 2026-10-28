@@ -1,7 +1,7 @@
 # Development changelog
 
 Latest release: **0.4.3** ([`v0.4.3`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3)).
-Package version: **0.4.3**. The working tree also contains unreleased tester
+Package version: **0.4.4**, prepared but not published. The working tree also contains unreleased tester
 changes; the published patch uses isolated candidate `67be648`.
 Suggested next release: **0.5.0** (minor), for the unreleased tester setup and startup update fix below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
@@ -12,6 +12,19 @@ history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and rese
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.3
+
+### 0.4.4 preparation
+
+- **2026-10-28 · release preparation · Isolated safety patch:** frozen candidate
+  `6683fe6a481abcd6b44b850a6b163252144065a8` is based on published v0.4.3 and
+  contains only pre-launch updates (PR #26), note-loss/dashboard/manual-timer
+  safety (PR #27), version 0.4.4 and matching notes. Main integration preserves
+  candidate ancestry and unreleased 0.5.0 tester behavior and translations.
+  All 824 archived-candidate tests ran: 820 passed, four optional integrations
+  skipped. Initial version/package/build/hash/syntax checks passed. Integration
+  CI and exact candidate compatibility are pending; package/installed smoke
+  evidence is being verified. Existing overlapping timer history is not repaired.
+  User review is required before any tag/publication. No tag or publication made.
 
 ### Changed behavior
 
