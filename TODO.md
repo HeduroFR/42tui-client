@@ -1,5 +1,41 @@
 # TODO
 
+## 0.5.0 — Testers and update reliability
+
+Status: **scope agreed; release preparation pending**. Latest published stable
+release is 0.4.2. This roadmap does not bump the package version or authorize
+publication.
+
+| Item | Integration status | 0.5.0 scope |
+| --- | --- | --- |
+| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
+| Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
+| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| GitHub button in Settings and persistent one-time star reminder | Planning only; see the undated roadmap below | Deferred beyond 0.5.0 |
+
+### Integration and release checklist
+
+- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
+  and French/Spanish translations.
+- [x] Deliver automatic update discovery in 0.4.2 through PR #19, carrying the
+  update fix from superseded PR #18. Preserve opt-out, offline behavior,
+  managed-install protections and post-exit installation.
+- [x] Record shipped update behavior in CHANGELOG.md and retain the unreleased
+  tester notes and validation in DEV_CHANGELOG.md.
+- [ ] Validate real tester setup, image build and execution on school Linux with
+  accessible Docker/BuildKit and on native macOS, including installation/retry.
+- [ ] Run the tester and installation-updates regression scopes and required CI
+  on the exact integrated release candidate; verify locale coverage.
+- [ ] Complete package/version/installer checks and the compatibility checks
+  required by [API compatibility](docs/api-compatibility.md), recording exact
+  revisions and healthy deployed-backend evidence where required. No new backend
+  feature, schema migration or API change is required by this scope.
+- [ ] Prepare the 0.5.0 version and final release notes after review, then obtain
+  separate publication authorization and verify published artifacts/update path.
+
+Standalone binaries, a broader README redesign and the complete keyboard/keymap
+redesign are separate future work; they do not expand this release's scope.
+
 ## 0.4.2 — Updates, resumption and first-run instructions
 
 Status: **published and verified** on PyPI and GitHub.
@@ -113,6 +149,38 @@ Verification evidence: all seven GitHub release assets match SHA256SUMS; wheel
 and sdist are byte-identical to release CI artifacts and PyPI digests. Actual
 `42tui update` upgraded a disposable uv installation from 0.4.0 to 0.4.1 and the
 installed CLI/resources passed smoke checks. No live Intra write was performed.
+
+## Future major milestone — Complete keyboard navigation and keymaps redesign
+
+Status: **planned, version and date undecided**. This is a dedicated future
+milestone, outside the current 0.5.0 scope. Schedule it when the main screens and
+user journeys have settled, before extending inconsistent keyboard conventions
+to more features. Reassess the timing during each release planning cycle; do not
+wait for an arbitrary version number.
+
+- [ ] Audit navigation and bindings across every screen, pane and dialog,
+  including actions currently requiring a mouse and terminal key conflicts.
+- [ ] Redesign the keyboard interaction model and keymaps together: consistent
+  movement, pane switching, search, primary actions, back/cancel and shortcuts.
+- [ ] Make focus predictable on entry, after dialogs and after background refreshes;
+  preserve text entry and accessible, visible focus throughout the app.
+- [ ] Keep contextual help, shortcut hints and the command palette aligned with
+  the actual available bindings, so users can discover actions without memorizing
+  the entire keymap.
+- [ ] Plan the transition for existing users: document changed shortcuts, retain
+  compatible aliases where possible and explain unavoidable breaking changes.
+- [ ] Validate the main journeys without a mouse, including small terminals,
+  supported platforms and regression tests for focus, bindings and navigation.
+
+Treat this as a major user-experience change. Choose the package version at
+scoping time using the current pre-1.0/release policy; do not reserve 1.0.0,
+5.0.0 or 7.0.0 solely for this work. No API major change is implied.
+
+## Undated roadmap
+
+- [ ] Add a GitHub button in Settings that opens the project's repository.
+  - Show a one-time reminder to star the project on GitHub, remembering that it
+    has been shown across app restarts.
 
 ## Distribution and documentation backlog
 

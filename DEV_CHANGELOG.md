@@ -31,6 +31,18 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Internal changes and documentation
 
+- **2026-10-28 · no release required · Combined roadmaps:** integrate the GitHub
+  Settings button/star-reminder plan and future keyboard/keymap redesign plan on
+  current main. Retain the 0.5.0 tester scope and validation gates; correct the
+  update-discovery status to shipped in 0.4.2 through PR #19. Preserve the verified
+  0.4.2 baseline, publication evidence and existing pending tester work.
+  Sources: `a26aa9e` (`docs/github-roadmap`, PR #21), `3ebcf07` and `80ea4b9`
+  (`docs/keyboard-navigation-roadmap`). No runtime or package-version changes.
+  Checks: reviewed both source roadmaps, combined diff, relative links and
+  whitespace. Runtime tests were not run for this documentation-only change.
+  Existing 0.5.0 native tester and exact-candidate release gates still apply;
+  this integration requires no release.
+
 - **2026-10-28 · no release required · Verified 0.4.2 publication:** after explicit
   tag/publication authorization, publish isolated candidate
   `0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`, integrated through
