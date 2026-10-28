@@ -1162,5 +1162,7 @@
   "Docker Desktop is already installed. Continuing with the existing installation.": "Docker Desktop est déjà installé. Poursuite avec l’installation existante.",
   "These commands start your Docker user service without administrator access.": "Ces commandes démarrent votre service Docker utilisateur sans accès administrateur.",
   "Docker installer cleanup was incomplete. Check temporary installer files and mounted volumes.": "Le nettoyage de l’installateur Docker est incomplet. Vérifiez les fichiers temporaires et les volumes montés.",
-  "This custom tester needs Git or an HTTPS clone URL ending in .git. No host tools were installed.": "Ce testeur personnalisé nécessite Git ou une URL de clonage HTTPS se terminant par .git. Aucun outil système n’a été installé."
+  "This custom tester needs Git or an HTTPS clone URL ending in .git. No host tools were installed.": "Ce testeur personnalisé nécessite Git ou une URL de clonage HTTPS se terminant par .git. Aucun outil système n’a été installé.",
+  "Discard": "Abandonner",
+  "Save changes to this note before continuing?": "Enregistrer les modifications de cette note avant de continuer ?"
 }

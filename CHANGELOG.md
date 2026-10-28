@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Ask whether to save, discard or cancel before replacing an edited Dev Log note
+  when switching projects/notes, creating a note or refreshing the project catalog.
+- Prevent dashboard activity refreshes from crashing during shutdown.
+- Serialize manual timer changes across concurrent app instances so only one
+  new manual timer can run at a time. Existing timer history is preserved.
+
 - Install automatic updates before opening the TUI, then start the updated
   version in the same launch. Offline checks and failed updates fall back to the
   installed version. Updates found while the app is open wait for the next launch

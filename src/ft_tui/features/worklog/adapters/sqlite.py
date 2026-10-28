@@ -38,6 +38,7 @@ class SqliteWorklogRepository:
             return TimerSummary(active,total)
     def toggle_timer(self,project_id):
         with self.session_factory() as s:
+            accounting.lock_manual_timer(s)
             active=accounting.active_manual_timer(s)
             if active is not None and active.project_id==project_id:
                 accounting.stop_manual_timer(s,project_id);return TimerOutcome('stopped')

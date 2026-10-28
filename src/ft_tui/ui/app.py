@@ -278,8 +278,6 @@ class FortyTwoTuiApp(
         self.settings_status_timer: Timer | None = None
         self.selected_note_id: int | None = None
         self.dev_log_previewing = False
-        self._new_note_after_project_load: str | None = None
-        self._open_note_after_project_load: tuple[str, int] | None = None
         self.dashboard_continue_key: str | None = None
         self.dashboard_setup_key: str | None = None
         self.dashboard_recent_notes_signature: tuple[tuple[object, ...], ...] = ()
@@ -430,7 +428,13 @@ class FortyTwoTuiApp(
 
 
 
+    def on_unmount(self) -> None:
+        if self.activity_refresh_timer is not None:
+            self.activity_refresh_timer.stop()
+
     async def _reload_project_catalog(self) -> None:
+        if not self._protect_dev_note(self._reload_project_catalog):
+            return
         scope = self._catalog_scope()
         projects, self.project_curriculum = self.startup_service.catalog(
             self._configured_cursus_id(), self.account_id, scope.campus_id if scope else None,
@@ -661,14 +665,7 @@ class FortyTwoTuiApp(
             if project_key is None:
                 self.notify("Select a project first.", severity="warning")
                 return
-            self.query_one(TabbedContent).active = "dev-log"
-            project_select = self.query_one("#dev-log-project", Select)
-            if project_select.value == project_key:
-                await self._load_dev_log_notes(project_key)
-                self._begin_new_dev_note()
-            else:
-                self._new_note_after_project_load = project_key
-                project_select.value = project_key
+            await self._new_dev_note_for_project(project_key)
             return
         if event.button.id == "dev-log-preview-toggle":
             self._set_dev_log_preview(not self.dev_log_previewing)

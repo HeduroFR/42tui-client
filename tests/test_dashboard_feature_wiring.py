@@ -64,3 +64,45 @@ class DashboardFeatureWiringTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(notes.children), 1)
         finally:
             factory.kw['bind'].dispose()
+
+    async def test_activity_callback_after_project_list_removal_is_safe(self):
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+            app = FortyTwoTuiApp(factory, None)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await app.query_one('#project-list-view', ListView).remove()
+                await app._refresh_activity_order()
+        finally:
+            factory.kw['bind'].dispose()
+
+    async def test_activity_callback_rechecks_view_after_await_and_stops_on_shutdown(self):
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+            app = FortyTwoTuiApp(factory, None)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                started, release = asyncio.Event(), asyncio.Event()
+                async def refresh():
+                    started.set()
+                    await release.wait()
+                with patch.object(app, '_refresh_dashboard', side_effect=refresh):
+                    callback = asyncio.create_task(app._refresh_activity_order())
+                    await asyncio.wait_for(started.wait(), 3)
+                    await app.query_one('#project-list-view', ListView).remove()
+                    release.set()
+                    await callback
+                stop_patch = patch.object(app.activity_refresh_timer, 'stop', wraps=app.activity_refresh_timer.stop)
+                stop = stop_patch.start()
+                app.exit()
+            try:
+                stop.assert_called_once()
+                await app._refresh_activity_order()
+            finally:
+                stop_patch.stop()
+        finally:
+            factory.kw['bind'].dispose()
