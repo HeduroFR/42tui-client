@@ -68,7 +68,7 @@ class DevLogMixin:
             return True
         project_select = self.query_one("#dev-log-project", Select)
         with self.prevent(Select.Changed, ListView.Highlighted):
-            project_select.value = self.worklog_state.project_key or Select.BLANK
+            project_select.value = self.worklog_state.project_key or Select.NULL
             listing = self.query_one("#dev-log-note-list", ListView)
             listing.index = next((i for i, entry in enumerate(listing.children)
                                   if entry.note_id == self.selected_note_id), None)
@@ -161,7 +161,7 @@ class DevLogMixin:
             return
         self.worklog_state.project_key = project_key
         with self.prevent(Select.Changed):
-            self.query_one("#dev-log-project", Select).value = project_key if project else Select.BLANK
+            self.query_one("#dev-log-project", Select).value = project_key if project else Select.NULL
         self.selected_note_id = None
         self.query_one("#dev-log-title", Input).value = ""
         self.query_one("#dev-log-editor", TextArea).text = ""

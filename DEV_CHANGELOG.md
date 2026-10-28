@@ -29,7 +29,10 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   focused UI/service/architecture/locale tests passed during implementation.
   Final focused run: 43 passed; all 846 tests have exactly one regression scope
   owner; changed runtime modules passed Flake8 undefined/unused-name checks;
-  diff whitespace passed. Full regression/platform checks run through PR CI.
+  diff whitespace passed. Initial PR CI caught an empty-selection sentinel
+  mismatch; use the shared selector's NULL value and cover empty catalog reloads.
+  Rerun: 16 affected catalog/settings/worklog UI tests plus the explicit empty
+  catalog regression passed. Full regression/platform checks run through PR CI.
   Release impact: worth preparing an isolated 0.4.4 patch with the startup updater;
   main still merits 0.5.0 for its accumulated tester feature. No tag/publication.
 

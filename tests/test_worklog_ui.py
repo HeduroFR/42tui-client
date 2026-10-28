@@ -159,3 +159,17 @@ class WorklogUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(app.query_one('#dev-log-editor', TextArea).text, 'Other')
         finally:
             factory.kw['bind'].dispose()
+
+    async def test_empty_project_catalog_keeps_the_note_selector_empty(self):
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+            app = FortyTwoTuiApp(factory, None)
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await app._reload_project_catalog()
+                self.assertIs(app.query_one('#dev-log-project', Select).value, Select.NULL)
+                self.assertEqual(app.query_one('#dev-log-editor', TextArea).text, '')
+        finally:
+            factory.kw['bind'].dispose()
