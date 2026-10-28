@@ -1,8 +1,8 @@
 # Development changelog
 
 Latest release: **0.4.2** ([`v0.4.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.2)).
-Package version: **0.4.2**. The working tree also contains unreleased tester changes;
-the published patch uses isolated commit `0f3f4c3642e11f39a958fbe89e09a0d4e868b1d9`.
+Package version: **0.4.3**, prepared but not published. The working tree also
+contains unreleased tester changes; the isolated 0.4.3 candidate is `67be648`.
 Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
@@ -12,6 +12,22 @@ history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and rese
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.2
+
+### 0.4.3 release preparation
+
+- **2026-10-28 · release preparation · Isolated installer patch:** candidate
+  `67be64839c2cd921898a5ac7b1ddde6441a42ddc` starts at published v0.4.2 and includes
+  only PR #23's installer/navigation fix, README note and documentation plus
+  version 0.4.3/release notes. Main integration preserves candidate ancestry and
+  all pending minor tester work. No new planning documents. Baseline stays 0.4.2.
+  Candidate installer scope: 72 passed; focused installer tests: 23 passed.
+  Version, helper hashes, POSIX syntax, initial wheel/sdist/content checks and
+  ownership of all 805 candidate tests passed. Clean archive/package, installed
+  smoke, complete regressions, compatibility and integration CI are in progress.
+  Compatibility tests candidate and oldest supported 0.4.0 against previously
+  deployed backend e917aca; the existing synthetic friend-preview scenario does
+  not cover the whole API. This client-only patch needs no backend deployment.
+  No tags, publication or installer-hosting deployment authorized or performed.
 
 ### Installer patch targeting 0.4.3
 

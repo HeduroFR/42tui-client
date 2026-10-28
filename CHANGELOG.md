@@ -15,6 +15,15 @@
   setup installs Docker Desktop in the user's Applications folder; keep its
   user-level settings and accept Docker's terms when prompted.
 
+## 0.4.3
+
+- Configure PATH and `42goto` navigation automatically in both Bash and Zsh
+  when using the Linux/macOS installer. Reinstalling updates a managed block;
+  open a new terminal or use the printed activation command after installation.
+- Fix project completion on macOS's bundled Bash.
+- Explain the project's AI-assisted Python development and the conditions for
+  a future handwritten Rust rewrite at the top of the README.
+
 ## 0.4.2
 
 - Check for stable updates on every launch and every 12 hours while the app
