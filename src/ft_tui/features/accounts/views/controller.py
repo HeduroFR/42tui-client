@@ -66,6 +66,8 @@ class AccountControllerMixin:
     def _finish_session_expiry_prompt(self, reconnect: bool) -> None:
         if reconnect:
             self.open_account_connection(start_pairing=True)
+        else:
+            self.exit()
 
     def open_account_connection(self, source: str = "settings", *, start_pairing: bool = False) -> None:
         """Open the shared pairing/disconnect flow from onboarding or Settings."""

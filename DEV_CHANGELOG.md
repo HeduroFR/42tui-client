@@ -16,6 +16,36 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Project details dialog:**
+  replace the viewport-wide metadata dump with a width-capped, scrollable dialog,
+  selected-project heading and separate catalog, workspace and repository sections.
+  Keep all catalog rules/snapshot evidence, Intra link, Git status and remote/path
+  values. Use distinct field labels and a centered neutral Close button; preserve
+  Escape dismissal. Pass structured sections from the existing single caller,
+  without parsing translated text or changing shared catalog formatting.
+  Add French/Spanish Catalog headings. Branch: `feat/project-git-workflow`;
+  commit/PR pending. Checks: eight project-layout, nine architecture and three
+  catalog-formatting tests passed, including 80×24 footer visibility/scrolling,
+  section grouping, project identity and centered Close alignment. French/Spanish
+  headings, fatal-error lint and whitespace passed. Full CI and native UI were
+  not run. Changes remain
+  uncommitted. Minor 0.5.0 remains worth preparing after review with existing
+  native/on-campus, tester and exact-candidate release gates; no API change.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Reconnect and Docker messages:**
+  center session-expiry actions, replace Later with Quit TUI (including Escape),
+  exit through the normal app shutdown path and remove the prompt's question mark.
+  Keep reconnect's single-click pairing behavior. Translate the new copy to French/
+  Spanish. Simplify tester Docker status to actionable summary/folder guidance,
+  retaining the raw diagnostic in a tooltip instead of the visible status body.
+  No expandable detail UI added. Branch: `feat/project-git-workflow`; commit/PR
+  pending. Checks: 29 account UI, two locale and 15 tester UI tests passed,
+  including centered buttons, Quit dispatch and hidden long Docker diagnostics.
+  Fatal-error lint and whitespace checks passed. Live OAuth/Docker and full CI
+  were not run. Changes
+  uncommitted; minor 0.5.0 remains worth preparing after review with existing
+  native/on-campus, tester and exact-candidate release gates. No API/backend change.
+
 - **2026-10-29 · patch (accumulated minor 0.5.0) · Tester section layout:**
   move Testers below Registration/activity in the overview column and remove
   the top-right shortcut button, its event route and enable/disable references.

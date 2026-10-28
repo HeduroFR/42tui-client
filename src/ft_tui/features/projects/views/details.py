@@ -117,10 +117,11 @@ class ProjectDetailsMixin(SubjectMixin):
         if project.slug:
             catalog_details += f'[link="{intra_url}"]{intra_url}[/link]\n\n'
         self._project_technical_details = (
-            catalog_details
-            + f"{translate('Local path', self.language)}: {escape(path)}\n{translate('Git', self.language)}: {git_status}\n"
-            + f"{translate('Dev remote', self.language)}: {escape(project.dev_repo_url or '—')}\n"
-            + f"{translate('Vogsphere', self.language)}: {escape(project.vogsphere_url or '—')}"
+            ('Catalog', catalog_details.rstrip()),
+            ('Workspace', f"[bold]{translate('Local path', self.language)}[/bold]\n{escape(path)}\n\n"
+             f"[bold]{translate('Git', self.language)}[/bold]\n{git_status}"),
+            ('Repository', f"[bold]{translate('Dev remote', self.language)}[/bold]\n{escape(project.dev_repo_url or '—')}\n\n"
+             f"[bold]{translate('Vogsphere', self.language)}[/bold]\n{escape(project.vogsphere_url or '—')}"),
         )
         data = project.catalog_data
         self.query_one("#project-heading", Static).update(
@@ -163,7 +164,7 @@ class ProjectDetailsMixin(SubjectMixin):
     def _clear_project_details(self) -> None:
         self.query_one("#project-testers").set_project(None)
         self._clear_project_registration()
-        self._project_technical_details = ""
+        self._project_technical_details = ()
         self.query_one("#show-project-activity", Button).disabled = True
         for selector, text in (
             ("#project-heading", "Select a project"), ("#project-summary", ""),
@@ -209,9 +210,12 @@ class ProjectDetailsMixin(SubjectMixin):
         from textual.widgets import TabbedContent
         if self.query_one(TabbedContent).active != "projects-tab":
             return
-        if self.selected_project_key:
+        project = self.projects.get(self.selected_project_key or "")
+        if project is not None:
             from ft_tui.features.projects.views.technical_details import ProjectTechnicalDetailsScreen
-            self.push_screen(ProjectTechnicalDetailsScreen(getattr(self, "_project_technical_details", "")))
+            self.push_screen(ProjectTechnicalDetailsScreen(
+                getattr(self, "_project_technical_details", ()), project_name=project.name,
+            ))
 
     async def _inspect_project_git_status(
         self,

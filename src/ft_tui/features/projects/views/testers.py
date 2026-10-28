@@ -186,9 +186,9 @@ class ProjectTesters(Vertical):
             )
         if not has_local_folder(project.local_path):
             message += "\n" + translate("Configure an existing local project folder to run tests.", self.app.language)
-        if status.detail:
-            message += "\n\n" + escape(status.detail)
-        self.query_one("#tester-status", Static).update(message)
+        status_widget = self.query_one("#tester-status", Static)
+        status_widget.update(message)
+        status_widget.tooltip = escape(status.detail) if status.detail else None
         rows = self.query_one("#tester-rows")
         for tester in testers:
             button = TesterAction(tester, "run", tester.id in self._retry)

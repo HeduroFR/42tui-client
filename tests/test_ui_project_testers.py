@@ -141,18 +141,19 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             self.assertIsNone(widget.project)
 
-    async def test_long_docker_diagnostic_scrolls_without_hiding_folder_guidance(self):
+    async def test_long_docker_diagnostic_does_not_expand_the_status_message(self):
         async with self.workspace() as (_app, widget, service, projects, pilot, _root):
             detail = '\n'.join(f'Docker diagnostic line {index}' for index in range(20))
             service.status.return_value = DockerStatus('stopped', detail)
             await self.select(widget, projects['libft'], pilot)
             status = widget.query_one('#tester-status')
             text = str(status.render())
-            self.assertIn(detail, text)
-            self.assertLess(text.index('Configure an existing local project folder'), text.index('Docker diagnostic'))
+            self.assertNotIn(detail, text)
+            self.assertEqual(status.tooltip, detail)
+            self.assertIn('Configure an existing local project folder', text)
             scroll = widget.query_one('#tester-status-scroll')
             self.assertLessEqual(scroll.size.height, 5)
-            self.assertGreater(scroll.max_scroll_y, 0)
+            self.assertEqual(scroll.max_scroll_y, 0)
 
     async def test_testers_shortcut_respects_text_input_and_other_tabs(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, _root):

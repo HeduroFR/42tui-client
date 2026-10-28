@@ -2,8 +2,12 @@
 
 ## Unreleased
 
-- Find Testers below Registration in project details, with compact scrollable
-  diagnostics. Use `t` to jump to its actions; the top-right Testers button is removed.
+- Read project details in a compact dialog with separate catalog, workspace and
+  repository sections, a project-name heading and centered Close button.
+- Center the expired-session dialog actions and offer Reconnect or Quit TUI.
+- Keep Docker status messages short; hover over the status for the raw diagnostic.
+- Find Testers below Registration in project details, with concise status
+  messages. Use `t` to jump to its actions; the top-right Testers button is removed.
 - Align workspace actions in two columns, with Open folder and Push all spanning
   the full row and consistent spacing between controls. Place the timer button
   to the right of its time/status information.

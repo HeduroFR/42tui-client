@@ -225,7 +225,7 @@ class AccountConnectionScreen(AppModal[str | None]):
 
 
 class SessionExpiredScreen(AppModal[bool]):
-    """Let the user reconnect or continue working with saved projects."""
+    """Let the user reconnect or quit after session expiry."""
 
     CSS = """
     SessionExpiredScreen {  background: $background 70%; }
@@ -234,17 +234,17 @@ class SessionExpiredScreen(AppModal[bool]):
         border: round $warning; background: $surface;
     }
     #session-expired-message { height: auto; margin-bottom: 1; }
-    #session-expired-actions { height: 3; }
+    #session-expired-actions { height: 3; align-horizontal: center; }
     #session-reconnect { margin-right: 1; }
     """
-    BINDINGS = [("escape", "later", "Later")]
+    BINDINGS = [("escape", "quit_tui", "Quit TUI")]
 
     def compose(self) -> ComposeResult:
         with Vertical(id="session-expired-dialog"):
-            yield Static("Your session has expired. Reconnect your 42 account?", id="session-expired-message")
+            yield Static("Your session has expired. Reconnect your 42 account.", id="session-expired-message")
             with Horizontal(id="session-expired-actions"):
                 yield Button("Reconnect", variant="primary", id="session-reconnect")
-                yield Button("Later", id="session-later")
+                yield Button("Quit TUI", id="session-quit")
 
     def on_mount(self) -> None:
         for widget in self.query("*"):
@@ -255,5 +255,5 @@ class SessionExpiredScreen(AppModal[bool]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "session-reconnect")
 
-    def action_later(self) -> None:
+    def action_quit_tui(self) -> None:
         self.dismiss(False)

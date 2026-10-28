@@ -1194,5 +1194,8 @@
   "Close": "Fermer",
   "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.": "Impossible de vérifier Vogsphere. Connectez-vous au réseau du campus 42 pour récupérer le travail distant. Ouverture du dépôt local existant.",
   "Push vog": "Pousser vog",
-  "Open folder": "Ouvrir le dossier"
+  "Open folder": "Ouvrir le dossier",
+  "Your session has expired. Reconnect your 42 account.": "Votre session a expiré. Reconnectez votre compte 42.",
+  "Quit TUI": "Quitter le TUI",
+  "Catalog": "Catalogue"
 }

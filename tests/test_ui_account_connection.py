@@ -124,7 +124,8 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(screen.query_one("#account-manual-link").display)
             self.assertEqual(screen._authorization_url, "")
 
-    async def test_expired_session_prompts_once_and_later_keeps_local_workspace(self):
+    async def test_expired_session_prompts_once_with_centered_reconnect_and_quit(self):
+        from unittest.mock import patch
         from ft_tui.features.accounts.views.connection import SessionExpiredScreen
         from ft_tui.ui.app import SessionExpired
         with tempfile.TemporaryDirectory() as directory:
@@ -139,8 +140,18 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
                 self.assertIsInstance(app.screen, SessionExpiredScreen)
                 self.assertEqual(sum(isinstance(screen, SessionExpiredScreen) for screen in app.screen_stack), 1)
-                await pilot.click("#session-later")
-                await pilot.pause()
+                actions = app.screen.query_one('#session-expired-actions')
+                reconnect = app.screen.query_one('#session-reconnect')
+                quit_button = app.screen.query_one('#session-quit')
+                self.assertEqual(str(quit_button.label), 'Quit TUI')
+                self.assertNotIn('?', str(app.screen.query_one('#session-expired-message').render()))
+                left_gap = reconnect.region.x - actions.content_region.x
+                right_gap = actions.content_region.right - quit_button.region.right
+                self.assertLessEqual(abs(left_gap - right_gap), 1)
+                with patch.object(app, 'exit') as quit_app:
+                    await pilot.click("#session-quit")
+                    await pilot.pause()
+                    quit_app.assert_called_once_with()
                 self.assertFalse(app.account_connected)
                 self.assertIsNone(app.provider)
                 app.post_message(SessionExpired())
