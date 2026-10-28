@@ -13,6 +13,17 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-28 · no release required · Discord release documentation:** link
+  CONTRIBUTING.md to the emoji release-note template and native GitHub-to-Discord
+  webhook setup in docs/distribution.md. Explain automatic extraction, heading
+  levels, credential handling and delivery verification. Documentation only;
+  no webhook configured or release published. Branch: `docs/discord-release-notes`;
+  commit/PR pending. Checks: documentation diff, relative links, template heading
+  extraction and whitespace reviewed; no runtime tests or live delivery test.
+  Fetch failed because github.com could not resolve; branch uses cached origin/main.
+  This change needs no release; accumulated work still warrants minor 0.5.0,
+  subject to native Docker/macOS validation and fresh exact-candidate checks.
+
 - **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
   project evaluation-slot booking and upcoming evaluations on the dashboard for
   0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
