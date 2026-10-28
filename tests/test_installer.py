@@ -1,5 +1,6 @@
 """Installer behavior with disposable tool homes and an external uv double."""
 from contextlib import redirect_stdout, redirect_stderr
+import ast
 import hashlib
 import importlib.util
 import io
@@ -33,7 +34,7 @@ class InstallerTests(unittest.TestCase):
         self.bin.mkdir()
         self.tools = self.home/'tools'
         self.calls = []
-        self.fail = False
+        self.fail_install = False
         self.bad_version = False
         self.env = patch.dict(os.environ, {'HOME': str(self.home), 'XDG_DATA_HOME': str(self.home/'data')})
         self.env.start()
@@ -49,7 +50,7 @@ class InstallerTests(unittest.TestCase):
         elif command == ['tool', 'dir']:
             output = str(self.tools)
         elif command[:2] == ['tool', 'install']:
-            code = 1 if self.fail else 0
+            code = 1 if self.fail_install else 0
             if not code:
                 for name in self.installer.COMMANDS:
                     (self.bin / name).write_text('executable')
@@ -93,7 +94,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_failed_install_never_reports_success(self):
-        self.fail = True
+        self.fail_install = True
         result, output = self.install()
         self.assertNotEqual(result, 0)
         self.assertNotIn('Installed 42tui', output)
@@ -189,62 +190,131 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Installed 42tui', output)
 
     @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
-    def test_bash_and_zsh_path_setup_is_persistent_and_idempotent(self):
-        for shell, filename in (('/bin/bash', '.bashrc'), ('/bin/zsh', '.zshrc')):
-            with self.subTest(shell=shell), patch.dict(os.environ, {'SHELL': shell, 'ZDOTDIR': ''}):
-                rc = self.home/filename
-                rc.write_text('# Existing user settings\n')
-                self.assertEqual(self.installer.configure_shell_path(self.bin), rc)
-                first = rc.read_text()
-                self.installer.configure_shell_path(self.bin)
-                self.assertEqual(rc.read_text(), first)
-                self.assertTrue(first.startswith('# Existing user settings\n'))
-                # Source the generated config twice in a real shell. Each path
-                # must occur only once, including a HOME containing spaces.
-                for executable in filter(None, (shutil.which('bash'), shutil.which('zsh'))):
-                    result = subprocess.run([executable, '-c', '. "$1"; . "$1"; printf "%s" "$PATH"',
-                                             'check', str(rc)], env=dict(os.environ, PATH='/usr/bin:/bin'),
-                                            capture_output=True, text=True, check=True)
-                    paths = result.stdout.split(':')
-                    self.assertEqual(paths.count(str(self.home/'.local/bin')), 1)
-                    self.assertEqual(paths.count(str(self.bin)), 1)
-
-    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
-    def test_existing_local_bin_exports_are_preserved(self):
-        for value in ('export PATH="$HOME/.local/bin:$PATH"',
-                      'export PATH="${PATH}:${HOME}/.local/bin"',
-                      f'export PATH="{self.home}/.local/bin:$PATH"'):
-            with self.subTest(value=value), patch.dict(os.environ, {'SHELL': '/bin/bash'}):
-                rc = self.home/'.bashrc'
-                rc.write_text(value + '\n')
-                self.installer.configure_shell_path(self.home/'.local/bin')
-                self.assertEqual(rc.read_text(), value + '\n')
-
-    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
-    def test_commented_export_is_not_treated_as_configured(self):
-        with patch.dict(os.environ, {'SHELL': '/bin/bash'}):
-            rc = self.home/'.bashrc'
-            rc.write_text('# export PATH="$HOME/.local/bin:$PATH"\n')
-            self.installer.configure_shell_path(self.home/'.local/bin')
-            self.assertIn('# 42TUI: user executables', rc.read_text())
-
-    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
-    def test_zsh_uses_zdotdir_and_leaves_bashrc_untouched(self):
-        directory = self.home/'zsh config'
-        with patch.dict(os.environ, {'SHELL': '/bin/zsh', 'ZDOTDIR': str(directory)}):
-            rc = self.installer.configure_shell_path(self.home/'.local/bin')
-            self.assertEqual(rc, directory/'.zshrc')
-            self.assertTrue(rc.is_file())
-            self.assertFalse((self.home/'.bashrc').exists())
-
-    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
-    def test_supported_shell_is_configured_after_verified_install(self):
-        with patch.dict(os.environ, {'SHELL': '/bin/bash'}):
+    def test_install_configures_both_shells_regardless_of_shell_environment(self):
+        with patch.dict(os.environ, {'SHELL': '/bin/sh', 'ZDOTDIR': ''}):
             result, output = self.install()
         self.assertEqual(result, 0)
-        self.assertTrue((self.home/'.bashrc').is_file())
-        self.assertIn('PATH configured', output)
-        self.assertFalse(any(c[-2:] == ['tool', 'update-shell'] for c in self.calls))
+        for name in ('.bashrc', '.zshrc'):
+            self.assertTrue((self.home/name).is_file(), name)
+            self.assertIn(str(self.home/name), output)
+        self.assertIn('source ', output)
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
+    def test_shell_blocks_update_in_place_and_preserve_surrounding_content(self):
+        for shell in ('bash', 'zsh'):
+            with self.subTest(shell=shell), patch.dict(os.environ, {'ZDOTDIR': ''}):
+                rc = self.home/f'.{shell}rc'
+                rc.write_text('# User settings without final newline')
+                self.installer.configure_shell_path(self.bin, shell)
+                first = rc.read_text()
+                self.installer.configure_shell_path(self.bin, shell)
+                self.assertEqual(rc.read_text(), first)
+                rc.write_text(first + '# Later settings\n')
+                new_bin = self.home/'new bin'
+                self.installer.configure_shell_path(new_bin, shell)
+                updated = rc.read_text()
+                self.assertTrue(updated.startswith('# User settings without final newline\n'))
+                self.assertTrue(updated.endswith('# <<< 42TUI shell setup <<<\n'))
+                self.assertIn('# Later settings\n', updated)
+                self.assertNotIn(str(self.bin), updated)
+                self.assertEqual(updated.count('# >>> 42TUI shell setup >>>'), 1)
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
+    def test_zdotdir_symlink_and_permissions_are_preserved(self):
+        directory = self.home/'zsh config'
+        directory.mkdir()
+        target = self.home/'actual rc'
+        target.write_bytes(b'# Existing settings\r\n')
+        target.chmod(0o640)
+        rc = directory/'.zshrc'
+        rc.symlink_to(target)
+        with patch.dict(os.environ, {'ZDOTDIR': str(directory)}):
+            self.assertEqual(self.installer.configure_shell_path(self.bin, 'zsh'), rc)
+        self.assertTrue(rc.is_symlink())
+        self.assertTrue(target.read_bytes().startswith(b'# Existing settings\r\n'))
+        self.assertEqual(target.stat().st_mode & 0o777, 0o640)
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
+    def test_malformed_block_is_preserved_and_other_shell_still_configured(self):
+        rc = self.home/'.bashrc'
+        original = '# >>> 42TUI shell setup >>>\n# User content\n'
+        rc.write_text(original)
+        with patch.dict(os.environ, {'ZDOTDIR': ''}):
+            result, _ = self.install()
+        self.assertEqual(result, 0)
+        self.assertEqual(rc.read_text(), original)
+        self.assertTrue((self.home/'.zshrc').is_file())
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell startup files')
+    def test_unwritable_bashrc_does_not_prevent_zsh_setup(self):
+        # A directory at the rc path reliably fails even under privileged CI.
+        (self.home/'.bashrc').mkdir()
+        with patch.dict(os.environ, {'ZDOTDIR': ''}):
+            self.assertEqual(self.install()[0], 0)
+        self.assertTrue((self.home/'.zshrc').is_file())
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell execution')
+    def test_real_shell_navigation_completion_and_uninstall_are_quiet(self):
+        tree = ast.parse((ROOT/'src/ft_tui/goto.py').read_text())
+        initializers = {node.targets[0].id: ast.literal_eval(node.value)
+                        for node in tree.body if isinstance(node, ast.Assign)}
+        project = self.home/'project directory'
+        project.mkdir()
+        command = self.bin/'42goto'
+        for shell, key in (('bash', '_BASH_INIT'), ('zsh', '_ZSH_INIT')):
+            executable = shutil.which(shell)
+            if not executable:
+                self.skipTest(f'{shell} unavailable')
+            # Execute the production shell initializer with a disposable CLI/data source.
+            command.write_text('#!/bin/sh\ncase "$1" in\n'
+                               "--shell-init) cat <<'INIT'\n" + initializers[key] +
+                               '\nINIT\n;;\n--path) printf "%s\\n" "$TEST_PROJECT";;\n'
+                               '--complete) printf "%s\\n" "libft" "get_next_line";;\nesac\n')
+            command.chmod(0o755)
+            with patch.dict(os.environ, {'ZDOTDIR': ''}):
+                rc = self.installer.configure_shell_path(self.bin, shell)
+            completion = ('COMP_WORDS=(42goto ""); COMP_CWORD=1; _42goto_complete; '
+                          'printf "%s\\n" "${COMPREPLY[@]}"' if shell == 'bash' else
+                          '(( $+functions[compdef] )) && (( $+functions[_42goto] ))')
+            script = 'set -e; . "$1"; . "$1"; 42goto libft; pwd; ' + completion + '; printf "%s\\n" "$PATH"'
+            env = dict(os.environ, PATH='/usr/bin:/bin', TEST_PROJECT=str(project))
+            result = subprocess.run([executable, '-f' if shell == 'zsh' else '--noprofile',
+                                     '-c', script, 'test', str(rc)], env=env,
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, '')
+            self.assertIn(str(project), result.stdout.splitlines())
+            if shell == 'bash':
+                self.assertIn('get_next_line', result.stdout.splitlines())
+            paths = result.stdout.splitlines()[-1].split(':')
+            self.assertEqual(paths.count(str(self.bin)), 1)
+            self.assertEqual(paths.count(str(self.home/'.local/bin')), 1)
+            command.unlink()
+            result = subprocess.run([executable, '-c', '. "$1"', 'test', str(rc)],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (0, '', ''))
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX shell execution')
+    def test_manual_function_is_preserved_and_shell_characters_remain_literal(self):
+        bin_dir = self.home/'bin " $value `touch INJECTED`'
+        bin_dir.mkdir()
+        for shell in ('bash', 'zsh'):
+            executable = shutil.which(shell)
+            if not executable:
+                self.skipTest(f'{shell} unavailable')
+            rc = self.home/f'.{shell}rc'
+            original = 'export PATH="$HOME/.local/bin:$PATH"\n42goto() { printf "manual\\n"; }\n'
+            rc.write_text(original)
+            with patch.dict(os.environ, {'ZDOTDIR': ''}):
+                self.installer.configure_shell_path(bin_dir, shell)
+            self.assertTrue(rc.read_text().startswith(original))
+            result = subprocess.run([executable, '-c', '. "$1"; . "$1"; 42goto; printf "%s" "$PATH"',
+                                     'test', str(rc)], cwd=self.home,
+                                    env=dict(os.environ, PATH='/usr/bin:/bin'), capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(result.stdout.startswith('manual\n'))
+            self.assertIn(str(bin_dir), result.stdout.splitlines()[-1].split(':'))
+            self.assertFalse((self.home/'INJECTED').exists())
 
     @unittest.skipIf(os.name == 'nt', 'POSIX terminal contract')
     def test_font_prompt_works_with_a_nonseekable_terminal(self):

@@ -68,7 +68,7 @@ main() {
         python_bin=$("$uv_bin" --no-config python find --no-project 3.12)
     }
     fetch 'https://tui.42wip.in/install.py' "$work/install.py"
-    verify "$work/install.py" 'df6ef1b6b1434d44704b31b6759f5c312867ccbc597d556b6e058d5a032ea171'
+    verify "$work/install.py" '1c7fadfd2bd321a764b5d2f8b6367f349e11143474db3fbe8da6ed5d94a24261'
     "$python_bin" "$work/install.py" --uv "$uv_bin" "$@"
 }
 main "$@"

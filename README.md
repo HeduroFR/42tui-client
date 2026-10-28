@@ -1,5 +1,26 @@
 # 42TUI
 
+> [!NOTE]
+> **About this project**
+>
+> 42TUI is a side project I build alongside my 42 cursus. It has two goals:
+>
+> 1. **Learn to integrate AI workflows** into the production of a real project.
+>    The current version (Python) is written with AI assistance.
+> 2. **Learn Rust** by rewriting 42TUI entirely in Rust, **by hand, without any
+>    AI coding agent**.
+>
+> The Rust rewrite starts once 42TUI reaches **420 monthly active users** for
+> two consecutive months. An active user is a distinct connected 42 account
+> that used 42TUI at least once during the month.
+>
+> From then on, the Python version is frozen: no new features, only fixes for
+> security issues and breakages (such as 42 API changes), until the Rust
+> version reaches the same level of features.
+>
+> Using 42TUI, reporting bugs and sharing it with your peers is what moves
+> the rewrite forward.
+
 Your 42 projects, notes, and coding activity in the terminal. Connect your
 42 account, track time with editor plugins, and jump to project folders with
 `42goto`.
@@ -29,7 +50,12 @@ You can [inspect the installer](https://tui.42wip.in/install.sh) first. It needs
 `curl`, internet access, and a writable home directory. It installs `uv` and
 Python 3.12 if needed, without administrator rights.
 
-Restart your terminal, then run:
+The installer adds a managed block at the end of both `~/.bashrc` and
+`${ZDOTDIR:-$HOME}/.zshrc`, configuring PATH and `42goto` navigation and
+completion. Reinstalling updates that block without duplicating it.
+
+Open a new terminal, or run the matching `source` command printed by the
+installer, then launch:
 
 ```sh
 42tui
@@ -52,8 +78,9 @@ Your password stays with 42; device credentials use your OS credential store.
 
 ## `42goto`
 
-Configure your project's local folder in 42TUI, then enable shell navigation.
-Add the matching line to your shell config:
+Configure your project's local folder in 42TUI. The Linux/macOS installer
+enables shell navigation automatically for Bash and Zsh. For other installation
+methods, add the matching line to your shell config:
 
 ```sh
 # Zsh: ~/.zshrc, after compinit

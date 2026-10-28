@@ -10,6 +10,22 @@ Client CI builds wheel/sdist, checks package contents, rebuilds from sdist, runs
 all 14 regression scopes and validates installers on supported platforms.
 
 The installation website and shell/PowerShell/Python installers stay here.
+
+On Linux/macOS, the verified Python helper configures both `~/.bashrc` and
+`${ZDOTDIR:-$HOME}/.zshrc`, independently of `$SHELL`. A marked block at the end
+adds the uv executable directories to PATH and initializes `42goto` navigation
+and completion. Reinstallation replaces only that block. Existing user settings,
+manual functions, symlinks and file permissions are preserved. An incomplete or
+duplicate block is left unchanged with a warning; the other shell is still tried.
+Zsh completion is initialized if needed, ignoring insecure completion directories.
+If an rc file returns early, its final block will run only when execution reaches
+it. Bash login shells must already source `.bashrc` through their login profile.
+
+The installer prints a `source` command for each shell; run the matching command
+or open a new terminal. A `curl ... | sh` process cannot activate changes in its
+parent shell. After uninstall, the block keeps PATH entries but skips navigation
+initialization when `42goto` is absent. Remove the marked block manually if desired.
+
 Build using `docker build -f distribution/Dockerfile distribution`.
 For Dokploy select this repository, branch main, Build Path `/distribution`,
 Dockerfile Path `Dockerfile`, Docker Context Path `distribution`, port 8080,

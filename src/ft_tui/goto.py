@@ -22,8 +22,11 @@ _BASH_INIT = r'''42goto() {
 }
 
 _42goto_complete() {
-    local prefix="${COMP_WORDS[COMP_CWORD]}"
-    mapfile -t COMPREPLY < <(command 42goto --complete --prefix "$prefix")
+    local prefix="${COMP_WORDS[COMP_CWORD]}" candidate
+    COMPREPLY=()
+    while IFS= read -r candidate; do
+        COMPREPLY+=("$candidate")
+    done < <(command 42goto --complete --prefix "$prefix")
 }
 complete -o nospace -F _42goto_complete 42goto'''
 

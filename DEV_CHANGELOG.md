@@ -1,36 +1,41 @@
 # Development changelog
 
-Latest release: **0.4.1** ([`v0.4.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.1)).
-Package version: **0.4.2**, prepared but not published.
-Suggested next release: **0.4.2** (patch), for update discovery, exam resumption
-and corrected onboarding instructions. This isolated branch starts at v0.4.1;
-later tester features on main remain outside this patch. Publication requires
-separate authorization after exact-candidate validation and main integration.
+Latest release: **0.4.2** ([`v0.4.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.2)).
+Package version: **0.4.3**, prepared but not published.
+Suggested next release: **0.4.3** (patch), for automatic installer shell setup
+and compatible macOS Bash completion. This isolated candidate starts at v0.4.2;
+main's pending minor tester work remains outside this release.
 
-## Changes since 0.4.1
+## Changes since 0.4.2
 
-- **2026-10-28 · patch · Automatic updates:** carry only the update policy/view,
-  settings hook and tests from `ee60aa2` (PR #18). Check at every startup, every
-  12 hours while running, and immediately on re-enable. Preserve opt-out and
-  managed/development/pinned safeguards and installation after normal exit.
-- **2026-10-28 · patch · Continue working:** exclude exams before active/recent/
-  selected/fallback resumption selection. Reuse the catalog kind classifier so
-  exam-rank slugs in older snapshots are recognized. Catalog and curriculum
-  progress still include exams. The regression failed all eight scenarios before
-  the fix. No user data, API contract or backend behavior changes.
-- **2026-10-28 · patch · First-run documentation:** replace the README's obsolete
-  connection bypass instructions with required initial connection and continued
-  offline access to saved projects/notes after setup.
-- **2026-10-28 · release preparation · 0.4.2:** prepare package version, matching
-  release notes and a checklist for only these three fixes. Reference:
-  `fix/release-0.4.2`. No tag, publication or deployment performed.
+- **2026-10-28 · patch · Installer shell setup:** carry the installer, navigation,
+  tests and user documentation from [PR #23](https://github.com/HeduroFR/42tui-client/pull/23)
+  (`9b3a271`). Configure managed blocks at the end of both Bash and Zsh rc files,
+  respecting ZDOTDIR. Preserve user content, manual functions, symlinks and modes;
+  quote paths, handle reinstall without duplicates, initialize Zsh completion and
+  stay quiet after uninstall. Attempt both shells independently and print source
+  commands. Refresh the helper digest in both bootstraps. Avoid Bash mapfile so
+  completion works on macOS Bash 3.2.
+- **2026-10-28 · documentation · Project direction:** include the author's exact
+  About this project README note about AI-assisted Python development, 420 monthly
+  active users for two consecutive months and a handwritten Rust rewrite.
+- **2026-10-28 · release preparation · 0.4.3:** prepare the package version and
+  matching user-facing notes on `fix/release-0.4.3-candidate` from published
+  v0.4.2. No API, backend, data schema, dependency or tester changes. No new plan
+  documents. Baseline remains 0.4.2 until verified publication.
 
 ## Validation and release readiness
 
-- Dashboard resumption regression failed eight scenarios before editing; all
-  28 dashboard and 70 installation-updates scope tests now pass. Independent
-  read-only review found no substantive issues. Version check v0.4.2 and diff
-  whitespace checks passed. Clean package build validation remains pending.
-- Live OAuth, native platform checks and real Intra writes are not exercised.
-- Review, CI/main integration and exact-candidate compatibility remain pending.
-  The patch is worth preparing, but is not yet ready to publish.
+PR #23 passed all 21 CI checks. That validates the feature on main, not this
+new release candidate. This candidate passed 23 focused installer tests and all
+72 installation-updates tests, version v0.4.3, wheel/sdist build and package
+contents, helper hashes, POSIX syntax and 805-test scope ownership checks.
+Clean archived-package, installed smoke, full regression and paired compatibility
+checks remain pending. Retain 0.4.0 as
+the oldest supported client. The existing paired scenario covers synthetic friend
+preview only, not the entire API or live OAuth/Intra writes. This independent
+installer fix requires no new backend capability or deployment.
+
+A 0.4.3 patch is worth preparing. Review/main-ancestry integration and exact
+candidate validation remain required. Tags, publication and installer-hosting
+deployment require separate approval; none has been performed.
