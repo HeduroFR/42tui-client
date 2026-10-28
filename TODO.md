@@ -189,6 +189,10 @@ version or authorize publication.
   (push_swap or a Python module tester), including setup/retry, cancellation,
   output capture, result handling and French/Spanish interface coverage.
 
+Existing tester implementation checks and remaining native-validation gates are
+recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
+These checks do not validate the pending 0.6.0 rework.
+
 ### Integration and release checklist
 
 - [x] Merge the single Run action, unprivileged setup/retries, tester instructions
