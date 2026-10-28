@@ -173,3 +173,33 @@ class WorklogUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(app.query_one('#dev-log-editor', TextArea).text, '')
         finally:
             factory.kw['bind'].dispose()
+
+    async def test_storage_failure_during_save_on_navigation_preserves_draft(self):
+        from sqlalchemy.exc import OperationalError
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+                session.add(Project(slug='one', name='One')); session.commit()
+            app = FortyTwoTuiApp(factory, None)
+            async with app.run_test(size=(140, 42)) as pilot:
+                await pilot.pause()
+                project = next(iter(app.projects.values()))
+                note = app.worklog_service.save_note(project.id, None, 'First', 'Saved')
+                await app._open_note_target(project.ui_key, note.id)
+                app.query_one('#dev-log-editor', TextArea).text = 'Keep this edit'
+                app._begin_new_dev_note()
+                await pilot.pause()
+                with patch('sqlalchemy.orm.Session.commit', side_effect=OperationalError('UPDATE dev_notes', {}, Exception('disk full'))):
+                    await pilot.click('#save-note-changes')
+                    await pilot.pause()
+                self.assertTrue(app.is_running)
+                self.assertEqual(app.selected_note_id, note.id)
+                self.assertEqual(app.query_one('#dev-log-editor', TextArea).text, 'Keep this edit')
+                self.assertIn('Note not saved', str(app.query_one('#dev-log-status').render()))
+                self.assertEqual(app.worklog_service.note(note.id).content, 'Saved')
+                self.assertTrue(await app._save_dev_note())
+                self.assertEqual(app.selected_note_id, note.id)
+                self.assertEqual(app.worklog_service.note(note.id).content, 'Keep this edit')
+        finally:
+            factory.kw['bind'].dispose()

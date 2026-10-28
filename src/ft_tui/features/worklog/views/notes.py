@@ -2,6 +2,7 @@
 
 from inspect import isawaitable
 
+from ft_tui.features.worklog.models import NoteSaveError
 from ft_tui.ui.modal import AppModal
 from ft_tui.ui.components import (
     ComposeResult,
@@ -294,7 +295,11 @@ class DevLogMixin:
             status.update("A note title is required.")
             self.query_one("#dev-log-title", Input).focus()
             return False
-        note = self.worklog_service.save_note(project.id,self.selected_note_id,title,content)
+        try:
+            note = self.worklog_service.save_note(project.id,self.selected_note_id,title,content)
+        except NoteSaveError:
+            status.update("Note not saved. Check disk space and database access, then try again.")
+            return False
         if note is None:
             self.selected_note_id = None
             status.update("This note no longer exists. Save again to create it.")
