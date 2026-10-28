@@ -29,7 +29,8 @@ class FakeOAuthClient:
         self.poll_entered = threading.Event()
         self.release_poll = threading.Event()
 
-    def create_pairing(self):
+    def create_pairing(self, *, theme=None):
+        self.pairing_theme = theme
         self.pairing_calls += 1
         return SimpleNamespace(handle="pairing-handle", expires_at="later",
                                browser_opened=self.browser_opened,
@@ -55,6 +56,26 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_pairing_uses_resolved_active_theme_for_light_and_dark_apps(self):
+        from textual.app import App
+        from textual.color import Color
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+
+        for name in ("textual-dark", "textual-light"):
+            with self.subTest(theme=name):
+                client = FakeOAuthClient()
+                client.pairing_status = "pending"
+                app = App()
+                app.theme = name
+                async with app.run_test() as pilot:
+                    screen = AccountConnectionScreen(client)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._start_pairing()
+                    variables = app.get_css_variables()
+                    expected = {key: Color.parse(variables[key]).hex6 for key in ("background", "surface", "foreground", "primary", "success")}
+                    self.assertEqual(client.pairing_theme, expected)
+
     async def test_onboarding_cannot_skip_or_complete_without_account_connection(self):
         factory = make_session_factory("sqlite:///:memory:")
         app = FortyTwoTuiApp(factory, None, oauth_client=FakeOAuthClient())

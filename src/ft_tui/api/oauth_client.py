@@ -262,7 +262,7 @@ class OAuthClient:
     def credentials(self) -> DeviceCredentials | None:
         return self._load_credentials()
 
-    def create_pairing(self) -> PairingStart:
+    def create_pairing(self, *, theme: dict[str, str] | None = None) -> PairingStart:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import ec
         current = self._load_credentials()
@@ -295,6 +295,12 @@ class OAuthClient:
         except (KeyError, TypeError) as error:
             raise OAuthClientError("Invalid pairing response from OAuth service") from error
         self._validate_authorization_url(start.authorization_url, start.handle)
+        # Add cosmetic hints only after validating the server's original URL.
+        # Older backends ignore the optional query field.
+        colors = [(theme or {}).get(key, "") for key in ("background", "surface", "foreground", "primary", "success")]
+        if all(isinstance(color, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", color) for color in colors):
+            palette = ",".join(color[1:].lower() for color in colors)
+            start = PairingStart(start.handle, start.authorization_url + "&" + urlencode({"theme": palette}), start.expires_at)
         try:
             opened = bool(self.browser_open(start.authorization_url))
         except (webbrowser.Error, OSError):

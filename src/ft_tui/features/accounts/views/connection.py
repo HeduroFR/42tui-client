@@ -6,6 +6,7 @@ from typing import Any
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.color import Color
 from ft_tui.ui.modal import AppModal
 from ft_tui.ui.components import Button, Static
 
@@ -98,7 +99,10 @@ class AccountConnectionScreen(AppModal[str | None]):
         self.query_one("#account-connection-cancel", Button).disabled = True
         self.query_one("#account-connection-status", Static).update("Opening the 42 authorization page…")
         try:
-            pairing = await asyncio.to_thread(self.oauth_client.create_pairing)
+            # Resolve generated/overridden colors on the UI thread before I/O.
+            variables = self.app.get_css_variables()
+            theme = {key: Color.parse(variables[key]).hex6 for key in ("background", "surface", "foreground", "primary", "success")}
+            pairing = await asyncio.to_thread(self.oauth_client.create_pairing, theme=theme)
         except Exception as error:
             logger.warning(
                 "OAuth pairing start failed (%s): %s",

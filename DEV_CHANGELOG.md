@@ -16,6 +16,16 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-29 · no release required · OAuth branch sync:** merge current
+  `main` (`1e9054f`) into `feat/oauth-terminal-page` for PR #37 without
+  conflicts. Preserve the OAuth theme handoff and main's roadmap, documentation,
+  translations and tester checks. Validation: 29 OAuth transport tests passed;
+  regression ownership check passed (851 tests assigned exactly once);
+  staged whitespace check passed. Full suite and production OAuth were not run.
+  This synchronization adds no release justification; the planned 0.5.0 Git
+  workflow and exact-candidate validation remain pending. No version bump,
+  deployment or release was performed.
+
 - **2026-10-28 · minor (accumulated tester feature) · Tester validation:**
   track each release-roadmap item in docs/superpowers/plans/2026-10-28-release-0.5.0.md.
   Add ten missing French/Spanish tester diagnostic translations per language,
@@ -100,6 +110,21 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   tester rework targets minor 0.6.0 after implementation and release validation.
 
 ### Changed behavior
+
+- **2026-10-28 · patch · OAuth completion theme:** pass the active resolved
+  background, surface, foreground, primary and success colors to the validated
+  browser/manual pairing URL. A supporting backend shows a responsive terminal
+  completion page with GitHub/Discord links and no auto-close. Older backends
+  ignore the optional palette and older clients receive the default page.
+  Reference: `feat/oauth-terminal-page`. Checks: 29 OAuth transport
+  tests and 30 account-connection UI tests passed; accounts regression scope ran
+  97 tests (96 passed, one optional simulation skipped); regression ownership check
+  passed. Backend tests: 486 passed, 34 optional integrations skipped; typecheck and
+  dark/light responsive Chromium checks passed. Production OAuth and pinned-pair
+  deployment checks remain unverified; deploy and verify the backend before a
+  dependent client release. Follow main's current roadmap: **0.5.0** (minor)
+  targets the pending Git workflow, with tester rework planned for **0.6.0**;
+  publication remains blocked on candidate checks and verified rollout. No version bump or deployment was performed.
 
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
   controls with one Run action per tester. Preserve compact image removal, locking,
