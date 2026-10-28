@@ -119,43 +119,46 @@ def stable(value: str) -> str:
     return value
 
 
-def configure_shell_path(bin_dir: Path) -> Path | None:
-    """Persist user executables for Bash/Zsh without evaluating shell config."""
-    shell = Path(os.environ.get('SHELL', '')).name
-    if os.name == 'nt' or shell not in ('bash', 'zsh'):
-        return None
+def configure_shell_path(bin_dir: Path, shell: str) -> Path:
+    """Maintain a shell block without executing or replacing user configuration."""
     home = Path.home()
     directory = Path(os.environ.get('ZDOTDIR') or home).expanduser() if shell == 'zsh' else home
-    rc = directory / ('.zshrc' if shell == 'zsh' else '.bashrc')
-    content = rc.read_text() if rc.exists() else ''
-    configured = set()
-    for line in content.splitlines():
-        try:
-            tokens = shlex.split(line, comments=True)
-        except ValueError:
-            continue
-        if len(tokens) < 2 or tokens[0] != 'export':
-            continue
-        for token in tokens[1:]:
-            if not token.startswith('PATH='):
-                continue
-            value = token[5:].replace('${HOME}', str(home)).replace('$HOME', str(home))
-            configured.update(value.split(':'))
-    additions = []
+    rc = directory / f'.{shell}rc'
+    target = rc.resolve()
+    with target.open(newline='') if target.exists() else io.StringIO() as stream:
+        content = stream.read()
+    begin, end = '# >>> 42TUI shell setup >>>', '# <<< 42TUI shell setup <<<'
+    lines = content.splitlines(keepends=True)
+    starts = [i for i, line in enumerate(lines) if line.rstrip('\r\n') == begin]
+    ends = [i for i, line in enumerate(lines) if line.rstrip('\r\n') == end]
+    if starts or ends:
+        if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+            raise ValueError(f'{rc} has an incomplete or duplicate 42TUI block; leaving it unchanged')
+        content = ''.join(lines[:starts[0]] + lines[ends[0] + 1:])
+    block = [begin + '\n']
     for path in dict.fromkeys((home/'.local/bin', bin_dir)):
-        if str(path) in configured:
-            continue
-        try:
-            relative = str(path.relative_to(home))
-            # Quote the relative suffix as data while allowing only HOME expansion.
-            value = '${HOME}/' + relative.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
-        except ValueError:
-            value = str(path).replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
-        additions.append(f'case ":$PATH:" in\n    *:"{value}":*) ;;\n    *)\n        export PATH="{value}:$PATH"\n        ;;\nesac\n')
-    if additions:
-        directory.mkdir(parents=True, exist_ok=True)
-        with rc.open('a') as stream:
-            stream.write('\n# 42TUI: user executables\n' + ''.join(additions))
+        value = shlex.quote(str(path))
+        block.append(f'case ":$PATH:" in\n    *:{value}:*) ;;\n    *) export PATH={value}:"$PATH" ;;\nesac\n')
+    # Keep manual shell functions and remain quiet after the application is removed.
+    block.append('if ! typeset -f 42goto >/dev/null 2>&1 && command -v 42goto >/dev/null 2>&1; then\n')
+    if shell == 'zsh':
+        block.append('    if ! typeset -f compdef >/dev/null 2>&1; then\n'
+                     '        autoload -Uz compinit\n        compinit -i\n    fi\n')
+    block.append(f'    eval "$(command 42goto --shell-init {shell})"\nfi\n{end}\n')
+    updated = content + ('\n' if content and not content.endswith('\n') else '') + ''.join(block)
+    directory.mkdir(parents=True, exist_ok=True)
+    # Replace the symlink's target atomically, retaining existing permissions.
+    staged = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', dir=target.parent, newline='', delete=False) as stream:
+            staged = Path(stream.name)
+            stream.write(updated)
+        if target.exists():
+            staged.chmod(target.stat().st_mode & 0o777)
+        staged.replace(target)
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
     return rc
 
 
@@ -216,14 +219,21 @@ def main(argv=None) -> int:
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f'42TUI installation failed: {error}', file=sys.stderr)
         return 1
-    try:
-        rc = configure_shell_path(bin_dir)
-        if rc is None:
+    if os.name == 'nt':
+        try:
             run('tool', 'update-shell')
-        else:
-            print(f'PATH configured in {rc}; new terminals will find 42tui automatically.')
-    except (OSError, ValueError) as error:
-        print(f'Warning: PATH setup needs attention: {error}. Add {bin_dir} to PATH or restart your terminal.', file=sys.stderr)
+        except (OSError, ValueError) as error:
+            print(f'Warning: PATH setup needs attention: {error}', file=sys.stderr)
+    else:
+        for shell in ('bash', 'zsh'):
+            try:
+                rc = configure_shell_path(bin_dir, shell)
+                print(f'PATH and 42goto configured in {rc}.')
+                print(f'Activate in {shell}: source {shlex.quote(str(rc))}')
+            except (OSError, ValueError) as error:
+                print(f'Warning: {shell} setup needs attention: {error}. '
+                      f'Add {bin_dir} to PATH and add '
+                      f'`eval "$(command 42goto --shell-init {shell})"` to your rc file.', file=sys.stderr)
     print(f'Installed {verification.stdout.strip()} at {executable}')
     print(f'Executable directory: {bin_dir}. Restart your terminal if it is not on PATH.')
     if os.name == 'nt':

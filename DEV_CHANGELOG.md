@@ -13,6 +13,31 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.2
 
+### Installer patch targeting 0.4.3
+
+- **2026-10-28 · patch · Installer shell setup and project note:** configure both
+  Bash and Zsh after verified installation with PATH and guarded 42goto setup in
+  managed blocks at the end of their rc files. Respect ZDOTDIR, preserve manual
+  functions, surrounding content, symlinks and modes; replace atomically and leave
+  malformed blocks untouched. Attempt the other shell after a configuration error.
+  Initialize Zsh completion when needed, stay quiet after uninstall and print
+  activation commands. Replace Bash's mapfile usage for macOS Bash 3.2 completion.
+  Add the user's About this project README note verbatim and document automatic
+  setup. Refresh both bootstrap helper hashes. Branch: `fix/installer-shell-setup`;
+  no commit/PR yet. Validation: 23 installer tests passed on native macOS with
+  real Bash 3.2/Zsh loading; the installation-updates scope passed 72 tests.
+  Wheel/sdist build and package-content checks passed (version remains 0.4.2).
+  Helper hashes, POSIX syntax and 829-test scope ownership checks passed.
+  Full suite, Linux/Windows platform execution, CI, exact 0.4.3 candidate and
+  hosted installer deployment remain unverified. Independent review could not
+  complete because its network permission was revoked; author reviewed the
+  connected callers, shell output, documentation and final diff instead.
+- **Release scope:** a selective 0.4.3 patch is worth preparing for the installer
+  fix and README note. Do not publish current main as 0.4.3: it includes the minor
+  tester feature below, which still warrants 0.5.0. No version bump or publication
+  performed. Installer hosting needs a separately authorized deployment; package
+  publication alone does not update the hosted scripts.
+
 ### Changed behavior
 
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
