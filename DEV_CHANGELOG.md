@@ -3,15 +3,39 @@
 Latest release: **0.4.4** ([`v0.4.4`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.4)).
 Package version: **0.4.4**. The working tree also contains unreleased tester
 changes; the published patch uses isolated candidate `bbb619d`.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
-A release is worth preparing; native Docker/macOS validation and fresh candidate
-checks remain required before publication. No version bump is authorized here.
+Suggested next release: **0.5.0** (minor), targeting the urgent project Git
+workflow; the tester rework moves to **0.6.0**. Existing unreleased tester code
+already on main still needs an explicit candidate inclusion/validation decision.
+The accumulated tester feature warrants a minor release, but 0.5.0 is not ready:
+its Git scope is unimplemented and exact-candidate release checks remain pending.
+This roadmap update alone requires no release or package-version bump.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.4
+
+- **2026-10-28 · no release required · Milestone order:** assign the urgent
+  project Git workflow and proposed 42git to 0.5.0. Move testers to 0.6.0,
+  dashboard/interface work to 0.7.0, notifications/presence to 0.8.0 and
+  profiles/clubs to 0.9.0. Reorder TODO sections and update active references;
+  keep published release history and unversioned initiatives intact. Planning
+  only; no implementation, API or package-version changes. The Git scope and
+  candidate checks remain pending; already-merged tester code needs an explicit
+  inclusion/validation decision for 0.5.0. Checks: documentation diff, milestone
+  order, existing relative links and whitespace reviewed; no runtime tests for
+  this docs-only change. Branch: `docs/tester-workspace-roadmap`; commit/PR pending.
+
+- **2026-10-28 · no release required · Tester workspace roadmap:** record the
+  agreed tester rework (now scheduled for 0.6.0): extend the existing tester catalog, prefer validated native
+  execution, evaluate headless macOS containers, and show progress/results inside
+  a dedicated TUI workspace. Include disposable project copies, cancellation,
+  logs and a second tester to validate extensibility. Planning only; no runtime,
+  API or package-version changes. Branch: `docs/tester-workspace-roadmap`;
+  commit/PR pending. Checks: documentation diff, relative links and whitespace
+  reviewed; no behavioral tests for this documentation-only task. Accumulated
+  tester rework targets minor 0.6.0 after implementation and release validation.
 
 ### Changed behavior
 
@@ -154,8 +178,10 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 ## Validation and release readiness
 
 The 0.4.4 package publication is verified. Hosted installer deployment remains
-pending access as recorded above. Pending release work belongs to 0.5.0 tester
-setup; the successful patch release does not validate native tester installation.
+pending access as recorded above. The next planned release is the 0.5.0 Git
+workflow, followed by the 0.6.0 tester rework. The successful patch release does
+not validate either scope or native tester installation. Historical version
+targets in the records below reflect the roadmap at the time.
 
 ### Tester setup validation (2026-10-27)
 
