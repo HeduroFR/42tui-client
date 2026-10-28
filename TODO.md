@@ -1,5 +1,102 @@
 # TODO
 
+## Urgent priority — Project Git workflow and proposed `42git` command
+
+Status: **requested; implementation not started**. Prioritize this work before
+0.6.0 dashboard polish. Target the next suitable minor release; assess inclusion
+in 0.5.0 without treating its existing tester scope as validation of Git changes.
+No package version bump or publication is authorized by this plan.
+
+- [ ] Recover existing Vogsphere work before opening the editor for the first
+  time: clone Vogsphere into a new/empty project folder when it holds the work,
+  and fetch/inspect its history when a checkout already exists. The current
+  setup clones the development remote but only configures the Vogsphere remote.
+- [ ] Preserve existing local files, commits, branches and remote configuration.
+  Resolve divergent development/Vogsphere histories explicitly; never silently
+  overwrite work, reset branches or force-push to recover a project.
+- [ ] Offer Push dev, Push Vogsphere and Push all in the project Git controls.
+  Show the destination and branch before dispatch and the result per remote;
+  Push all must report partial success and allow retrying the failed destination.
+- [ ] Define the branch/commit rules before implementation: which committed work
+  is published to each destination, how work reaches Vogsphere's master branch,
+  and what happens with uncommitted changes or divergent remote history.
+- [ ] Evaluate a `42git` companion command alongside `42goto`, sharing the TUI's
+  project Git operations. Proposed initial interface: `42git status`,
+  `42git push dev`, `42git push vog`, `42git push all`. Resolve the current project
+  clearly and fail clearly outside a configured project; CLI details remain a
+  proposal pending design. Push actions must not silently stage or commit files.
+- [ ] Add Open in file explorer beside the existing project folder/editor actions
+  on supported platforms, with clear errors for missing folders or unavailable tools.
+- [ ] Validate recovery from Vogsphere, development-only and empty repositories,
+  existing/dirty checkouts, divergent history, authentication/network failures,
+  rejected pushes and partial success using disposable repositories.
+
+## 0.6.0 — Dashboard and interface cleanup
+
+Status: **scope agreed; implementation and release validation pending**.
+
+- [ ] Rework the dashboard student-profile and cluster-map cards.
+- [ ] Add hover information to the progress bar and details below weekly coding.
+- [ ] Remove the dashboard's top-right connected-account/local-projects label;
+  verify its exact location separately from the app header changed in 0.4.0.
+- [ ] Rework project details and move View project away from the list's top edge.
+- [ ] Standardize danger-button styling and hover, including the tester removal
+  control. One-button tester setup is already implemented for 0.5.0; do not
+  duplicate it here or assume its removal styling is complete.
+- [ ] Simplify Curriculum and Appearance settings.
+- [ ] Add a GitHub button in Settings opening the project repository, plus a
+  one-time reminder to star the project, remembered across app restarts.
+- [ ] Add a Discord button in Settings opening the project's Discord invite, plus
+  a one-time reminder to join the community, remembered across app restarts.
+  Confirm the official invite URL before implementation.
+- [ ] Improve friend-profile, project/evaluation detail loading; measure remaining
+  delays rather than treating the caching shipped in 0.3.0 as completion.
+
+## 0.7.0 — Notifications, presence and pokes
+
+Status: **scope agreed; implementation and release validation pending**.
+
+- [ ] Add a unified notification inbox with a bell left of the DND button,
+  integrating activity notifications, friend requests and other existing sources.
+- [ ] Show online, inactive, DND and offline using differently colored round
+  Unicode indicators in friends lists, replacing rank numbers outside ranking mode.
+  Define presence source, idle/offline timing and DND behavior before implementation.
+- [ ] Replace the poke inbox below search with a direct Send poke action, matching
+  friend details; make each poke a message viewed once and define read semantics.
+- [ ] Simplify the poke sender modal, remove excessive details below the message
+  and separate Cancel and Send poke.
+- [ ] Replace the large poke popup with a compact adaptive notification containing
+  the sender's portrait, username and message below the portrait.
+
+## 0.8.0 — Profiles and clubs
+
+Status: **scope agreed; implementation and release validation pending**.
+
+- [ ] Provide both a compact profile modal and a full detailed profile page with
+  dashboard-style information.
+- [ ] Allow profile customisation and show the viewed user's choices to visitors.
+- [ ] Enlarge the user's portrait when clicked in profile details.
+- [ ] Rework club lists and club UI/logic; add discovery for open and request-to-join
+  clubs. Keep private clubs accessible through delegate/owner invitations only,
+  with invitations delivered through the notification inbox introduced in 0.7.0.
+
+## Later initiatives — Shops, currency and WIP
+
+Status: **captured for design; versions and dates undecided**.
+
+- [ ] Integrate the actual Intra goodies shop and wallets; establish available
+  integration capabilities before committing to delivery.
+- [ ] Design a separate TUI currency, earning quests/activities and a shop for
+  upgrading profile customisation. Depends on the profile work above.
+- [ ] Explore WIP, an animated pixel-art royal otter companion with multiple
+  states, movement in the TUI and emotes; scope its behavior in a dedicated design.
+
+For future social/profile/club/shop features requiring API changes, assess contracts
+and older-client compatibility, validate both repositories separately and deploy
+required compatible backend changes before the consuming client release. See
+[API compatibility](docs/api-compatibility.md). These scopes do not imply backend
+implementation or deployment is complete.
+
 ## 0.5.0 — Testers and update reliability
 
 Status: **scope agreed; release preparation pending**. Latest published stable
@@ -11,7 +108,7 @@ publication.
 | One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
-| GitHub button in Settings and persistent one-time star reminder | Planning only; see the undated roadmap below | Deferred beyond 0.5.0 |
+| GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.6.0 | Deferred beyond 0.5.0 |
 
 ### Integration and release checklist
 
@@ -202,12 +299,6 @@ wait for an arbitrary version number.
 Treat this as a major user-experience change. Choose the package version at
 scoping time using the current pre-1.0/release policy; do not reserve 1.0.0,
 5.0.0 or 7.0.0 solely for this work. No API major change is implied.
-
-## Undated roadmap
-
-- [ ] Add a GitHub button in Settings that opens the project's repository.
-  - Show a one-time reminder to star the project on GitHub, remembering that it
-    has been shown across app restarts.
 
 ## Distribution and documentation backlog
 
