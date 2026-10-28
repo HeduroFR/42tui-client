@@ -1148,5 +1148,15 @@
   "This custom tester needs Git or an HTTPS clone URL ending in .git. No host tools were installed.": "Este tester personalizado necesita Git o una URL de clonación HTTPS terminada en .git. No se han instalado herramientas en el sistema.",
   "Discard": "Descartar",
   "Save changes to this note before continuing?": "¿Guardar los cambios de esta nota antes de continuar?",
-  "Note not saved. Check disk space and database access, then try again.": "Nota no guardada. Comprueba el espacio en disco y el acceso a la base de datos e inténtalo de nuevo."
+  "Note not saved. Check disk space and database access, then try again.": "Nota no guardada. Comprueba el espacio en disco y el acceso a la base de datos e inténtalo de nuevo.",
+  "The active Docker context could not be resolved.": "No se pudo determinar el contexto Docker activo.",
+  "Docker engine information could not be read.": "No se pudo leer la información del motor Docker.",
+  "Docker security options could not be read.": "No se pudieron leer las opciones de seguridad de Docker.",
+  "Docker could not build or publish the tester image. Check build support, CPU emulation and the build log.": "Docker no pudo compilar o guardar la imagen del tester. Comprueba la compatibilidad de compilación, la emulación de CPU y el registro.",
+  "Docker did not mount the local project folder correctly.": "Docker no montó correctamente la carpeta local del proyecto.",
+  "Docker produced a file owned by another user. Check Docker user mapping and local folder permissions.": "Docker creó un archivo de otro usuario. Comprueba la asignación de usuarios de Docker y los permisos de la carpeta local.",
+  "Docker cannot execute the tester image. Check CPU emulation. {detail}": "Docker no puede ejecutar la imagen del tester. Comprueba la emulación de CPU. {detail}",
+  "Docker cannot read or write the local project folder. Check file sharing and folder permissions. {detail}": "Docker no puede leer o escribir en la carpeta local del proyecto. Comprueba el uso compartido de archivos y los permisos de la carpeta. {detail}",
+  "Docker could not validate container execution and the local mount. Check emulation, file sharing and folder permissions. {detail}": "Docker no pudo verificar la ejecución del contenedor y el montaje local. Comprueba la emulación, el uso compartido de archivos y los permisos de la carpeta. {detail}",
+  "Docker could not read the local folder probe. Check file sharing and folder permissions. {detail}": "Docker no pudo leer el archivo de comprobación de la carpeta local. Comprueba el uso compartido de archivos y los permisos de la carpeta. {detail}"
 }

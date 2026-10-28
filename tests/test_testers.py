@@ -610,6 +610,7 @@ class TesterAutomaticSetupTests(unittest.TestCase):
         from ft_tui.features.projects.adapters.tester_docker import DockerStatus
         self.service.host = Host('darwin', 'arm64')
         with (patch.object(self.service, 'status', side_effect=[DockerStatus('stopped'), DockerStatus('ready')]),
+              patch.object(self.service, '_desktop_path', return_value=None),
               patch.object(self.service, '_docker_endpoint', return_value='unix:///Users/test/.docker/run/docker.sock'),
               patch.object(self.service, 'connection', side_effect=nullcontext),
               patch.object(self.service, '_install'), patch.object(self.service, '_run_tester') as run,

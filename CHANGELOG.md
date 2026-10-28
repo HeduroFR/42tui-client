@@ -10,6 +10,8 @@
   Linux machines need an accessible Docker engine with BuildKit support. macOS
   setup installs Docker Desktop in the user's Applications folder; keep its
   user-level settings and accept Docker's terms when prompted.
+- Show tester build, Docker context and local-folder diagnostics in French and
+  Spanish, preserving technical error details.
 
 ## 0.4.4
 
