@@ -54,7 +54,7 @@ class UpdateMixin:
         if previous:
             self._show_changelog_when_ready(previous)
         self.set_interval(CHECK_INTERVAL, self._start_update_check)
-        self._start_update_check(force=True)
+        self._start_update_check()
 
     def _start_update_check(self, *, force=False):
         if (self.update_service is not None and stable_version(self.update_service.current)
@@ -88,7 +88,7 @@ class UpdateMixin:
             return
         if self.update_service.installation is not None:
             self.pending_update = available
-            message = "42TUI {version} will install when you close the app."
+            message = "42TUI {version} will install before your next launch."
         else:
             message = "42TUI {version} is available. Update your installation manually."
         self.notify(translate(message, self.language).format(version=available), timeout=10)

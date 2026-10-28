@@ -35,18 +35,19 @@ class StartupUpdateTests(unittest.IsolatedAsyncioTestCase):
                                 check=check or Mock(return_value='0.4.0'))
         return FortyTwoTuiApp(self.factory, None, update_service=service)
 
-    async def test_initial_launch_baseline_and_new_release(self):
+    async def test_initial_baseline_and_no_duplicate_check_after_cli_preflight(self):
         app = self.app()
         async with app.run_test() as pilot:
             await pilot.pause()
             self.assertEqual(self.get('updates:last_seen_version'), '0.3.0')
             self.assertNotIsInstance(app.screen, ChangelogScreen)
             self.assertEqual(app.pending_update, '0.4.0')
-        # A fresh launch must discover a release even after a recent check.
+        # CLI preflight owns every-launch checks; mounting the UI must not repeat one.
         check = Mock(return_value='0.4.0')
         async with self.app(check).run_test() as pilot:
             await pilot.pause()
-            self.assertEqual(pilot.app.pending_update, '0.4.0')
+            self.assertIsNone(pilot.app.pending_update)
+            check.assert_not_called()
 
     async def test_periodic_check_discovers_release_without_restart(self):
         from ft_tui.features.installation.models import CHECK_INTERVAL

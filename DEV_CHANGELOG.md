@@ -3,7 +3,7 @@
 Latest release: **0.4.3** ([`v0.4.3`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3)).
 Package version: **0.4.3**. The working tree also contains unreleased tester
 changes; the published patch uses isolated candidate `67be648`.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
+Suggested next release: **0.5.0** (minor), for the unreleased tester setup and startup update fix below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
 
@@ -14,6 +14,33 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 ## Changes since 0.4.3
 
 ### Changed behavior
+
+- **2026-10-28 · patch · Updates before launch:** move managed stable-release
+  discovery and installation before OAuth/TUI imports. Reuse installation policy,
+  receipts, pin checks, manager-root verification, update lock and package version
+  verification. Replace the process with the installed entry point after an
+  upgrade attempt; consume a one-launch guard to prevent duplicate checks or a
+  failure/restart loop. Failed metadata checks launch normally; failed upgrades
+  restart into the installed version. A busy updater asks for a later launch
+  rather than opening the UI during package changes. Preserve release-note
+  acknowledgement and the previous-version baseline. Keep periodic checks and
+  re-enable checks, announcing installation for the next launch; remove post-exit
+  installation. Avoid a duplicate UI metadata request after CLI preflight.
+  Update English/French/Spanish copy, README and architecture guidance.
+  Reference: `fix/update-before-launch`. No version bump, tag or publication.
+  Validation: 24 focused updater tests and eight UI updater tests passed, including
+  actual process replacement before UI imports for successful/failed synthetic
+  upgrades. Two locale tests and complete non-overlapping ownership of 840 tests
+  passed. Installation/update scope: 83 passed; settings/navigation scope: 20
+  passed. Version CLI smoke passed; wheel/sdist build/content and installer hash
+  checks passed; diff whitespace and relative documentation links checked.
+  Full-suite/PR CI remains pending at commit preparation.
+  Release impact: a useful isolated patch could be 0.4.4; accumulated main work
+  still warrants 0.5.0 because of the unreleased tester feature. Existing 0.4.3
+  users need to install this fix once before the new launch behavior can apply.
+  Real production upgrades, native pipx/Windows and full-suite/CI checks remain
+  unverified. Native tester validation and fresh exact-candidate checks still gate
+  0.5.0. No backend/API, dependency, database schema or installer changes.
 
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
   controls with one Run action per tester. Preserve compact image removal, locking,
