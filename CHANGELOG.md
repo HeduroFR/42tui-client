@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Configure PATH and `42goto` navigation automatically in both Bash and Zsh
+  when using the Linux/macOS installer. Reinstalling updates a managed block;
+  open a new terminal or use the printed activation command after installation.
+- Fix project completion on macOS's bundled Bash.
+- Explain the project's AI-assisted Python development and the conditions for
+  a future handwritten Rust rewrite at the top of the README.
+
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
   Linux machines need an accessible Docker engine with BuildKit support. macOS

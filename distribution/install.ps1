@@ -59,7 +59,7 @@ try {
     }
     $helper = Join-Path $work 'install.py'
     Invoke-WebRequest -UseBasicParsing -Uri 'https://tui.42wip.in/install.py' -OutFile $helper
-    Assert-Hash $helper 'df6ef1b6b1434d44704b31b6759f5c312867ccbc597d556b6e058d5a032ea171'
+    Assert-Hash $helper '1c7fadfd2bd321a764b5d2f8b6367f349e11143474db3fbe8da6ed5d94a24261'
     $installerArgs = @($helper, '--uv', $uv)
     if ($Version) { $installerArgs += @('--version', $Version) }
     if ($Font) { $installerArgs += '--font' }
