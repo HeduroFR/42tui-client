@@ -5,9 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
-from textual.widgets import TabbedContent
 
-from ft_tui.ui.select import Select
 from ft_tui.i18n import translate
 from ft_tui.ui.components import has_local_folder
 
@@ -125,14 +123,4 @@ class FortyTwoTuiCommandProvider(Provider):
     def _create_note(self, slug: str) -> None:
         """Open a blank Dev Log note attached to the requested project."""
         app = self.app
-        app.query_one(TabbedContent).active = "dev-log"
-        project_select = app.query_one("#dev-log-project", Select)
-        if project_select.value == slug:
-            async def load_then_create() -> None:
-                await app._load_dev_log_notes(slug)
-                app._begin_new_dev_note()
-
-            app.run_worker(load_then_create(), group="palette-new-note", exclusive=True)
-        else:
-            app._new_note_after_project_load = slug
-            project_select.value = slug
+        app.run_worker(app._new_dev_note_for_project(slug), group="palette-new-note", exclusive=True)

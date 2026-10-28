@@ -15,6 +15,31 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Changed behavior
 
+- **2026-10-28 · patch · Note loss and timer safety:** protect unsaved notes with
+  Save/Discard/Cancel across project/note selection, note links, new-note actions
+  and catalog reloads. Keep saves attached to the original project and retain
+  drafts on cancellation, validation or operational storage failure; use the shared modal/buttons and
+  French/Spanish copy. Stop the activity timer on unmount and guard removed views
+  before and after awaited dashboard updates. Serialize SQLite manual timer
+  transitions before the active-timer read, including SQLAlchemy autobegin reads
+  and the repository toggle operation. Preserve durations, switching and history;
+  no schema/API/version change. Previously duplicated active rows are not repaired
+  automatically. Branch: `fix/note-loss-timer-safety`; PR reference pending.
+  Checks: three original reproductions failed as regressions before edits; 43
+  focused UI/service/architecture/locale tests passed during implementation.
+  Final focused run: 43 passed; all 846 tests have exactly one regression scope
+  owner; changed runtime modules passed Flake8 undefined/unused-name checks;
+  diff whitespace passed. Initial PR CI caught an empty-selection sentinel
+  mismatch; use the shared selector's NULL value and cover empty catalog reloads.
+  A real SQLAlchemy commit failure regression also reproduced draft loss;
+  translate expected operational storage errors at the adapter boundary and
+  retain the editor/selection with localized retry guidance. The 20 worklog/UI/
+  architecture tests passed, including failure and successful retry.
+  Rerun: 16 affected catalog/settings/worklog UI tests plus the explicit empty
+  catalog regression passed. Full regression/platform checks run through PR CI.
+  Release impact: worth preparing an isolated 0.4.4 patch with the startup updater;
+  main still merits 0.5.0 for its accumulated tester feature. No tag/publication.
+
 - **2026-10-28 · patch · Updates before launch:** move managed stable-release
   discovery and installation before OAuth/TUI imports. Reuse installation policy,
   receipts, pin checks, manager-root verification, update lock and package version
