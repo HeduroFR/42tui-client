@@ -2,7 +2,7 @@
 
 ## 0.5.0 — Project Git workflow and `42git`
 
-Status: **0.5.0 release candidate prepared; CI and publication pending**.
+Status: **0.5.0 published and verified** (PR #38, tag `v0.5.0`).
 Implemented: conservative checkout recovery, reviewed committed-history pushes,
 `42git status` and `42git push dev|vog|all`, folder opening and project dialog
 improvements. See [the Git guide](docs/project-git.md). Both destinations receive
@@ -10,6 +10,9 @@ the committed history. Native Vogsphere and Linux/macOS tester checks were
 confirmed by the maintainer on 2026-10-29; automated candidate checks are separate.
 The existing one-button tester implementation is included; its 0.6.0 rework is
 still pending.
+
+Release CI, exact-revision compatibility, package hashes and the actual
+0.4.4 → 0.5.0 update path passed; see DEV_CHANGELOG.md.
 
 The detailed design below remains a roadmap: source-choice UI, staging/commits,
 separate Vogsphere file selection, extended CLI and project-list redesign are
@@ -152,12 +155,12 @@ Git push success never changes academic status by itself.
 ## 0.6.0 — Testers and update reliability
 
 Status: **reworked scope agreed; implementation and release validation pending**.
-Latest published stable release is 0.4.4. This roadmap does not bump the package
+Latest published stable release is 0.5.0. This roadmap does not bump the package
 version or authorize publication.
 
 | Item | Integration status | 0.6.0 scope |
 | --- | --- | --- |
-| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
+| One-button Francinette setup/run on Linux and macOS | Published in 0.5.0 (PR #13, #38) | Main feature |
 | Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
