@@ -15,6 +15,21 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ### Changed behavior
 
+- **2026-10-28 · patch · OAuth completion theme:** pass the active resolved
+  background, surface, foreground, primary and success colors to the validated
+  browser/manual pairing URL. A supporting backend shows a responsive terminal
+  completion page with GitHub/Discord links and no auto-close. Older backends
+  ignore the optional palette and older clients receive the default page.
+  Reference: `feat/oauth-terminal-page`. Checks: 29 OAuth transport
+  tests and 30 account-connection UI tests passed; accounts regression scope ran
+  97 tests (96 passed, one optional simulation skipped); regression ownership check
+  passed. Backend tests: 486 passed, 34 optional integrations skipped; typecheck and
+  dark/light responsive Chromium checks passed. Production OAuth and pinned-pair
+  deployment checks remain unverified; deploy and verify the backend before a
+  dependent client release. Existing accumulated tester changes still warrant
+  preparing **0.5.0** (minor); publication remains blocked on release checks and
+  verified rollout. No version bump or deployment was performed.
+
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
   controls with one Run action per tester. Preserve compact image removal, locking,
   pinned sources, platform-specific images, mount checks and captured project paths.

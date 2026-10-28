@@ -37,6 +37,26 @@ class FakeHTTP:
 
 
 class OAuthClientTests(unittest.TestCase):
+    def test_pairing_adds_validated_theme_to_browser_and_manual_url(self):
+        from urllib.parse import parse_qs, urlsplit
+        url = "https://api.example/oauth/42/start?pairing=" + "h" * 43
+        http = FakeHTTP([FakeResponse({"pairing_handle": "h" * 43, "authorization_url": url, "expires_at": "later"})])
+        opened = []
+        client = self.make_client("https://api.example", MemoryStore(), http_client=http, browser_open=opened.append)
+        theme = dict(background="#101820", surface="#182830", foreground="#EEF4FF", primary="#55CCFF", success="#77DDAA")
+        start = client.create_pairing(theme=theme)
+        self.assertEqual(opened, [start.authorization_url])
+        self.assertEqual(parse_qs(urlsplit(start.authorization_url).query)["theme"], ["101820,182830,eef4ff,55ccff,77ddaa"])
+        self.assertEqual(http.calls[0][2]["json"].keys(), {"installation_public_key"})
+
+    def test_pairing_ignores_invalid_or_incomplete_palettes(self):
+        url = "https://api.example/oauth/42/start?pairing=" + "h" * 43
+        for theme in ({}, {"background": "</style>"}, dict.fromkeys(("background", "surface", "foreground", "primary", "success"), "#abc")):
+            with self.subTest(theme=theme):
+                http = FakeHTTP([FakeResponse({"pairing_handle": "h" * 43, "authorization_url": url, "expires_at": "later"})])
+                client = self.make_client("https://api.example", MemoryStore(), http_client=http, browser_open=lambda _: False)
+                self.assertEqual(client.create_pairing(theme=theme).authorization_url, url)
+
     @patch("ft_tui.api.oauth_client.webbrowser.Chrome")
     @patch("ft_tui.api.oauth_client.subprocess.run")
     @patch("ft_tui.api.oauth_client.shutil.which")

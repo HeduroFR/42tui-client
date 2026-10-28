@@ -61,3 +61,17 @@ release independently. Use backward-compatible database migrations so both image
 can run during transition; reverting the image does not undo migrations. Delay
 schema removal until the support window closes. After a client is published, do
 not rely on recalling it or forcing every installed copy to update immediately.
+
+
+## Optional OAuth completion-page palette
+
+After validating the backend's authorization URL, the client may append `theme`
+to `/oauth/42/start`. It contains exactly five comma-separated six-digit RGB hex
+colors without `#`: background, surface, foreground, primary, success. The palette
+is resolved from the active theme, including generated colors, on the UI thread.
+It is also retained in the manual login link. Pairing JSON bodies are unchanged.
+Older backends ignore the parameter; older clients get the backend's default dark
+page. A supporting backend carries the palette through the browser flow and
+provides a completion page without auto-close, plus GitHub and Discord links.
+Deploy and verify that backend before releasing the matching client. Synthetic
+unit/browser checks alone do not establish a functional production rollout.

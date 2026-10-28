@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Match the OAuth completion page to your active terminal theme when supported by
+  the backend. The redesigned page stays open and links to GitHub and Discord.
+
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
   Linux machines need an accessible Docker engine with BuildKit support. macOS
