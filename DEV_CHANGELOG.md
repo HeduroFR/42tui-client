@@ -1,9 +1,9 @@
 # Development changelog
 
-Latest release: **0.4.3** ([`v0.4.3`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3)).
-Package version: **0.4.4**, prepared but not published. The working tree also contains unreleased tester
-changes; the published patch uses isolated candidate `67be648`.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup and startup update fix below.
+Latest release: **0.4.4** ([`v0.4.4`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.4)).
+Package version: **0.4.4**. The working tree also contains unreleased tester
+changes; the published patch uses isolated candidate `bbb619d`.
+Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
 
@@ -11,74 +11,9 @@ This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
-## Changes since 0.4.3
-
-### 0.4.4 preparation
-
-- **2026-10-28 · release preparation · Isolated safety patch:** frozen candidate
-  `bbb619db0cfd6e64ad7c6e8e6661b945327f87fd` is based on published v0.4.3 and
-  contains only pre-launch updates (PR #26), note-loss/dashboard/manual-timer
-  safety (PR #27), version 0.4.4 and matching notes. Main integration preserves
-  candidate ancestry and unreleased 0.5.0 tester behavior and translations.
-  All 824 archived-candidate tests ran: 820 passed, four optional integrations
-  skipped. Initial version/package/build/hash/syntax checks passed. Integration
-  CI and exact candidate compatibility are pending; package/installed smoke
-  evidence is being verified. Existing overlapping timer history is not repaired.
-  User review is required before any tag/publication. No tag or publication made.
+## Changes since 0.4.4
 
 ### Changed behavior
-
-- **2026-10-28 · patch · Note loss and timer safety:** protect unsaved notes with
-  Save/Discard/Cancel across project/note selection, note links, new-note actions
-  and catalog reloads. Keep saves attached to the original project and retain
-  drafts on cancellation, validation or operational storage failure; use the shared modal/buttons and
-  French/Spanish copy. Stop the activity timer on unmount and guard removed views
-  before and after awaited dashboard updates. Serialize SQLite manual timer
-  transitions before the active-timer read, including SQLAlchemy autobegin reads
-  and the repository toggle operation. Preserve durations, switching and history;
-  no schema/API/version change. Previously duplicated active rows are not repaired
-  automatically. Branch: `fix/note-loss-timer-safety`; PR reference pending.
-  Checks: three original reproductions failed as regressions before edits; 43
-  focused UI/service/architecture/locale tests passed during implementation.
-  Final focused run: 43 passed; all 846 tests have exactly one regression scope
-  owner; changed runtime modules passed Flake8 undefined/unused-name checks;
-  diff whitespace passed. Initial PR CI caught an empty-selection sentinel
-  mismatch; use the shared selector's NULL value and cover empty catalog reloads.
-  A real SQLAlchemy commit failure regression also reproduced draft loss;
-  translate expected operational storage errors at the adapter boundary and
-  retain the editor/selection with localized retry guidance. The 20 worklog/UI/
-  architecture tests passed, including failure and successful retry.
-  Rerun: 16 affected catalog/settings/worklog UI tests plus the explicit empty
-  catalog regression passed. Full regression/platform checks run through PR CI.
-  Release impact: worth preparing an isolated 0.4.4 patch with the startup updater;
-  main still merits 0.5.0 for its accumulated tester feature. No tag/publication.
-
-- **2026-10-28 · patch · Updates before launch:** move managed stable-release
-  discovery and installation before OAuth/TUI imports. Reuse installation policy,
-  receipts, pin checks, manager-root verification, update lock and package version
-  verification. Replace the process with the installed entry point after an
-  upgrade attempt; consume a one-launch guard to prevent duplicate checks or a
-  failure/restart loop. Failed metadata checks launch normally; failed upgrades
-  restart into the installed version. A busy updater asks for a later launch
-  rather than opening the UI during package changes. Preserve release-note
-  acknowledgement and the previous-version baseline. Keep periodic checks and
-  re-enable checks, announcing installation for the next launch; remove post-exit
-  installation. Avoid a duplicate UI metadata request after CLI preflight.
-  Update English/French/Spanish copy, README and architecture guidance.
-  Reference: `fix/update-before-launch`. No version bump, tag or publication.
-  Validation: 24 focused updater tests and eight UI updater tests passed, including
-  actual process replacement before UI imports for successful/failed synthetic
-  upgrades. Two locale tests and complete non-overlapping ownership of 840 tests
-  passed. Installation/update scope: 83 passed; settings/navigation scope: 20
-  passed. Version CLI smoke passed; wheel/sdist build/content and installer hash
-  checks passed; diff whitespace and relative documentation links checked.
-  Full-suite/PR CI remains pending at commit preparation.
-  Release impact: a useful isolated patch could be 0.4.4; accumulated main work
-  still warrants 0.5.0 because of the unreleased tester feature. Existing 0.4.3
-  users need to install this fix once before the new launch behavior can apply.
-  Real production upgrades, native pipx/Windows and full-suite/CI checks remain
-  unverified. Native tester validation and fresh exact-candidate checks still gate
-  0.5.0. No backend/API, dependency, database schema or installer changes.
 
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck
   controls with one Run action per tester. Preserve compact image removal, locking,
@@ -95,6 +30,39 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 
 ### Internal changes and documentation
+
+- **2026-10-28 · no release required · Verified 0.4.4 publication:** after user
+  review and explicit tag approval, publish isolated candidate
+  `bbb619db0cfd6e64ad7c6e8e6661b945327f87fd` from v0.4.3. Includes pre-launch
+  updates (PR #26), note-loss/dashboard/manual-timer safety (PR #27, `b291006`)
+  and project-workflow roadmap documentation from `e5504f9`. Integration PR #28
+  merged as `18eea9c`, preserving candidate ancestry and pending 0.5.0 tester work.
+  Release run [40762004464](https://github.com/HeduroFR/42tui-client/actions/runs/40762004464)
+  succeeded on attempt 3. GitHub publication completed at 2026-10-28T20:27:17Z;
+  PyPI and GitHub publication verified. All seven GitHub assets/checksums match;
+  both PyPI/GitHub distributions are byte-identical to original attempt-1 CI
+  artifacts. Wheel SHA-256:
+  `77cfd60f55a9c8af1d98d69645ef3f96f3d283f48f1c2b3fd4ef3921e1a47529`;
+  sdist: `fa8d6a39166b1ab472e639b26781afd3b1149dc0e62b66da19c1e328ebc051cb`.
+  Candidate scopes ran 824 tests: 820 passed, four optional integrations skipped.
+  Fresh archived build/version/package/installed smoke and source-rebuild checks
+  passed. Documentation-only roadmap integration changed no runtime/test/wheel
+  members. All 21 PR #28 checks passed, as did three exact-revision synthetic
+  friend-preview compatibility pairs in run40760015793 against backend e917aca
+  with supported client0.4.0. This client-only release requires no backend change.
+  Release CI retried the existing onboarding step timing failure once; unchanged
+  code passed. GitHub draft-visibility delay required retrying only its publisher
+  using original artifacts, without replacing the tag or rebuilding PyPI files.
+  Actual unpinned `42tui update` upgraded disposable PyPI0.4.3 to0.4.4, preserved
+  local data and passed installed CLI/resource smoke. Initial PyPI index lag
+  selected0.4.3; retry succeeded. No personal data or credentials used.
+  Existing duplicate active timer rows remain unrepaired; native pipx/Windows,
+  live OAuth/Intra writes and full API coverage weren't exercised locally.
+  Hosted installer deployment remains pending access as previously recorded;
+  no hosting/backend deployment performed by this release. Advance the verified
+  package baseline, remove shipped pending entries and preserve all future scopes
+  and pending tester/native-validation gates. Checks for this documentation:
+  release evidence, links and whitespace reviewed. No additional release needed.
 
 - **2026-10-28 · no release required · Verified 0.4.3 publication:** after explicit
   user authorization, publish isolated candidate
@@ -185,7 +153,7 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
-The 0.4.3 package publication is verified. Hosted installer deployment remains
+The 0.4.4 package publication is verified. Hosted installer deployment remains
 pending access as recorded above. Pending release work belongs to 0.5.0 tester
 setup; the successful patch release does not validate native tester installation.
 

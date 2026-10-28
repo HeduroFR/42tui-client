@@ -2,25 +2,6 @@
 
 ## Unreleased
 
-- Ask whether to save, discard or cancel before replacing an edited Dev Log note
-  when switching projects/notes, creating a note or refreshing the project catalog.
-- Prevent dashboard activity refreshes from crashing during shutdown.
-- Serialize manual timer changes across concurrent app instances so only one
-  new manual timer can run at a time. Existing timer history is preserved.
-
-- Install automatic updates before opening the TUI, then start the updated
-  version in the same launch. Offline checks and failed updates fall back to the
-  installed version. Updates found while the app is open wait for the next launch
-  instead of installing when it closes. Automatic-update opt-out and protections
-  for pinned/development installations remain respected.
-
-- Configure PATH and `42goto` navigation automatically in both Bash and Zsh
-  when using the Linux/macOS installer. Reinstalling updates a managed block;
-  open a new terminal or use the printed activation command after installation.
-- Fix project completion on macOS's bundled Bash.
-- Explain the project's AI-assisted Python development and the conditions for
-  a future handwritten Rust rewrite at the top of the README.
-
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
   Linux machines need an accessible Docker engine with BuildKit support. macOS
