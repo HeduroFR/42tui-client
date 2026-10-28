@@ -13,6 +13,15 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
+  project evaluation-slot booking and upcoming evaluations on the dashboard for
+  0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
+  booking from existing correction availability management. Planning only; no
+  runtime/API changes or new release blocker. Checks: documentation diff and
+  existing relative links reviewed; behavioral tests not run for this docs-only
+  task. Branch: `docs/evaluation-roadmap`; commit/PR pending. Accumulated tester
+  work still warrants 0.5.0 after native validation and exact-candidate checks.
+
 ### Changed behavior
 
 - **2026-10-27 · minor · Tester setup:** replace separate install/start/docs/recheck

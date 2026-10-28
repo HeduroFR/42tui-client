@@ -40,6 +40,14 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
 - [ ] Rework project details and move View project away from the list's top edge.
+- [ ] Book a correction/evaluation slot for an eligible project from its details:
+  show available times, review the selected slot and confirm the booking. Reuse
+  existing project/evaluation context; handle unavailable slots and uncertain
+  booking results by refreshing before retrying. Existing Correction Slots
+  availability editing does not cover booking an evaluation for one's project.
+- [ ] Show upcoming evaluations on the dashboard, both as evaluator and evaluated
+  student, with project, counterpart, local date/time and a link to the details.
+  Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
 - [ ] Standardize danger-button styling and hover, including the tester removal
   control. One-button tester setup is already implemented for 0.5.0; do not
   duplicate it here or assume its removal styling is complete.
@@ -58,6 +66,10 @@ Status: **scope agreed; implementation and release validation pending**.
 
 - [ ] Add a unified notification inbox with a bell left of the DND button,
   integrating activity notifications, friend requests and other existing sources.
+- [ ] Include evaluation bookings, rescheduling, cancellations and upcoming
+  evaluation reminders in the inbox, linking to the relevant project/evaluation.
+  Define reminder timing, read/deduplication behavior and DND handling; keep the
+  dashboard and notifications consistent after schedule changes.
 - [ ] Show online, inactive, DND and offline using differently colored round
   Unicode indicators in friends lists, replacing rank numbers outside ranking mode.
   Define presence source, idle/offline timing and DND behavior before implementation.
