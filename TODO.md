@@ -100,7 +100,7 @@ implementation or deployment is complete.
 ## 0.5.0 — Testers and update reliability
 
 Status: **scope agreed; release preparation pending**. Latest published stable
-release is 0.4.3. This roadmap does not bump the package version or authorize
+release is 0.4.4. This roadmap does not bump the package version or authorize
 publication.
 
 | Item | Integration status | 0.5.0 scope |
@@ -132,6 +132,26 @@ publication.
 
 Standalone binaries, a broader README redesign and the complete keyboard/keymap
 redesign are separate future work; they do not expand this release's scope.
+
+## 0.4.4 — Notes, timers and updates before launch
+
+Status: **published and verified** on PyPI and GitHub. Tag `v0.4.4` points to
+`bbb619db0cfd6e64ad7c6e8e6661b945327f87fd`, based on v0.4.3; PR #28 integrated
+candidate ancestry through `18eea9c` while retaining main's 0.5.0 tester work.
+
+- [x] Include pre-launch updater, dirty-note Save/Discard/Cancel and save-failure
+  protection, dashboard teardown guard and serialized manual timers.
+- [x] Include project-workflow roadmap documentation as planning only.
+- [x] Run 824 candidate tests (820 passed, four optional skips), archived package,
+  rebuild/installed smoke, all21 PR checks and three compatibility pairs.
+- [x] Obtain tag approval and publish v0.4.4 through workflow40762004464.
+- [x] Verify all seven GitHub assets/checksums and exact byte equality of PyPI and
+  GitHub distributions against original CI artifacts; actual update from0.4.3
+  to0.4.4 preserved disposable local data and passed CLI/resource smoke.
+- [x] Advance verified baseline to0.4.4; retain pending minor tester work.
+
+Existing overlapping manual-timer history is not rewritten. Hosted installer
+access/deployment remains pending under0.4.3 below. No new backend deployment.
 
 ## 0.4.3 — Automatic installer shell setup
 
