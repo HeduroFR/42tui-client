@@ -111,9 +111,12 @@ implementation or deployment is complete.
 
 ## 0.5.0 — Testers and update reliability
 
-Status: **scope agreed; release preparation pending**. Latest published stable
+Status: **validation in progress; native checks and candidate CI pending**. Latest published stable
 release is 0.4.4. This roadmap does not bump the package version or authorize
 publication.
+
+Track each checklist item and validation evidence in the
+[0.5.0 task tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
 
 | Item | Integration status | 0.5.0 scope |
 | --- | --- | --- |

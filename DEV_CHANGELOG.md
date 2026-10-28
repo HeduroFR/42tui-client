@@ -13,6 +13,29 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-28 · minor (accumulated tester feature) · 0.5.0 validation:**
+  track each release-roadmap item in docs/superpowers/plans/2026-10-28-release-0.5.0.md.
+  Add ten missing French/Spanish tester diagnostic translations per language,
+  preserving technical error details. Isolate the desktop-start regression from
+  the host's installed Docker application path; the first native macOS run exposed
+  this test-only dependency (69/70 passed). Branch: `feat/0.5.0-validation`;
+  commit/PR pending. Base: `c5dee552f8e494827e6eaa8d0419aa3f82c9cd5c`.
+  Installation-updates scope: 83 passed. Scope ownership: all 848 tests assigned
+  exactly once. Existing locale tests: two passed; 20 diagnostic translations
+  and dynamic detail preservation passed an assert-based check. Baseline wheel/
+  sdist build, package contents, installed CLI/resources, installer hashes,
+  POSIX installer/uninstaller syntax and current `v0.4.4` consistency passed.
+  Final tester rerun: 70 passed in 49.446 seconds. Rebuilt wheel/sdist contents,
+  installed CLI/resources/locales and sdist-rebuilt installed smoke passed after
+  translations; every French/Spanish format field matches its source.
+  Native arm64 macOS probe correctly detects the installed per-user Docker
+  Desktop and stopped engine (missing socket); no host setup was run. Native
+  school Linux, real image build/run, clean macOS installation/retry and final
+  committed-candidate CI remain release blockers. No API/backend/schema change;
+  no backend rollout required. This is local validation, not fresh exact-pair or
+  deployed-backend evidence. Minor 0.5.0 remains worth preparing after review,
+  but is not ready to publish. No version bump, commit, push or publication.
+
 - **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
   project evaluation-slot booking and upcoming evaluations on the dashboard for
   0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
