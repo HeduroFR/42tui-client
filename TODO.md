@@ -3,7 +3,7 @@
 ## 0.5.0 — Testers and update reliability
 
 Status: **scope agreed; release preparation pending**. Latest published stable
-release is 0.4.2. This roadmap does not bump the package version or authorize
+release is 0.4.3. This roadmap does not bump the package version or authorize
 publication.
 
 | Item | Integration status | 0.5.0 scope |
@@ -35,6 +35,33 @@ publication.
 
 Standalone binaries, a broader README redesign and the complete keyboard/keymap
 redesign are separate future work; they do not expand this release's scope.
+
+## 0.4.3 — Automatic installer shell setup
+
+Status: **package published and verified** on PyPI and GitHub.
+Tag `v0.4.3` points to isolated candidate
+`67be64839c2cd921898a5ac7b1ddde6441a42ddc`, based on v0.4.2.
+PR #24 merged as `261e801`, preserving candidate ancestry and pending 0.5.0 work.
+Release workflow `40744295147` succeeded on attempt 3.
+
+- [x] Configure PATH and 42goto in managed blocks in Bash and Zsh startup files;
+  support ZDOTDIR, repeat installation, existing user settings and macOS Bash 3.2.
+- [x] Include the author's About this project note at the top of the README.
+- [x] Prepare version 0.4.3 and matching notes without the minor tester feature.
+- [x] Run 805 archived-candidate tests (801 passed, four optional skips), package
+  and installed-resource checks, real installer/uninstaller smoke and three-pair
+  compatibility against e917aca with 0.4.0 as oldest supported client.
+- [x] Pass all 21 integration CI checks and release CI. Friends UI teardown and
+  account UI navigation checks needed retries; see DEV_CHANGELOG for details.
+- [x] Obtain tag/publication authorization; publish original CI artifacts.
+- [x] Verify all seven GitHub assets/checksums and byte equality of PyPI/GitHub
+  distributions against original CI artifacts; actual 42tui update from 0.4.2 to
+  0.4.3 preserved disposable local data and passed installed CLI/resource smoke.
+- [x] Advance the package baseline to verified 0.4.3, retaining 0.5.0 tester work.
+- [ ] Deploy the hosted installer scripts together through Dokploy and verify
+  exact bytes/helper hashes. Deployment is authorized; access is unavailable.
+  Existing Docker-host SSH authentication failed; the current endpoint is healthy
+  but still serves the older install.sh/install.ps1/install.py.
 
 ## 0.4.2 — Updates, resumption and first-run instructions
 
