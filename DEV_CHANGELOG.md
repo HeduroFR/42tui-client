@@ -36,6 +36,14 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   commit/PR pending. Checks: documentation diff, relative links and whitespace
   reviewed; no behavioral tests for this documentation-only task. Accumulated
   tester rework targets minor 0.6.0 after implementation and release validation.
+- **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
+  project evaluation-slot booking and upcoming evaluations on the dashboard for
+  0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
+  booking from existing correction availability management. Planning only; no
+  runtime/API changes or new release blocker. Checks: documentation diff and
+  existing relative links reviewed; behavioral tests not run for this docs-only
+  task. Branch: `docs/evaluation-roadmap`; commit/PR pending. Accumulated tester
+  work still warrants 0.5.0 after native validation and exact-candidate checks.
 
 ### Changed behavior
 
