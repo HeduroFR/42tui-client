@@ -2,8 +2,35 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.5.0
+
+### ✨ Nouveautés
+
 - Match the OAuth completion page to your active terminal theme when supported by
-  the backend. The redesigned page stays open and links to GitHub and Discord.
+  the backend. The redesigned page links to GitHub and Discord, then attempts
+  to close after 10 seconds; close it manually if the browser prevents this.
+- Read project details in a compact dialog with separate catalog, workspace and
+  repository sections, a project-name heading and centered Close button.
+- Center the expired-session dialog actions and offer Reconnect or Quit TUI.
+- Keep Docker status messages short; hover over the status for the raw diagnostic.
+- Find Testers below Registration in project details, with concise status
+  messages. Use `t` to jump to its actions; the top-right Testers button is removed.
+- Align workspace actions in two columns, with Open folder and Push all spanning
+  the full row and consistent spacing between controls. Place the timer button
+  to the right of its time/status information.
+- Recover existing Vogsphere work before opening a project and stop for manual
+  reconciliation when remote history is missing locally, preserving local files
+  and existing branches/remotes.
+- Review and push committed work to development, Vogsphere or both from the
+  project controls or `42git`; see each destination's result and retry failures.
+  Both destinations receive the committed history; there is no separate Vogsphere
+  file selection yet. Stage and commit with ordinary Git before pushing.
+  Open project folders in the system file explorer from the project controls.
+- Explain in push previews that Vogsphere requires the 42 campus network.
+- Keep existing committed projects editable with a warning when Vogsphere cannot
+  be reached off campus; new or empty projects still require recovery first.
 
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
@@ -12,6 +39,12 @@
   user-level settings and accept Docker's terms when prompted.
 - Show tester build, Docker context and local-folder diagnostics in French and
   Spanish, preserving technical error details.
+
+### 📦 Mise à jour
+
+- Run `42tui update`. `42git` is installed automatically alongside `42tui`; no
+  additional Bash/Zsh configuration is needed when the tools directory is on PATH.
+  Existing `42goto` shell initialization remains sufficient.
 
 ## 0.4.4
 
@@ -43,8 +76,6 @@
   selected exams. Exams remain available in the project catalog and progress.
 - Clarify that first-run setup requires a connected 42 account; saved projects
   and local notes remain available offline after setup.
-
-No unreleased changes.
 
 ## 0.4.1
 

@@ -2,11 +2,18 @@
 
 ## 0.5.0 — Project Git workflow and `42git`
 
-Status: **main behavior agreed; implementation and release validation pending**.
-This urgent Git workflow is the next planned minor release, ahead of the 0.6.0
-modular tester rework and 0.7.0 dashboard polish. No package-version bump or
-publication is authorized by this plan. Existing tester validation does not
-validate Git changes.
+Status: **0.5.0 release candidate prepared; CI and publication pending**.
+Implemented: conservative checkout recovery, reviewed committed-history pushes,
+`42git status` and `42git push dev|vog|all`, folder opening and project dialog
+improvements. See [the Git guide](docs/project-git.md). Both destinations receive
+the committed history. Native Vogsphere and Linux/macOS tester checks were
+confirmed by the maintainer on 2026-10-29; automated candidate checks are separate.
+The existing one-button tester implementation is included; its 0.6.0 rework is
+still pending.
+
+The detailed design below remains a roadmap: source-choice UI, staging/commits,
+separate Vogsphere file selection, extended CLI and project-list redesign are
+not all implemented in this candidate. Preserve these tasks for follow-up work.
 
 ### Recovery and configuration
 

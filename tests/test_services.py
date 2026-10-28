@@ -16,7 +16,7 @@ from ft_tui.api.client_interface import CursusSnapshot
 
 class CheckoutTests(unittest.TestCase):
     def test_relative_path_is_rejected_before_git_runs(self):
-        with patch("ft_tui.features.projects.adapters.checkout.subprocess.run") as run:
+        with patch("ft_tui.features.projects.adapters.git.subprocess.run") as run:
             with self.assertRaisesRegex(CheckoutSetupError, "must be absolute"):
                 setup_project_checkout("relative-project")
             run.assert_not_called()

@@ -16,7 +16,7 @@ import tempfile
 import tomllib
 from urllib.request import urlopen
 
-COMMANDS = ('42tui', '42goto', '42tui-zed-lsp')
+COMMANDS = ('42tui', '42goto', '42git', '42tui-zed-lsp')
 PYTHON = '>=3.12,<3.15'
 STABLE = r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
 # Upstream release asset digest, v3.5.1 (2026-08-21).

@@ -72,6 +72,7 @@ is resolved from the active theme, including generated colors, on the UI thread.
 It is also retained in the manual login link. Pairing JSON bodies are unchanged.
 Older backends ignore the parameter; older clients get the backend's default dark
 page. A supporting backend carries the palette through the browser flow and
-provides a completion page without auto-close, plus GitHub and Discord links.
+provides a completion page with GitHub and Discord links and a close attempt
+after 10 seconds (with manual-close guidance if blocked by the browser).
 Deploy and verify that backend before releasing the matching client. Synthetic
 unit/browser checks alone do not establish a functional production rollout.

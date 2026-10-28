@@ -86,7 +86,7 @@ def child(root):
             projects = {project.slug: project for project in self.projects.values()}
             self._show_project(projects['libft'])
             await self.inspected(widget)
-            self.query_one('#show-project-testers').press()
+            self.action_project_testers()
             await asyncio.sleep(.1)
             assert self.focused is widget.query_one(TesterAction)
             await self.operate(widget, 'install', tester)
