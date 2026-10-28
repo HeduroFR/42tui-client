@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
-import subprocess
+import os
 
 def _record_editor_heartbeat(args: argparse.Namespace) -> int:
     from ft_tui.config.settings import database_url
@@ -69,29 +69,34 @@ def main() -> None:
     except DatabaseResetRequired as error:
         print(f"42tui: {error}", file=sys.stderr)
         raise SystemExit(2)
+    from ft_tui.app.bootstrap import build_installation_service
+    from ft_tui.config.settings import data_dir
+    from ft_tui.features.installation.adapters.runtime import UpdateService
+
+    updates = UpdateService.for_current_installation()
+    policy = build_installation_service(session_factory)
+    # Consume the guard so an upgrade failure cannot cause a restart/retry loop.
+    checked = os.environ.pop('_42TUI_UPDATE_CHECKED', '') == '1'
+    if not checked and updates.update_before_launch(policy, data_dir()):
+        session_factory.kw['bind'].dispose()
+        executable = str(updates.installation.executable)
+        try:
+            os.execve(executable, [executable, *sys.argv[1:]],
+                      dict(os.environ, _42TUI_UPDATE_CHECKED='1'))
+        except OSError:
+            print('42tui: could not restart after updating. Please launch 42tui again.', file=sys.stderr)
+            raise SystemExit(1)
+        return
+
     from ft_tui.api.client_factory import provider_for_device
     from ft_tui.api.oauth_client import OAuthClient
     from ft_tui.ui.app import FortyTwoTuiApp
 
     oauth_client = OAuthClient(oauth_api_url())
     provider = provider_for_device(oauth_client)
-    from ft_tui.config.settings import data_dir
-    from ft_tui.features.installation.adapters.runtime import UpdateService, apply_update
-
-    updates = UpdateService.for_current_installation()
-    app = FortyTwoTuiApp(session_factory, provider, oauth_client=oauth_client, update_service=updates)
+    app = FortyTwoTuiApp(session_factory, provider, oauth_client=oauth_client,
+                        update_service=updates, installation_service=policy)
     app.run()
-    if app.pending_update and updates.installation and app.automatic_updates_enabled():
-        print("42tui: installing update…")
-        try:
-            installed = apply_update(updates.installation, app.pending_update, data_dir())
-        except (OSError, ValueError, subprocess.SubprocessError):
-            print("42tui: automatic update failed. You can update with your package manager.", file=sys.stderr)
-        else:
-            if installed:
-                print(f"42tui: updated to {installed}. Release notes will appear next startup.")
-            else:
-                print("42tui: another update is already running.")
 
 
 if __name__ == "__main__":

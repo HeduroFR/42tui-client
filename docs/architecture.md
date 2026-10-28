@@ -187,8 +187,17 @@ repository for this port. Its update view schedules network checks and changelog
 presentation without opening sessions. Pure stable release selection and notes
 parsing are separate from metadata HTTP, package-manager receipts, subprocesses,
 locking and installed resource access. The existing UpdateService construction
-class remains in the runtime adapter with managed installation detection. Explicit maintenance commands use the feature's separate
-adapter and still avoid loading the database or TUI.
+class remains in the runtime adapter with managed installation detection. Normal
+CLI startup checks and installs updates before importing OAuth or the TUI. After
+an upgrade attempt, it replaces the process with the installed entry point so
+old imports cannot mix with changed package files. A consumed one-launch guard
+prevents retries or duplicate checks after restart, including failed upgrades.
+Opt-out, stable-release selection, receipt/pin checks, manager-root validation
+and the update lock remain enforced. A busy update lock asks the user to retry
+instead of opening the UI while another process changes the package. Background
+checks announce updates for the next launch; they no longer install on exit.
+Explicit maintenance commands use the feature's separate adapter and still avoid
+loading the database or TUI.
 
 Settings, update and maintenance callers import their feature implementations.
 Pure helper-global patches target their single feature model owner. The main CLI

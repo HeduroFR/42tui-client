@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import tomllib
 import httpx
 import ft_tui
@@ -86,7 +87,7 @@ def installed_cli_version(installation, run=subprocess.run):
 
 
 def apply_update(installation, target, state_dir, *, run=subprocess.run):
-    """Called only after the TUI exits. A lock prevents concurrent upgraders."""
+    """Upgrade before opening the TUI. A lock prevents concurrent upgraders."""
     if not stable_version(target) or stable_version(target) <= stable_version(installation.version):
         raise ValueError('Expected a newer stable release')
     state_dir = Path(state_dir)
@@ -139,3 +140,28 @@ class UpdateService:
             return cls(installation=detect_installation())
         except (OSError, ValueError, metadata.PackageNotFoundError):
             return cls(installation=None)
+
+    def update_before_launch(self, policy, state_dir):
+        """Return whether to restart into fresh code after an upgrade attempt."""
+        if self.installation is None or not stable_version(self.current) or not policy.enabled():
+            return False
+        policy.startup(self.current)
+        policy.begin_check(time.time(), force=True)
+        print('42tui: checking for updates…', flush=True)
+        try:
+            available = self.check()
+        except Exception:
+            return False
+        if not policy.enabled() or not policy.newer(available, self.current):
+            return False
+        print('42tui: installing update before launch…', flush=True)
+        try:
+            installed = apply_update(self.installation, available, state_dir)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            print('42tui: automatic update failed. Starting the installed version; '
+                  'you can update with your package manager.', file=sys.stderr, flush=True)
+        else:
+            if installed is None:
+                raise SystemExit('42tui: another update is already running. Please launch again shortly.')
+            print(f'42tui: updated to {installed}. Starting 42TUI…', flush=True)
+        return True

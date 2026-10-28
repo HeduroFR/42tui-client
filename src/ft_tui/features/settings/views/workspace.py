@@ -203,7 +203,7 @@ class SettingsMixin:
                             yield Select([("Enabled", "true"), ("Disabled", "false")],
                                          value="false" if automatic_updates == "false" else "true",
                                          id="automatic-updates")
-                            yield Static("Install stable updates after closing 42TUI. Development installs are skipped.",
+                            yield Static("Install stable updates before opening 42TUI. Development installs are skipped.",
                                          classes="field-help")
                     with Vertical(id="settings-panel-subjects", classes="settings-panel"):
                         with Vertical(

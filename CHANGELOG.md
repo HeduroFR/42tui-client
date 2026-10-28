@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Install automatic updates before opening the TUI, then start the updated
+  version in the same launch. Offline checks and failed updates fall back to the
+  installed version. Updates found while the app is open wait for the next launch
+  instead of installing when it closes. Automatic-update opt-out and protections
+  for pinned/development installations remain respected.
+
 - Configure PATH and `42goto` navigation automatically in both Bash and Zsh
   when using the Linux/macOS installer. Reinstalling updates a managed block;
   open a new terminal or use the printed activation command after installation.

@@ -142,6 +142,13 @@ clone URL to build those without host Git.
 Press `?` or `F1` for shortcuts. `F2` opens Projects, `F3` opens Notes, and `F5`
 opens Settings.
 
+Automatic updates check for a new stable release before the TUI opens on supported
+unpinned uv/pipx installations. When an update is available, 42TUI installs it and
+starts the updated version. Offline checks or failed updates still allow the
+installed version to launch. Disable this in **Settings → Automatic updates**.
+Pinned and development installations are maintained manually. Updates discovered
+while the TUI is open install on the next launch rather than on exit.
+
 For installer-managed installations:
 
 ```sh
