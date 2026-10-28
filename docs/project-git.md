@@ -3,6 +3,30 @@
 Configure the local folder and development/Vogsphere URLs in project settings.
 The project controls and `42git` share the same Git operations.
 
+Vogsphere requires the 42 campus network. Pushes are unavailable outside campus;
+return to campus before retrying. A development remote has its own network and
+authentication requirements. Real Vogsphere validation must run on campus with
+the student's existing Git/SSH authentication.
+
+## Between campus and home
+
+1. On campus, commit your work and use **Push all** (`42git push all`).
+2. At home, update your development checkout, work and commit, then use
+   **Push dev** (`42git push dev`). Vogsphere waits until you return to campus.
+3. Back on campus, fetch the development remote and fast-forward your local
+   branch before pushing to both destinations again. For example, for branch
+   `dev`, run these commands inside the project folder:
+
+   ```sh
+   git fetch origin
+   git merge --ff-only origin/dev
+   42git push all
+   ```
+
+Use your actual development branch instead of `dev`. Preserve local edits before
+updating. If a fast-forward is impossible, reconcile the branches yourself;
+42TUI never resets, stashes, merges or commits your work automatically.
+
 ## Recover work before editing
 
 Before the first editor launch in an app session, setup recovers existing
@@ -12,7 +36,10 @@ development repository; if both are empty, it initializes a local repository.
 Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
 locally, editor launch stops for manual reconciliation. Inspect the fetched history
-and reconcile it yourself, then retry. Setup never resets or force-pushes work.
+and reconcile it yourself, then retry. If Vogsphere is unreachable, an existing
+checkout with committed work still opens with a warning; its remote history will
+be checked again on the next editor launch. New, empty and unborn checkouts must
+complete recovery first. Setup never resets or force-pushes work.
 
 ## Publish committed work
 

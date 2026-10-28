@@ -8,6 +8,9 @@
 - Review and push committed work to development, Vogsphere or both from the
   project controls or `42git`; see each destination's result and retry failures.
   Open project folders in the system file explorer from the project controls.
+- Explain in push previews that Vogsphere requires the 42 campus network.
+- Keep existing committed projects editable with a warning when Vogsphere cannot
+  be reached off campus; new or empty projects still require recovery first.
 
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School

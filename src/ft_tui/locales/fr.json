@@ -1180,7 +1180,7 @@
   "Uncommitted changes excluded: {count}": "Modifications non commitées exclues : {count}",
   "Blocked: {error}": "Bloqué : {error}",
   "Only this commit and its history are pushed. Files are never staged or committed.": "Seuls ce commit et son historique sont envoyés. Aucun fichier n’est ajouté à l’index ni commité.",
-  "Vogsphere receives master; divergent history is rejected without force.": "Vogsphere reçoit master ; un historique divergent est refusé sans envoi forcé.",
+  "Vogsphere requires the 42 campus network and receives master; divergent history is rejected without force.": "Vogsphere nécessite le réseau du campus 42 et reçoit master ; les historiques divergents sont refusés sans forçage.",
   "Cannot prepare push: {error}": "Impossible de préparer l’envoi : {error}",
   "Pushing reviewed commit…": "Envoi du commit vérifié…",
   "Succeeded": "Réussi",
@@ -1191,5 +1191,6 @@
   "The file explorer did not respond in time.": "L’explorateur de fichiers n’a pas répondu à temps.",
   "Recovering project Git history before opening the editor…": "Récupération de l’historique Git avant l’ouverture de l’éditeur…",
   "Editor was not opened: checkout recovery failed: {error}": "L’éditeur n’a pas été ouvert : échec de la récupération du dépôt : {error}",
-  "Close": "Fermer"
+  "Close": "Fermer",
+  "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.": "Impossible de vérifier Vogsphere. Connectez-vous au réseau du campus 42 pour récupérer le travail distant. Ouverture du dépôt local existant."
 }

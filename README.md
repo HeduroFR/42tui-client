@@ -113,6 +113,7 @@ buttons, or run these commands inside its folder:
 ```
 
 Each push asks for confirmation and leaves uncommitted edits untouched.
+Vogsphere pushes require the 42 campus network.
 **Open in file explorer** opens the project folder.
 See [recovery, branch rules and failed pushes](docs/project-git.md) for details.
 

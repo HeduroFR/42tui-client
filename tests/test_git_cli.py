@@ -64,6 +64,7 @@ class GitCliTests(unittest.TestCase):
         def approve(prompt):
             self.assertIn('https://example.com/vog.git -> master', self.output.getvalue())
             self.assertIn('Uncommitted changes left untouched: 2', self.output.getvalue())
+            self.assertIn('Vogsphere requires the 42 campus network', self.output.getvalue())
             return 'y'
         with patch('ft_tui.git.plan_project_push', return_value=plan) as prepare, \
                 patch('ft_tui.git.push_project', return_value=results) as push, \

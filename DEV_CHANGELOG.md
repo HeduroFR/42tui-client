@@ -6,15 +6,33 @@ changes; the published patch uses isolated candidate `bbb619d`.
 Suggested next release: **0.5.0** (minor), targeting the urgent project Git
 workflow; the tester rework moves to **0.6.0**. Existing unreleased tester code
 already on main still needs an explicit candidate inclusion/validation decision.
-The accumulated tester feature warrants a minor release, but 0.5.0 is not ready:
-its Git scope is unimplemented and exact-candidate release checks remain pending.
-This roadmap update alone requires no release or package-version bump.
+The Git workflow is implemented and warrants minor 0.5.0 after review, but
+on-campus Vogsphere, native platform and exact-candidate release checks remain
+pending. No package-version bump or publication is authorized here.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.4.4
+
+- **2026-10-28 · patch (accumulated minor 0.5.0) · Campus-only Vogsphere:**
+  reflect the maintainer-confirmed campus network requirement in CLI/TUI push
+  previews, French/Spanish copy and the concise README/detailed Git guide.
+  Vogsphere pushes are unavailable outside campus; real authentication checks
+  must run on campus using the student's existing Git/SSH setup. No network
+  bypass or campus detection added. CLI scope: four passed, including preview
+  guidance. The maintainer approved opening existing committed checkouts with
+  a warning when Vogsphere is unreachable; fresh/empty/unborn recovery and actual
+  history conflicts still block. Surface the warning in setup and editor flows;
+  retry verification next editor launch instead of caching an unverified result.
+  Document campus Push all, home Push dev, then development fast-forward on return.
+  Distinguish strictly-ahead development history and recommend an explicit
+  fetch/pull with --ff-only before retrying. Focused checks passed: 27 Git,
+  13 service, four CLI and eight UI tests; fatal-error lint and whitespace clean.
+  No live campus/Vogsphere verification. Changes uncommitted on
+  `feat/project-git-workflow`; commit/PR pending. Recommended release remains
+  minor 0.5.0, with the native/on-campus and exact-candidate gates above.
 
 - **2026-10-28 · minor · Project Git workflow:** recover nonempty Vogsphere
   master before development work in a fresh folder; fetch/inspect existing

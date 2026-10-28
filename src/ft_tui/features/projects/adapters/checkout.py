@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import subprocess
 
 from ft_tui.features.projects.subjects.adapters.files import ensure_pdf_gitignore
 from .git import ProjectGitError, _checked_git, _run_git, _repository_path
@@ -17,10 +18,31 @@ class CheckoutResult:
     configured_remotes: tuple[str, ...]
     message: str
     cloned_vogsphere_remote: bool = False
+    warnings: tuple[str, ...] = ()
 
 
 class CheckoutSetupError(ProjectGitError):
     """Recovery needs manual attention or Git could not finish."""
+
+
+_VOGSPHERE_WARNING = (
+    "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. "
+    "Opening the existing local checkout."
+)
+
+
+def _remote_access_failure(error: ProjectGitError) -> bool:
+    detail = str(error).casefold()
+    return isinstance(error.__cause__, subprocess.TimeoutExpired) or (
+        "unable to access" in detail and "://" in detail
+    ) or any(
+        text in detail for text in (
+            "could not resolve", "couldn't resolve", "could not read from remote repository",
+            "connection refused", "connection timed out", "connection reset", "network is unreachable",
+            "no route to host", "permission denied (publickey", "authentication failed", "could not read username",
+            "does not appear to be a git repository", "repository not found",
+        )
+    )
 
 
 def setup_project_checkout(
@@ -60,6 +82,20 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
     def git(*args):
         return _checked_git(target if target.exists() else target.parent, *args, timeout=timeout)
 
+    committed_existing = existing and _run_git(
+        target, "rev-parse", "--verify", "HEAD^{commit}", timeout=timeout,
+    ).returncode == 0
+    warnings = []
+
+    def inspect_remote(remote, *args):
+        try:
+            return git(*args)
+        except ProjectGitError as error:
+            if remote != "vogsphere" or not committed_existing or not _remote_access_failure(error):
+                raise
+            warnings.append(_VOGSPHERE_WARNING)
+            return None
+
     configured = []
     remotes = []
     # Validate all existing URL settings before adding or fetching any remote.
@@ -75,8 +111,10 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
     heads = {}
     defaults = {}
     for remote, url in remotes:
-        output = git("ls-remote", "--symref", "--", url, "HEAD", "refs/heads/*")
+        output = inspect_remote(remote, "ls-remote", "--symref", "--", url, "HEAD", "refs/heads/*")
         heads[remote] = {}
+        if output is None:
+            continue
         for line in output.splitlines():
             value, ref = line.split("\t", 1)
             if value.startswith("ref: ") and ref == "HEAD":
@@ -123,9 +161,19 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
                 branch = next(iter(branches))
             else:
                 raise CheckoutSetupError(f"Remote '{remote}' has no unambiguous recovery branch; inspect it manually.")
-        git("fetch", "--no-tags", "--no-recurse-submodules", "--refmap=", "--", remote, f"refs/heads/{branch}")
+        fetched = inspect_remote(remote, "fetch", "--no-tags", "--no-recurse-submodules", "--refmap=",
+                                 "--", remote, f"refs/heads/{branch}")
+        if fetched is None:
+            continue
         remote_commit = git("rev-parse", "--verify", "FETCH_HEAD^{commit}")
         if local.returncode or _run_git(target, "merge-base", "--is-ancestor", remote_commit, "HEAD", timeout=timeout).returncode:
+            if remote == "origin" and not local.returncode and not _run_git(
+                target, "merge-base", "--is-ancestor", "HEAD", remote_commit, timeout=timeout,
+            ).returncode:
+                raise CheckoutSetupError(
+                    f"Development remote 'origin/{branch}' has newer commits. Preserve or commit local edits, "
+                    "then fetch/pull development with --ff-only and retry. Local files and branches were preserved."
+                )
             raise CheckoutSetupError(
                 f"Remote '{remote}/{branch}' has commits missing from local HEAD (ahead, divergent or unrelated history). "
                 "Fetched for inspection; reconcile the histories manually before opening the editor. Local files and branches were preserved."
@@ -138,7 +186,7 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         except OSError as error:
             raise CheckoutSetupError("Could not protect project subject PDFs in .gitignore.") from error
     message = (f"Recovered {source} committed work" if source else "Initialized an empty local repository" if initialized else "Kept the existing checkout intact")
-    if remotes:
+    if remotes and not warnings:
         message += "; fetched and inspected configured remote histories"
     return CheckoutResult(target, initialized, source == "origin", ("dev",) if initialized else (),
-                          tuple(configured), message + ".", source == "vogsphere")
+                          tuple(configured), message + ".", source == "vogsphere", tuple(warnings))

@@ -253,6 +253,20 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('Divergent history', harness.notify.call_args.args[0])
             self.assertFalse(harness._project_checkout_busy)
             harness.project_service.setup_checkout.side_effect = None
+            warning = 'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.'
+            harness.project_service.setup_checkout.return_value = SimpleNamespace(warnings=(warning,))
+            original.local_path = '/disposable/off-campus'
+            harness._open_selected_project_in_editor()
+            await tasks[-1]
+            harness._open_project_in_editor.assert_called_once_with('Original', Path(original.local_path))
+            harness.notify.assert_called_with(warning, severity='warning', timeout=10)
+            self.assertFalse(any(key[0] == original.local_path for key in harness._editor_recovered_checkouts))
+            # An unverified remote is checked again on the next editor launch.
+            previous_count = len(tasks)
+            harness._open_selected_project_in_editor()
+            await tasks[-1]
+            self.assertEqual(len(tasks), previous_count + 1)
+            harness._open_project_in_editor.reset_mock()
             harness.is_mounted = False
             await harness._recover_project_for_editor('Original', Path(original.local_path),
                                                       (original.local_path, original.dev_repo_url, original.vogsphere_url))

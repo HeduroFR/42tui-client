@@ -116,6 +116,24 @@ class ProjectGitTests(unittest.TestCase):
             setup_project_checkout(self.local)
         self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
 
+    def test_development_ahead_requires_explicit_fast_forward_and_keeps_dirty_files(self):
+        self.publish_seed()
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        upstream = self.repo('development-upstream')
+        self.git(upstream, 'fetch', str(self.dev), 'work')
+        self.git(upstream, 'reset', '--hard', 'FETCH_HEAD')
+        newer = self.commit(upstream, 'home development work')
+        self.git(upstream, 'push', str(self.dev), 'HEAD:refs/heads/work')
+        (self.local / 'main.c').write_text('staged campus work')
+        self.git(self.local, 'add', 'main.c')
+        (self.local / 'main.c').write_text('dirty campus work')
+        with self.assertRaisesRegex(CheckoutSetupError, 'Development remote .*newer commits.*--ff-only'):
+            setup_project_checkout(self.local)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'FETCH_HEAD'), newer)
+        self.assertEqual(self.git(self.local, 'show', ':main.c'), 'staged campus work')
+        self.assertEqual((self.local / 'main.c').read_text(), 'dirty campus work')
+
     def test_existing_remote_configuration_conflict_is_not_rewritten(self):
         before = (self.local / '.git/config').read_bytes()
         with self.assertRaisesRegex(CheckoutSetupError, 'different or ambiguous URL'):
@@ -124,10 +142,65 @@ class ProjectGitTests(unittest.TestCase):
 
     def test_recovery_network_failure_preserves_existing_files(self):
         self.git(self.local, 'remote', 'set-url', 'vogsphere', str(self.root / 'missing.git'))
+        (self.local / 'main.c').write_text('staged')
+        self.git(self.local, 'add', 'main.c')
         (self.local / 'main.c').write_text('dirty')
+        before = self.git(self.local, 'status', '--porcelain=v1')
+        refs = self.git(self.local, 'show-ref')
+        config = (self.local / '.git/config').read_bytes()
+        result = setup_project_checkout(self.local)
+        self.assertEqual(result.warnings, (
+            'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. '
+            'Opening the existing local checkout.',
+        ))
+        self.assertEqual((self.local / 'main.c').read_text(), 'dirty')
+        self.assertEqual(self.git(self.local, 'show', ':main.c'), 'staged')
+        self.assertEqual(self.git(self.local, 'status', '--porcelain=v1'), before)
+        self.assertEqual(self.git(self.local, 'show-ref'), refs)
+        self.assertEqual((self.local / '.git/config').read_bytes(), config)
+
+    def test_vogsphere_probe_and_fetch_timeouts_warn_for_existing_committed_checkout(self):
+        self.publish_seed()
+        original = subprocess.run
+        for operation in ('ls-remote', 'fetch'):
+            with self.subTest(operation=operation):
+                def run(args, **kwargs):
+                    if operation in args and (str(self.vog) in args or 'vogsphere' in args):
+                        raise subprocess.TimeoutExpired(args, 1)
+                    return original(args, **kwargs)
+                with patch('ft_tui.features.projects.adapters.git.subprocess.run', side_effect=run):
+                    result = setup_project_checkout(self.local)
+                self.assertEqual(len(result.warnings), 1)
+                self.assertIn('42 campus network', result.warnings[0])
+                self.assertEqual((self.local / 'main.c').read_text(), 'initial')
+
+    def test_new_empty_and_unborn_checkouts_still_require_vogsphere_recovery(self):
+        for state in ('new', 'empty', 'unborn'):
+            with self.subTest(state=state):
+                target = self.root / state
+                if state != 'new':
+                    target.mkdir()
+                if state == 'unborn':
+                    self.git(target, 'init', '--initial-branch=work')
+                with self.assertRaises(CheckoutSetupError):
+                    setup_project_checkout(target, vogsphere_url=str(self.root / 'missing.git'))
+                self.assertFalse((target / 'main.c').exists())
+
+    def test_development_access_failure_still_blocks_existing_checkout(self):
+        self.git(self.local, 'remote', 'set-url', 'origin', str(self.root / 'missing.git'))
         with self.assertRaises(CheckoutSetupError):
             setup_project_checkout(self.local)
-        self.assertEqual((self.local / 'main.c').read_text(), 'dirty')
+
+    def test_local_fetch_failure_is_not_reported_as_campus_network_warning(self):
+        self.publish_seed()
+        original = subprocess.run
+        def run(args, **kwargs):
+            if 'fetch' in args and 'vogsphere' in args:
+                return subprocess.CompletedProcess(args, 128, '', "error: cannot open '.git/FETCH_HEAD': Permission denied")
+            return original(args, **kwargs)
+        with patch('ft_tui.features.projects.adapters.git.subprocess.run', side_effect=run):
+            with self.assertRaisesRegex(CheckoutSetupError, 'FETCH_HEAD'):
+                setup_project_checkout(self.local)
 
     def test_new_vogsphere_with_no_master_requires_explicit_selection(self):
         self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/other')

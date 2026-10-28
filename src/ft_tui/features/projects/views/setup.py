@@ -163,6 +163,8 @@ class ProjectSetupMixin:
         self, project_name: str, result: CheckoutResult, project_key: str, project_path: str
     ) -> None:
         self.notify(f"{project_name}: {result.message}", timeout=10)
+        for warning in result.warnings:
+            self.notify(warning, severity="warning", timeout=10)
         project = self.projects.get(project_key)
         if project is not None and project.local_path == project_path:
             for entry in self.query(ProjectEntry):

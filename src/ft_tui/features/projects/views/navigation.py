@@ -93,7 +93,7 @@ class ProjectNavigationMixin:
 
     async def _recover_project_for_editor(self, project_name, project_path, recovery_key) -> None:
         try:
-            await asyncio.to_thread(
+            result = await asyncio.to_thread(
                 self.project_service.setup_checkout, str(project_path),
                 dev_remote_url=recovery_key[1], vogsphere_url=recovery_key[2],
             )
@@ -105,9 +105,13 @@ class ProjectNavigationMixin:
             self._project_checkout_busy = False
         if not self.is_mounted:
             return
-        recovered = getattr(self, "_editor_recovered_checkouts", set())
-        recovered.add(recovery_key)
-        self._editor_recovered_checkouts = recovered
+        warnings = getattr(result, "warnings", ())
+        for warning in warnings:
+            self.notify(warning, severity="warning", timeout=10)
+        if not warnings:
+            recovered = getattr(self, "_editor_recovered_checkouts", set())
+            recovered.add(recovery_key)
+            self._editor_recovered_checkouts = recovered
         self._open_project_in_editor(project_name, project_path)
 
     def _open_project_in_editor(self, project_name: str, project_path: Path) -> None:

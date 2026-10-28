@@ -53,6 +53,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Uncommitted changes left untouched: {plan.dirty_count}")
         for target in plan.targets:
             print(f"{target.destination}: {target.url} -> {target.branch}")
+            if target.destination == "vog":
+                print("  Vogsphere requires the 42 campus network; pushes are unavailable outside campus.")
             if target.error:
                 print(f"  Unavailable: {target.error}")
         if not any(not target.error for target in plan.targets):
