@@ -8,8 +8,9 @@ tester implementation. The tester workspace rework remains planned for **0.6.0**
 The maintainer authorized preparation, PR, merge after green checks, tagging and
 publication on 2026-10-29 and confirmed the native Vogsphere/Linux/macOS tester
 checks. This is maintainer evidence, not an agent-observed native run.
-Exact-candidate CI, compatibility and OAuth backend rollout verification remain
-pending; do not mark publication complete until artifacts and update are verified.
+The maintainer confirmed production deployment/functional checks of backend
+`f357da3`. The requested 10-second OAuth close follow-up requires a new backend
+rollout. Exact-candidate CI and compatibility remain pending; do not mark publication complete until artifacts and update are verified.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -25,7 +26,16 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   needs PATH only, without additional shell initialization. Preserve unrelated
   untracked duplicate files. Maintainer confirmed native validation; agent CI,
   packaging, compatibility and publication checks are recorded as they complete.
-  Branch: `feat/release-0.5.0`; PR pending. No backend implementation changed.
+  Branch: `feat/release-0.5.0`; PR #38. Initial candidate `977daf8` passed
+  local project scope (139), account UI (30), locales (two), installer unit tests
+  (23), clean archived wheel/sdist checks, installed CLI/resources and disposable
+  fresh/repeat/exact-version installation/uninstall. All three synthetic
+  compatibility pairs passed in backend run 40789078183 against `f357da3` with
+  oldest client `bb5caff` (0.4.0). Native checks/deployment confirmed by maintainer.
+  User then requested a 10-second close attempt on the OAuth connected page;
+  update notes/compatibility guidance and require the backend follow-up rollout
+  before the final tag. Existing browser restrictions require manual-close copy.
+  No client runtime change for this follow-up; fresh revision checks remain due.
 
 - **2026-10-29 · patch (accumulated minor 0.5.0) · Project details dialog:**
   replace the viewport-wide metadata dump with a width-capped, scrollable dialog,

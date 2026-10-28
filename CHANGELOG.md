@@ -9,7 +9,8 @@ No unreleased changes.
 ### ✨ Nouveautés
 
 - Match the OAuth completion page to your active terminal theme when supported by
-  the backend. The redesigned page stays open and links to GitHub and Discord.
+  the backend. The redesigned page links to GitHub and Discord, then attempts
+  to close after 10 seconds; close it manually if the browser prevents this.
 - Read project details in a compact dialog with separate catalog, workspace and
   repository sections, a project-name heading and centered Close button.
 - Center the expired-session dialog actions and offer Reconnect or Quit TUI.
