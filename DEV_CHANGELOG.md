@@ -1,8 +1,8 @@
 # Development changelog
 
-Latest release: **0.4.2** ([`v0.4.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.2)).
-Package version: **0.4.3**, prepared but not published. The working tree also
-contains unreleased tester changes; the isolated 0.4.3 candidate is `67be648`.
+Latest release: **0.4.3** ([`v0.4.3`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3)).
+Package version: **0.4.3**. The working tree also contains unreleased tester
+changes; the published patch uses isolated candidate `67be648`.
 Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
 A release is worth preparing; native Docker/macOS validation and fresh candidate
 checks remain required before publication. No version bump is authorized here.
@@ -11,48 +11,7 @@ This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
 instructions are in [distribution operations](docs/distribution.md#development-changelog).
 
-## Changes since 0.4.2
-
-### 0.4.3 release preparation
-
-- **2026-10-28 · release preparation · Isolated installer patch:** candidate
-  `67be64839c2cd921898a5ac7b1ddde6441a42ddc` starts at published v0.4.2 and includes
-  only PR #23's installer/navigation fix, README note and documentation plus
-  version 0.4.3/release notes. Main integration preserves candidate ancestry and
-  all pending minor tester work. No new planning documents. Baseline stays 0.4.2.
-  Candidate installer scope: 72 passed; focused installer tests: 23 passed.
-  Version, helper hashes, POSIX syntax, initial wheel/sdist/content checks and
-  ownership of all 805 candidate tests passed. Clean archive/package, installed
-  smoke, complete regressions, compatibility and integration CI are in progress.
-  Compatibility tests candidate and oldest supported 0.4.0 against previously
-  deployed backend e917aca; the existing synthetic friend-preview scenario does
-  not cover the whole API. This client-only patch needs no backend deployment.
-  No tags, publication or installer-hosting deployment authorized or performed.
-
-### Installer patch targeting 0.4.3
-
-- **2026-10-28 · patch · Installer shell setup and project note:** configure both
-  Bash and Zsh after verified installation with PATH and guarded 42goto setup in
-  managed blocks at the end of their rc files. Respect ZDOTDIR, preserve manual
-  functions, surrounding content, symlinks and modes; replace atomically and leave
-  malformed blocks untouched. Attempt the other shell after a configuration error.
-  Initialize Zsh completion when needed, stay quiet after uninstall and print
-  activation commands. Replace Bash's mapfile usage for macOS Bash 3.2 completion.
-  Add the user's About this project README note verbatim and document automatic
-  setup. Refresh both bootstrap helper hashes. Branch: `fix/installer-shell-setup`;
-  no commit/PR yet. Validation: 23 installer tests passed on native macOS with
-  real Bash 3.2/Zsh loading; the installation-updates scope passed 72 tests.
-  Wheel/sdist build and package-content checks passed (version remains 0.4.2).
-  Helper hashes, POSIX syntax and 829-test scope ownership checks passed.
-  Full suite, Linux/Windows platform execution, CI, exact 0.4.3 candidate and
-  hosted installer deployment remain unverified. Independent review could not
-  complete because its network permission was revoked; author reviewed the
-  connected callers, shell output, documentation and final diff instead.
-- **Release scope:** a selective 0.4.3 patch is worth preparing for the installer
-  fix and README note. Do not publish current main as 0.4.3: it includes the minor
-  tester feature below, which still warrants 0.5.0. No version bump or publication
-  performed. Installer hosting needs a separately authorized deployment; package
-  publication alone does not update the hosted scripts.
+## Changes since 0.4.3
 
 ### Changed behavior
 
@@ -71,6 +30,46 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 
 ### Internal changes and documentation
+
+- **2026-10-28 · no release required · Verified 0.4.3 publication:** after explicit
+  user authorization, publish isolated candidate
+  `67be64839c2cd921898a5ac7b1ddde6441a42ddc` from v0.4.2. Installer/navigation
+  fix and README note came through [PR #23](https://github.com/HeduroFR/42tui-client/pull/23);
+  [PR #24](https://github.com/HeduroFR/42tui-client/pull/24) integrated release
+  metadata as `261e801` while preserving candidate ancestry and pending tester work.
+  [Release run 40744295147](https://github.com/HeduroFR/42tui-client/actions/runs/40744295147)
+  completed successfully on attempt 3; PyPI and GitHub publication are verified.
+  GitHub publication completed at 2026-10-28T18:30:14Z. All seven GitHub assets
+  and checksums match; both PyPI distributions and GitHub package files are
+  byte-identical to the original attempt-1 CI artifacts. Wheel SHA-256:
+  `6e0f10fe7528abd0a7ef4e064621a5374ed765f15b3b1ca19b9c7d46bd5ba7e4`;
+  sdist: `41f5fd19b1d88e3ee0ea2602cf173cff8a2634daa15f347032a1671d162fd227`.
+  Clean archived-candidate scopes ran 805 tests: 801 passed, four optional
+  integrations skipped. Version/package/installed-resource checks passed, as did
+  disposable fresh/repeat/exact-version installer and uninstall tests. Actual
+  `42tui update` upgraded an unpinned PyPI 0.4.2 installation to 0.4.3, preserved
+  disposable local data and passed installed CLI/resource smoke checks. Initial
+  PyPI index propagation still selected 0.4.2; retry upgraded successfully.
+  PR CI passed all 21 checks after retrying a friends UI teardown timer error.
+  Release CI passed after retrying account onboarding/navigation UI failures;
+  these failures were in unchanged 0.4.2 code/tests. The failed scopes passed
+  on retry without source changes; intermittent UI regression instability remains.
+  GitHub's draft-visibility delay required retrying only its publication job with
+  original artifacts, without replacing the tag, rebuilding or republishing PyPI.
+  Compatibility run 40743077664 passed all three synthetic friend-preview pairs
+  against backend e917aca with supported client 0.4.0. The initial dispatch used
+  the 0.4.0 tag object rather than its resolved commit and failed the revision
+  guard; the corrected run passed. This client-only patch needs no backend change.
+  Live OAuth/Intra writes, full API coverage and fresh backend deployment checks
+  were not exercised. All smoke data/tool/cache paths stayed under /tmp.
+  Hosted installer health is OK, but install.sh/install.ps1/install.py still
+  differ from the release. Deployment is authorized but blocked on Dokploy/SSH
+  access; existing Docker-host SSH authentication failed. No installer deployment
+  has been performed. Update this item after access and deployment verification.
+  Advance only the verified package baseline and clear shipped preparation entries;
+  retain pending 0.5.0 tester work and its native validation gates. Checks for this
+  documentation: release evidence, diff and links reviewed; no product release
+  is needed for this reset.
 
 - **2026-10-28 · no release required · Combined roadmaps:** integrate the GitHub
   Settings button/star-reminder plan and future keyboard/keymap redesign plan on
@@ -112,7 +111,8 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Validation and release readiness
 
-The 0.4.2 publication is verified. Pending release work belongs to 0.5.0 tester
+The 0.4.3 package publication is verified. Hosted installer deployment remains
+pending access as recorded above. Pending release work belongs to 0.5.0 tester
 setup; the successful patch release does not validate native tester installation.
 
 ### Tester setup validation (2026-10-27)

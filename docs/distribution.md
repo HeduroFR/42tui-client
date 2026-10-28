@@ -1,7 +1,7 @@
 # Distribution operations
 
 The Python package is `ft-tui`. The latest confirmed stable release is
-[0.4.1](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.1), published
+[0.4.3](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.3), published
 on GitHub and PyPI. This client repository owns publication
 through `.github/workflows/release.yml`. Only explicitly authorized stable release
 tags publish packages; ordinary branch pushes do not publish.
@@ -10,6 +10,10 @@ Client CI builds wheel/sdist, checks package contents, rebuilds from sdist, runs
 all 14 regression scopes and validates installers on supported platforms.
 
 The installation website and shell/PowerShell/Python installers stay here.
+The 0.4.3 package is published; its hosted installer deployment is still pending
+access. Existing hosted entry points remain paired with their older helper until
+all three changed installer files are redeployed together. Do not treat package
+publication as proof that the hosted installer has been updated.
 
 On Linux/macOS, the verified Python helper configures both `~/.bashrc` and
 `${ZDOTDIR:-$HOME}/.zshrc`, independently of `$SHELL`. A marked block at the end
