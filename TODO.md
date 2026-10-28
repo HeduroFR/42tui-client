@@ -1,11 +1,11 @@
 # TODO
 
-## Urgent priority — Project Git workflow and proposed `42git` command
+## 0.5.0 — Project Git workflow and proposed `42git` command
 
-Status: **requested; implementation not started**. Prioritize this work before
-0.6.0 dashboard polish. Target the next suitable minor release; assess inclusion
-in 0.5.0 without treating its existing tester scope as validation of Git changes.
-No package version bump or publication is authorized by this plan.
+Status: **scope agreed; implementation and release validation pending**. This
+urgent Git workflow is the next planned minor release, ahead of the 0.6.0 tester
+rework and 0.7.0 dashboard polish. Existing tester validation does not validate
+Git changes. No package version bump or publication is authorized by this plan.
 
 - [ ] Recover existing Vogsphere work before opening the editor for the first
   time: clone Vogsphere into a new/empty project folder when it holds the work,
@@ -30,8 +30,84 @@ No package version bump or publication is authorized by this plan.
 - [ ] Validate recovery from Vogsphere, development-only and empty repositories,
   existing/dirty checkouts, divergent history, authentication/network failures,
   rejected pushes and partial success using disposable repositories.
+- [ ] Run focused Git regressions and required CI on the exact candidate; complete
+  package, installer and compatibility release checks before publication. Review
+  already-merged tester code explicitly when selecting the 0.5.0 candidate;
+  scheduling its rework for 0.6.0 does not validate or remove that code.
 
-## 0.6.0 — Dashboard and interface cleanup
+## 0.6.0 — Testers and update reliability
+
+Status: **reworked scope agreed; implementation and release validation pending**. Latest published stable
+release is 0.4.4. This roadmap does not bump the package version or authorize
+publication.
+
+| Item | Integration status | 0.6.0 scope |
+| --- | --- | --- |
+| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
+| Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
+| Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
+| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
+
+### Agreed tester rework
+
+- [ ] Keep one Run action and extend the existing TOML catalog for multiple
+  project/module-specific testers, including Python modules and push_swap.
+  Define pinned sources, supported platforms, prerequisites, preparation/run
+  commands and execution method. Add result readers only where structured
+  summaries require them; ordinary tester additions should use definitions.
+- [ ] Prefer validated native execution with private tester directories and
+  Python virtual environments where appropriate. Retain a shared Linux container
+  runtime for testers needing Linux-specific tools; Docker Desktop must not be
+  mandatory for every tester. Evaluate a headless macOS runtime such as Colima,
+  including installation prerequisites, lifecycle and resource use, before
+  selecting it. Do not silently change environments or omit checks.
+- [ ] Validate a lighter Francinette setup against the pinned source on Linux
+  and macOS, including Intel/Apple Silicon support and memory-check tooling.
+  Do not assume native execution preserves all checks. Preserve unprivileged
+  setup, explicit prerequisite approval, retries and existing user configuration.
+- [ ] Add a dedicated Testers workspace showing preparation/build/run stages,
+  live scrollable output, cancellation, follow-output control and final results.
+  Keep execution inside the TUI, including internal terminal emulation when
+  required. Allow leaving and returning while a run continues; preserve the
+  captured project and prevent concurrent conflicting operations.
+- [ ] Show duration, available test counts/failures, Run again and Save log.
+  Preserve full logs and distinguish test failures, setup failures, cancellation
+  and unreadable results. Do not equate a successful process exit with all tests
+  passing; show percentages only when progress is measurable.
+- [ ] Use a disposable project copy by default so tester builds/cleanup preserve
+  the working folder. Make native execution permissions clear: a private directory
+  or virtual environment does not sandbox executed code.
+- [ ] Prove the complete flow with Francinette and one contrasting tester
+  (push_swap or a Python module tester), including setup/retry, cancellation,
+  output capture, result handling and French/Spanish interface coverage.
+
+### Integration and release checklist
+
+- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
+  and French/Spanish translations.
+- [x] Deliver automatic update discovery in 0.4.2 through PR #19, carrying the
+  update fix from superseded PR #18. Preserve opt-out, offline behavior,
+  managed-install protections and post-exit installation.
+- [x] Record shipped update behavior in CHANGELOG.md and retain the unreleased
+  tester notes and validation in DEV_CHANGELOG.md.
+- [ ] Complete the agreed tester rework above; PR #13 alone does not validate it.
+- [ ] Validate real native/container tester setup and execution on school Linux
+  and native macOS, including installation/retry, image builds where applicable,
+  and the selected headless runtime's startup/cleanup behavior.
+- [ ] Run the tester and installation-updates regression scopes and required CI
+  on the exact integrated release candidate; verify locale coverage.
+- [ ] Complete package/version/installer checks and the compatibility checks
+  required by [API compatibility](docs/api-compatibility.md), recording exact
+  revisions and healthy deployed-backend evidence where required. No new backend
+  feature, schema migration or API change is required by this scope.
+- [ ] Prepare the 0.6.0 version and final release notes after review, then obtain
+  separate publication authorization and verify published artifacts/update path.
+
+Standalone binaries, a broader README redesign and the complete keyboard/keymap
+redesign are separate future work; they do not expand this release's scope.
+
+## 0.7.0 — Dashboard and interface cleanup
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -49,7 +125,7 @@ Status: **scope agreed; implementation and release validation pending**.
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
 - [ ] Standardize danger-button styling and hover, including the tester removal
-  control. One-button tester setup is already implemented for 0.5.0; do not
+  control. One-button tester setup is already implemented for 0.6.0; do not
   duplicate it here or assume its removal styling is complete.
 - [ ] Simplify Curriculum and Appearance settings.
 - [ ] Add a GitHub button in Settings opening the project repository, plus a
@@ -60,7 +136,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Improve friend-profile, project/evaluation detail loading; measure remaining
   delays rather than treating the caching shipped in 0.3.0 as completion.
 
-## 0.7.0 — Notifications, presence and pokes
+## 0.8.0 — Notifications, presence and pokes
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -80,7 +156,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Replace the large poke popup with a compact adaptive notification containing
   the sender's portrait, username and message below the portrait.
 
-## 0.8.0 — Profiles and clubs
+## 0.9.0 — Profiles and clubs
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -90,7 +166,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Enlarge the user's portrait when clicked in profile details.
 - [ ] Rework club lists and club UI/logic; add discovery for open and request-to-join
   clubs. Keep private clubs accessible through delegate/owner invitations only,
-  with invitations delivered through the notification inbox introduced in 0.7.0.
+  with invitations delivered through the notification inbox introduced in 0.8.0.
 
 ## Later initiatives — Shops, currency and WIP
 
@@ -108,42 +184,6 @@ and older-client compatibility, validate both repositories separately and deploy
 required compatible backend changes before the consuming client release. See
 [API compatibility](docs/api-compatibility.md). These scopes do not imply backend
 implementation or deployment is complete.
-
-## 0.5.0 — Testers and update reliability
-
-Status: **scope agreed; release preparation pending**. Latest published stable
-release is 0.4.4. This roadmap does not bump the package version or authorize
-publication.
-
-| Item | Integration status | 0.5.0 scope |
-| --- | --- | --- |
-| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
-| Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
-| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
-| GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.6.0 | Deferred beyond 0.5.0 |
-
-### Integration and release checklist
-
-- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
-  and French/Spanish translations.
-- [x] Deliver automatic update discovery in 0.4.2 through PR #19, carrying the
-  update fix from superseded PR #18. Preserve opt-out, offline behavior,
-  managed-install protections and post-exit installation.
-- [x] Record shipped update behavior in CHANGELOG.md and retain the unreleased
-  tester notes and validation in DEV_CHANGELOG.md.
-- [ ] Validate real tester setup, image build and execution on school Linux with
-  accessible Docker/BuildKit and on native macOS, including installation/retry.
-- [ ] Run the tester and installation-updates regression scopes and required CI
-  on the exact integrated release candidate; verify locale coverage.
-- [ ] Complete package/version/installer checks and the compatibility checks
-  required by [API compatibility](docs/api-compatibility.md), recording exact
-  revisions and healthy deployed-backend evidence where required. No new backend
-  feature, schema migration or API change is required by this scope.
-- [ ] Prepare the 0.5.0 version and final release notes after review, then obtain
-  separate publication authorization and verify published artifacts/update path.
-
-Standalone binaries, a broader README redesign and the complete keyboard/keymap
-redesign are separate future work; they do not expand this release's scope.
 
 ## 0.4.4 — Notes, timers and updates before launch
 
@@ -309,7 +349,7 @@ installed CLI/resources passed smoke checks. No live Intra write was performed.
 ## Future major milestone — Complete keyboard navigation and keymaps redesign
 
 Status: **planned, version and date undecided**. This is a dedicated future
-milestone, outside the current 0.5.0 scope. Schedule it when the main screens and
+milestone, outside the numbered minor-release scopes above. Schedule it when the main screens and
 user journeys have settled, before extending inconsistent keyboard conventions
 to more features. Reassess the timing during each release planning cycle; do not
 wait for an arbitrary version number.
