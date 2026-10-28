@@ -100,6 +100,22 @@ Restart your shell, then jump to a project:
 Press `Tab` to complete project slugs. Local folders must exist. If `42goto`
 cannot choose a project automatically, pass its name or slug.
 
+## Project Git and `42git`
+
+Configure your folder and remotes in project settings. Use the project's push
+buttons, or run these commands inside its folder:
+
+```sh
+42git status     # Branch and local changes
+42git push dev   # Current branch → development
+42git push vog   # Committed work → Vogsphere master
+42git push all   # Both destinations, separate results
+```
+
+Each push asks for confirmation and leaves uncommitted edits untouched.
+**Open in file explorer** opens the project folder.
+See [recovery, branch rules and failed pushes](docs/project-git.md) for details.
+
 ## Editor plugins
 
 Configure each project's local folder in 42TUI, then install your editor's plugin:

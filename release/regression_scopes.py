@@ -38,6 +38,7 @@ SCOPES = {
         'test_ui_catalog_details', 'test_ui_curriculum_settings',
     ),
     'projects': (
+        'test_git_cli', 'test_project_git',
         'test_project_registration_feature_service', 'test_project_subject_feature_service',
         'test_project_subject_feature_boundaries', 'test_project_activity_feature_service',
         'test_project_activity_feature_boundaries', 'test_activity_presentation', 'test_activity_provider', 'test_project_kind',

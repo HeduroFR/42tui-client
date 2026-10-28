@@ -3,9 +3,12 @@
 Latest release: **0.4.4** ([`v0.4.4`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.4)).
 Package version: **0.4.4**. The working tree also contains unreleased tester
 changes; the published patch uses isolated candidate `bbb619d`.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
-A release is worth preparing; native Docker/macOS validation and fresh candidate
-checks remain required before publication. No version bump is authorized here.
+Suggested next release: **0.5.0** (minor), targeting the urgent project Git
+workflow; the tester rework moves to **0.6.0**. Existing unreleased tester code
+already on main still needs an explicit candidate inclusion/validation decision.
+The accumulated tester feature warrants a minor release, but 0.5.0 is not ready:
+its Git scope is unimplemented and exact-candidate release checks remain pending.
+This roadmap update alone requires no release or package-version bump.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -13,6 +16,60 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-28 · minor · Project Git workflow:** recover nonempty Vogsphere
+  master before development work in a fresh folder; fetch/inspect existing
+  checkout history and stop for manual reconciliation instead of overwriting
+  local work. Preserve files, index, branches, remotes and pre-push hooks.
+  Review pinned committed HEAD, destination URL and branch before Push dev,
+  Push Vogsphere or Push all; report each outcome and retry failed destinations
+  separately. Development receives the current branch and Vogsphere receives
+  master; no automatic commit, reset or forced push. Add `42git status/push`
+  for the configured project containing the current directory, an explorer
+  action and French/Spanish UI strings. Wire recovery before first editor launch,
+  capture project identity across asynchronous operations and block overlap.
+  Include the 42git entry point in installer ownership checks and package smoke;
+  refresh installer helper digests. Keep README commands compact and link the
+  detailed guide. Bring in the agreed milestone order from
+  `origin/docs/tester-workspace-roadmap` (`96c2991`); no package-version change.
+  Branch: `feat/project-git-workflow`; commit/PR pending. Focused checks:
+  22 disposable Git tests, 13 existing services tests, four CLI tests, eight
+  project-controls UI tests, nine architecture tests, two locale tests and
+  41 installer tests passed. Scope ownership covers 879 tests exactly once;
+  canonical import tests (three), fatal-error lint, installer hashes and shell
+  syntax passed. Wheel/sdist contents and installed entry points/resources,
+  including 42git help, passed. Integrated project scope: 132 passed in 87.759s.
+  Actual uv fresh/repeat/exact-version installation and uninstall passed with
+  a disposable HOME and this candidate wheel. Final integration review found
+  two edges, now fixed: hidden URL changes invalidate a reviewed push using
+  a non-secret fingerprint, and late worker completion cannot update an inactive
+  push screen or open an editor after app unmount. Final focused Git (22), CLI
+  (four) and UI (eight) checks passed after these changes. No real user repository,
+  credentials or remote writes used.
+  Minor 0.5.0 is worth preparing for this feature after review; not ready to
+  publish. Exact-candidate CI, supported-peer compatibility, native platform
+  checks and explicit validation/inclusion of the unreleased tester code still
+  gate release. No API/backend/schema changes or deployment required.
+
+- **2026-10-28 · no release required · Milestone order:** assign the urgent
+  project Git workflow and proposed 42git to 0.5.0. Move testers to 0.6.0,
+  dashboard/interface work to 0.7.0, notifications/presence to 0.8.0 and
+  profiles/clubs to 0.9.0. Reorder TODO sections and update active references;
+  keep published release history and unversioned initiatives intact. Planning
+  only; no implementation, API or package-version changes. The Git scope and
+  candidate checks remain pending; already-merged tester code needs an explicit
+  inclusion/validation decision for 0.5.0. Checks: documentation diff, milestone
+  order, existing relative links and whitespace reviewed; no runtime tests for
+  this docs-only change. Branch: `docs/tester-workspace-roadmap`; commit/PR pending.
+
+- **2026-10-28 · no release required · Tester workspace roadmap:** record the
+  agreed tester rework (now scheduled for 0.6.0): extend the existing tester catalog, prefer validated native
+  execution, evaluate headless macOS containers, and show progress/results inside
+  a dedicated TUI workspace. Include disposable project copies, cancellation,
+  logs and a second tester to validate extensibility. Planning only; no runtime,
+  API or package-version changes. Branch: `docs/tester-workspace-roadmap`;
+  commit/PR pending. Checks: documentation diff, relative links and whitespace
+  reviewed; no behavioral tests for this documentation-only task. Accumulated
+  tester rework targets minor 0.6.0 after implementation and release validation.
 - **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
   project evaluation-slot booking and upcoming evaluations on the dashboard for
   0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
@@ -163,8 +220,10 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 ## Validation and release readiness
 
 The 0.4.4 package publication is verified. Hosted installer deployment remains
-pending access as recorded above. Pending release work belongs to 0.5.0 tester
-setup; the successful patch release does not validate native tester installation.
+pending access as recorded above. The next planned release is the 0.5.0 Git
+workflow, followed by the 0.6.0 tester rework. The successful patch release does
+not validate either scope or native tester installation. Historical version
+targets in the records below reflect the roadmap at the time.
 
 ### Tester setup validation (2026-10-27)
 

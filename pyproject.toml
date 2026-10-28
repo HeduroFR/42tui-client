@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 42tui = "ft_tui.main:main"
 42goto = "ft_tui.goto:main"
+42git = "ft_tui.git:main"
 42tui-zed-lsp = "ft_tui.integrations.zed_lsp:main"
 
 [tool.setuptools.packages.find]

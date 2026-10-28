@@ -34,6 +34,9 @@ class ProjectSetupMixin:
         self._open_project_settings_for_key(selected.key)
 
     def _open_project_settings_for_key(self, slug: str) -> None:
+        if self._project_git_operation_busy():
+            self.notify("Wait for the current project Git operation to finish.", severity="warning")
+            return
         if slug not in self.projects:
             self.notify("Project is no longer available.", severity="warning")
             return
@@ -76,6 +79,9 @@ class ProjectSetupMixin:
         self._editing_project_key = None
         if values is None or slug is None:
             return
+        if self._project_git_operation_busy():
+            self.notify("Wait for the current project Git operation to finish.", severity="warning")
+            return
         existing = self.projects.get(slug)
         if existing is None:
             self.notify("Project no longer exists in the local catalog.", severity="error")
@@ -109,6 +115,7 @@ class ProjectSetupMixin:
                 "project_key": slug,
             }
             self.notify("Setting up the local Git checkout…")
+            self._project_checkout_busy = True
             self.run_worker(
                 lambda: self._setup_checkout_in_background(checkout_values),
                 name=f"setup-checkout-{slug}",
@@ -141,6 +148,8 @@ class ProjectSetupMixin:
                 timeout=10,
             )
             return
+        finally:
+            self.call_from_thread(setattr, self, "_project_checkout_busy", False)
 
         self.call_from_thread(
             self._report_checkout_setup,

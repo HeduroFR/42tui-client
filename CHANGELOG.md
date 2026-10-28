@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Recover existing Vogsphere work before opening a project and stop for manual
+  reconciliation when remote history is missing locally, preserving local files
+  and existing branches/remotes.
+- Review and push committed work to development, Vogsphere or both from the
+  project controls or `42git`; see each destination's result and retry failures.
+  Open project folders in the system file explorer from the project controls.
+
 - Run Francinette from one button on Linux and macOS, with installation and retries.
   Tester setup never uses sudo or changes host packages or permissions. School
   Linux machines need an accessible Docker engine with BuildKit support. macOS

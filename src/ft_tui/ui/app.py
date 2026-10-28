@@ -485,7 +485,9 @@ class FortyTwoTuiApp(
         self.query_one("#project-empty", Static).styles.display = "block"
         self.query_one("#details-content", Static).update("Select a project from the list.")
         self.query_one("#project-subject-status", Static).update("SUBJECT · no project selected")
-        for selector in ("#open-project-editor", "#project-timer-toggle", "#open-subject", "#new-project-note"):
+        for selector in ("#open-project-editor", "#open-project-folder", "#project-push-dev",
+                         "#project-push-vog", "#project-push-all", "#project-timer-toggle",
+                         "#open-subject", "#new-project-note"):
             self.query_one(selector, Button).disabled = True
 
     def _has_saved_cursus_selection(self) -> bool:
@@ -682,6 +684,12 @@ class FortyTwoTuiApp(
             return
         if event.button.id == "open-project-editor":
             self._open_selected_project_in_editor()
+            return
+        if event.button.id == "open-project-folder":
+            self._open_selected_project_folder()
+            return
+        if event.button.id in {"project-push-dev", "project-push-vog", "project-push-all"}:
+            self._open_project_push(event.button.id.removeprefix("project-push-"))
             return
         if event.button.id != "save-settings":
             return

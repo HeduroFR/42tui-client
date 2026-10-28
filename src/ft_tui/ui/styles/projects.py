@@ -60,6 +60,8 @@ PROJECTS_CSS = r"""#workspace { height: 1fr; }
     #project-subject-status { height: auto; color: $text-muted; }
     #project-workspace-status { height: auto; margin: 1 0; }
     #project-actions, #project-workspace-actions { height: 3; }
+    #project-git-actions { height: 3; }
+    #project-git-actions Button { width: 1fr; min-width: 10; }
     #project-actions Button, #project-workspace-actions Button { width: auto; min-width: 0; margin-right: 1; }
     #project-time-spent { height: 1; color: $accent; text-style: bold; margin-top: 1; }
     #project-timer-status { height: auto; color: $text-muted; }

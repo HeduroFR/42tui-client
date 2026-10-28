@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='42tui-smoke-') as temporary:
            'UV_TOOL_BIN_DIR': str(home/'bin'),
            'PATH': os.pathsep.join(p for p in os.environ.get('PATH', '').split(os.pathsep)
                                   if not any((Path(p)/name).exists() for name in
-                                             ('42tui', '42tui.exe', '42goto', '42goto.exe', '42tui-zed-lsp', '42tui-zed-lsp.exe')))}
+                                             ('42tui', '42tui.exe', '42goto', '42goto.exe', '42git', '42git.exe', '42tui-zed-lsp', '42tui-zed-lsp.exe')))}
     with patch.dict(os.environ, env), patch('subprocess.run', run):
         assert module['main'](['--uv', uv, '--non-interactive', '--no-font']) == 0
         assert module['main'](['--uv', uv, '--non-interactive', '--no-font', '--version', wheel.name.split('-')[1]]) == 0

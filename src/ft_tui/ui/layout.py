@@ -190,11 +190,16 @@ class MainLayoutMixin:
                                     with Horizontal(id="project-actions"):
                                         yield Button("Open editor", id="open-project-editor", variant="primary", disabled=True)
                                         yield Button("Open subject", id="open-subject", disabled=True)
+                                    yield Button("Open in file explorer", id="open-project-folder", disabled=True)
                                     yield Static("", id="project-subject-status")
                                     yield Static("", id="project-workspace-status")
                                     with Horizontal(id="project-workspace-actions"):
                                         yield Button("Configure", id="configure-project")
                                         yield Button("Details", id="show-project-details")
+                                    with Horizontal(id="project-git-actions"):
+                                        yield Button("Push dev", id="project-push-dev", disabled=True)
+                                        yield Button("Push Vogsphere", id="project-push-vog", disabled=True)
+                                        yield Button("Push all", id="project-push-all", disabled=True)
                                     yield Static("TOTAL TIME · 0h 00m", id="project-time-spent")
                                     yield Static("No manual timer running", id="project-timer-status")
                                     yield Button("Start timer", id="project-timer-toggle", disabled=True)
