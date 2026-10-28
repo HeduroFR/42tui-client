@@ -1,37 +1,224 @@
 # TODO
 
-## Urgent priority — Project Git workflow and proposed `42git` command
+## 0.5.0 — Project Git workflow and `42git`
 
-Status: **requested; implementation not started**. Prioritize this work before
-0.6.0 dashboard polish. Target the next suitable minor release; assess inclusion
-in 0.5.0 without treating its existing tester scope as validation of Git changes.
-No package version bump or publication is authorized by this plan.
+Status: **main behavior agreed; implementation and release validation pending**.
+This urgent Git workflow is the next planned minor release, ahead of the 0.6.0
+modular tester rework and 0.7.0 dashboard polish. No package-version bump or
+publication is authorized by this plan. Existing tester validation does not
+validate Git changes.
 
-- [ ] Recover existing Vogsphere work before opening the editor for the first
-  time: clone Vogsphere into a new/empty project folder when it holds the work,
-  and fetch/inspect its history when a checkout already exists. The current
-  setup clones the development remote but only configures the Vogsphere remote.
-- [ ] Preserve existing local files, commits, branches and remote configuration.
-  Resolve divergent development/Vogsphere histories explicitly; never silently
-  overwrite work, reset branches or force-push to recover a project.
-- [ ] Offer Push dev, Push Vogsphere and Push all in the project Git controls.
-  Show the destination and branch before dispatch and the result per remote;
-  Push all must report partial success and allow retrying the failed destination.
-- [ ] Define the branch/commit rules before implementation: which committed work
-  is published to each destination, how work reaches Vogsphere's master branch,
-  and what happens with uncommitted changes or divergent remote history.
-- [ ] Evaluate a `42git` companion command alongside `42goto`, sharing the TUI's
-  project Git operations. Proposed initial interface: `42git status`,
-  `42git push dev`, `42git push vog`, `42git push all`. Resolve the current project
-  clearly and fail clearly outside a configured project; CLI details remain a
-  proposal pending design. Push actions must not silently stage or commit files.
-- [ ] Add Open in file explorer beside the existing project folder/editor actions
-  on supported platforms, with clear errors for missing folders or unavailable tools.
-- [ ] Validate recovery from Vogsphere, development-only and empty repositories,
-  existing/dirty checkouts, divergent history, authentication/network failures,
-  rejected pushes and partial success using disposable repositories.
+### Recovery and configuration
 
-## 0.6.0 — Dashboard and interface cleanup
+- [ ] Inspect the local folder and both remotes before first editor launch.
+  When both remotes contain work, require a choice between development and
+  Vogsphere, with no default selection. Show URL, branch, latest commit and date.
+  Choosing a recovery source does not overwrite the other remote.
+- [ ] Recover into an empty folder. For files without a Git repository, offer
+  **Use local**, **Other folder**, **Cancel** with explanatory text. Use local
+  leads to staging/commit review; it does not automatically commit everything.
+- [ ] Preserve existing checkouts, local files, commits, branches and remote
+  configuration. Show uncommitted changes and offer committing through the TUI
+  or recovery elsewhere. Inspect a clean checkout's history/remotes before
+  connecting it. An unfinished merge/rebase must be resolved before recovery.
+  Never automatically delete files, stash changes, reset branches or force-push.
+- [ ] Review configured remote URLs and destination branches during setup;
+  never silently replace an existing URL. Show the actual destination branch
+  instead of assuming the development remote uses main or Vogsphere uses master.
+
+### Development commits and Vogsphere selection
+
+- [ ] Keep normal Git staging/commit behavior for development work, including
+  personal tests, notes and tools. Provide a TUI changes list, diff preview,
+  Stage/Unstage actions and a commit-message field. Selecting rows/checkboxes
+  chooses paths for those actions; committing uses the staged changes.
+- [ ] Configure Vogsphere inclusion in a separate TUI file tree, saved per project.
+  Include only selected files/folders; staging a development file does not select
+  it for Vogsphere. Private development files must not enter Vogsphere history.
+  File selection does not delete local files or alter development inclusion.
+- [ ] A selected folder includes new children unless explicitly excluded; highlight
+  new files during push review. New files outside selected paths stay excluded.
+  Deleting or excluding a previously pushed file appears under Deleted and needs
+  confirmation, including during the first selection of an existing repository.
+  Removing a file from the next version does not erase it from older history.
+- [ ] Push from a committed development revision and show uncommitted changes as
+  excluded. Never silently stage/commit on push. Preserve the development checkout
+  while preparing a separate Vogsphere version/history containing selected files.
+  Different histories are expected; block for unexpected remote changes or
+  unresolved conflicts, not merely because the histories differ. Resolve these
+  cases explicitly, without overwrite or force-push.
+
+### Push review and results
+
+- [ ] Offer **Push dev**, **Push Vog**, **Push all**. Vogsphere push means Git
+  publication only: it must not mark the project finished on Intra, close
+  registration or request evaluation. Do not use the ambiguous submit command.
+- [ ] Review source commit, complete destination URL/branch, included/excluded
+  files and Added/Changed/Deleted counts. Provide **View diff**, **Files**,
+  **Push**, **Cancel**; show the diff against the reviewed Vogsphere branch.
+  Reuse the development commit message for Vogsphere with an editable field.
+  If no changes exist, show **Up to date** without making a redundant commit.
+- [ ] Push all reviews both destinations once, then pushes development first.
+  Stop if development fails. If only Vogsphere fails, retain development success
+  and offer **Retry Vog**; report each destination independently inside the TUI.
+- [ ] Recheck the destination after uncertain/interrupted results before retrying:
+  the remote may already contain the pushed commit. If it changed unexpectedly
+  since review, refresh the comparison and require a new review. Do not silently
+  retry against a changed destination or overwrite another writer's work.
+
+### Initial `42git` command set
+
+Share the TUI's project configuration and Git operations. Resolve the configured
+project from any subdirectory and explain clearly when none is found. Use concise
+help with examples and distinguish development staging from Vogsphere inclusion.
+
+| Command | Agreed behavior |
+| --- | --- |
+| `42git`, `42git help`, `42git --help` | Display general help and the typical workflow. |
+| `42git <command> --help` | Display command-specific help and examples. |
+| `42git status` | Show branch, local/staged changes, remote status and Vogsphere readiness. |
+| `42git add <paths...>` | Stage paths using ordinary Git semantics; `add .` is relative to the current directory and respects `.gitignore` for untracked files. |
+| `42git commit -m "message"` | Commit staged changes. |
+| `42git commit` | Open the configured Git commit editor. |
+| `42git push dev` | Push committed development work to its configured destination. |
+| `42git push vog` | Use the saved inclusion selection, review changes and confirm the Vogsphere push. |
+| `42git push all` | Review both destinations, push development, then Vogsphere. |
+
+- [ ] Implement these commands and help in the initial version. If no Vogsphere
+  selection exists, direct users to configure it in the TUI instead of guessing.
+  Show the destination and branch before pushing. Keep branching/merging as
+  ordinary Git operations; the initial command set does not wrap all of Git.
+
+### Project interface and list cleanup
+
+- [ ] Use short action labels with explanations nearby. Provide Overview/Git
+  navigation, preserve access to existing Testers, Activity and registration/team
+  controls, and add **Folder** beside **Editor** for the platform file explorer.
+  Keep Git progress/results inside the TUI. The dedicated tester workspace
+  remains 0.6.0 work, not an implied addition to this release.
+- [ ] Remove the separate **Details** button/modal after moving catalog/description
+  information to Overview, branch/remotes/status to Git, and folder/configuration
+  information beside **Editor**, **Folder**, **Config**. Provide **Intra** directly
+  in Overview. Preserve all currently useful information and account controls.
+- [ ] Simplify project rows to a name and concise status/score line. Remove
+  PATH SET/SETUP/PATH MISSING from the list; put setup and **Folder missing**
+  beside folder controls. Rename the name's active-project marker to **Current**
+  to distinguish it from academic progress. Keep a compact **Exam** indicator.
+- [ ] Use the current Intra attempt in the correct account/curriculum context,
+  ahead of an older result. Show older scores in Overview or Activity. Use
+  existing attempt/registration data where available; validate coverage before
+  promising statuses. Identify outdated observations (for example, **Cached**);
+  unknown data must not imply inactivity, eligibility or a confirmed result.
+
+| Observed academic state | List label |
+| --- | --- |
+| Creating a group | Creating team |
+| Searching for a group | Looking for team |
+| Waiting to start | Not started |
+| In progress | In progress |
+| Waiting for correction | Awaiting evaluation |
+| Finished, validated | Passed · score, when known |
+| Finished, not validated | Failed · score, when known |
+| Finished, validation unknown | Result pending |
+| Confirmed available / locked / inactive | Available / Locked / Inactive |
+| Unknown | Unknown |
+
+Git push success never changes academic status by itself.
+
+### Implementation details and validation still required
+
+- [ ] Finalize separate Vogsphere commit ancestry/preparation, persistence of file
+  selections and interrupted-operation recovery without changing the agreed
+  safeguards. Define behavior for empty remotes and a single populated remote.
+- [ ] Finalize keyboard navigation, file-tree selection, diff scrolling and
+  small-terminal layouts; maintain French/Spanish coverage and shared widgets.
+- [ ] Validate recovery from either remote, development-only/empty repositories,
+  local/dirty checkouts, expected history differences, unexpected remote updates,
+  unfinished merge/rebase, inclusion/deletion review, authentication/network
+  failures, uncertain results, rejected pushes and partial success using disposable
+  repositories. Verify current-attempt precedence, freshness and unavailable data.
+- [ ] Run focused Git/UI/CLI regressions and required CI on the exact candidate;
+  complete package, installer and compatibility checks before publication.
+  Review already-merged tester code explicitly when selecting the 0.5.0 candidate;
+  scheduling its rework for 0.6.0 does not validate or remove that code.
+
+## 0.6.0 — Testers and update reliability
+
+Status: **reworked scope agreed; implementation and release validation pending**.
+Latest published stable release is 0.4.4. This roadmap does not bump the package
+version or authorize publication.
+
+| Item | Integration status | 0.6.0 scope |
+| --- | --- | --- |
+| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
+| Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
+| Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
+| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
+
+### Agreed tester rework
+
+- [ ] Keep one Run action and extend the existing TOML catalog for multiple
+  project/module-specific testers, including Python modules and push_swap.
+  Define pinned sources, supported platforms, prerequisites, preparation/run
+  commands and execution method. Add result readers only where structured
+  summaries require them; ordinary tester additions should use definitions.
+- [ ] Prefer validated native execution with private tester directories and
+  Python virtual environments where appropriate. Retain a shared Linux container
+  runtime for testers needing Linux-specific tools; Docker Desktop must not be
+  mandatory for every tester. Evaluate a headless macOS runtime such as Colima,
+  including installation prerequisites, lifecycle and resource use, before
+  selecting it. Do not silently change environments or omit checks.
+- [ ] Validate a lighter Francinette setup against the pinned source on Linux
+  and macOS, including Intel/Apple Silicon support and memory-check tooling.
+  Do not assume native execution preserves all checks. Preserve unprivileged
+  setup, explicit prerequisite approval, retries and existing user configuration.
+- [ ] Add a dedicated Testers workspace showing preparation/build/run stages,
+  live scrollable output, cancellation, follow-output control and final results.
+  Keep execution inside the TUI, including internal terminal emulation when
+  required. Allow leaving and returning while a run continues; preserve the
+  captured project and prevent concurrent conflicting operations.
+- [ ] Show duration, available test counts/failures, Run again and Save log.
+  Preserve full logs and distinguish test failures, setup failures, cancellation
+  and unreadable results. Do not equate a successful process exit with all tests
+  passing; show percentages only when progress is measurable.
+- [ ] Use a disposable project copy by default so tester builds/cleanup preserve
+  the working folder. Make native execution permissions clear: a private directory
+  or virtual environment does not sandbox executed code.
+- [ ] Prove the complete flow with Francinette and one contrasting tester
+  (push_swap or a Python module tester), including setup/retry, cancellation,
+  output capture, result handling and French/Spanish interface coverage.
+
+Existing tester implementation checks and remaining native-validation gates are
+recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
+These checks do not validate the pending 0.6.0 rework.
+
+### Integration and release checklist
+
+- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
+  and French/Spanish translations.
+- [x] Deliver automatic update discovery in 0.4.2 through PR #19, carrying the
+  update fix from superseded PR #18. Preserve opt-out, offline behavior,
+  managed-install protections and post-exit installation.
+- [x] Record shipped update behavior in CHANGELOG.md and retain the unreleased
+  tester notes and validation in DEV_CHANGELOG.md.
+- [ ] Complete the agreed tester rework above; PR #13 alone does not validate it.
+- [ ] Validate real native/container tester setup and execution on school Linux
+  and native macOS, including installation/retry, image builds where applicable,
+  and the selected headless runtime's startup/cleanup behavior.
+- [ ] Run the tester and installation-updates regression scopes and required CI
+  on the exact integrated release candidate; verify locale coverage.
+- [ ] Complete package/version/installer checks and the compatibility checks
+  required by [API compatibility](docs/api-compatibility.md), recording exact
+  revisions and healthy deployed-backend evidence where required. No new backend
+  feature, schema migration or API change is required by this scope.
+- [ ] Prepare the 0.6.0 version and final release notes after review, then obtain
+  separate publication authorization and verify published artifacts/update path.
+
+Standalone binaries, a broader README redesign and the complete keyboard/keymap
+redesign are separate future work; they do not expand this release's scope.
+
+## 0.7.0 — Dashboard and interface cleanup
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -39,7 +226,8 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Add hover information to the progress bar and details below weekly coding.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
-- [ ] Rework project details and move View project away from the list's top edge.
+- [ ] Polish project details beyond the 0.5.0 Git/interface work and move
+  View project away from the list's top edge.
 - [ ] Book a correction/evaluation slot for an eligible project from its details:
   show available times, review the selected slot and confirm the booking. Reuse
   existing project/evaluation context; handle unavailable slots and uncertain
@@ -49,7 +237,7 @@ Status: **scope agreed; implementation and release validation pending**.
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
 - [ ] Standardize danger-button styling and hover, including the tester removal
-  control. One-button tester setup is already implemented for 0.5.0; do not
+  control. One-button tester setup is already implemented for 0.6.0; do not
   duplicate it here or assume its removal styling is complete.
 - [ ] Simplify Curriculum and Appearance settings.
 - [ ] Add a GitHub button in Settings opening the project repository, plus a
@@ -60,7 +248,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Improve friend-profile, project/evaluation detail loading; measure remaining
   delays rather than treating the caching shipped in 0.3.0 as completion.
 
-## 0.7.0 — Notifications, presence and pokes
+## 0.8.0 — Notifications, presence and pokes
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -80,7 +268,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Replace the large poke popup with a compact adaptive notification containing
   the sender's portrait, username and message below the portrait.
 
-## 0.8.0 — Profiles and clubs
+## 0.9.0 — Profiles and clubs
 
 Status: **scope agreed; implementation and release validation pending**.
 
@@ -90,7 +278,7 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Enlarge the user's portrait when clicked in profile details.
 - [ ] Rework club lists and club UI/logic; add discovery for open and request-to-join
   clubs. Keep private clubs accessible through delegate/owner invitations only,
-  with invitations delivered through the notification inbox introduced in 0.7.0.
+  with invitations delivered through the notification inbox introduced in 0.8.0.
 
 ## Later initiatives — Shops, currency and WIP
 
@@ -108,45 +296,6 @@ and older-client compatibility, validate both repositories separately and deploy
 required compatible backend changes before the consuming client release. See
 [API compatibility](docs/api-compatibility.md). These scopes do not imply backend
 implementation or deployment is complete.
-
-## 0.5.0 — Testers and update reliability
-
-Status: **validation in progress; native checks and candidate CI pending**. Latest published stable
-release is 0.4.4. This roadmap does not bump the package version or authorize
-publication.
-
-Track each checklist item and validation evidence in the
-[0.5.0 task tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
-
-| Item | Integration status | 0.5.0 scope |
-| --- | --- | --- |
-| One-button Francinette setup/run on Linux and macOS | Merged, unreleased (PR #13) | Main feature |
-| Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
-| Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
-| GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.6.0 | Deferred beyond 0.5.0 |
-
-### Integration and release checklist
-
-- [x] Merge the single Run action, unprivileged setup/retries, tester instructions
-  and French/Spanish translations.
-- [x] Deliver automatic update discovery in 0.4.2 through PR #19, carrying the
-  update fix from superseded PR #18. Preserve opt-out, offline behavior,
-  managed-install protections and post-exit installation.
-- [x] Record shipped update behavior in CHANGELOG.md and retain the unreleased
-  tester notes and validation in DEV_CHANGELOG.md.
-- [ ] Validate real tester setup, image build and execution on school Linux with
-  accessible Docker/BuildKit and on native macOS, including installation/retry.
-- [ ] Run the tester and installation-updates regression scopes and required CI
-  on the exact integrated release candidate; verify locale coverage.
-- [ ] Complete package/version/installer checks and the compatibility checks
-  required by [API compatibility](docs/api-compatibility.md), recording exact
-  revisions and healthy deployed-backend evidence where required. No new backend
-  feature, schema migration or API change is required by this scope.
-- [ ] Prepare the 0.5.0 version and final release notes after review, then obtain
-  separate publication authorization and verify published artifacts/update path.
-
-Standalone binaries, a broader README redesign and the complete keyboard/keymap
-redesign are separate future work; they do not expand this release's scope.
 
 ## 0.4.4 — Notes, timers and updates before launch
 
@@ -312,8 +461,8 @@ installed CLI/resources passed smoke checks. No live Intra write was performed.
 ## Future major milestone — Complete keyboard navigation and keymaps redesign
 
 Status: **planned, version and date undecided**. This is a dedicated future
-milestone, outside the current 0.5.0 scope. Schedule it when the main screens and
-user journeys have settled, before extending inconsistent keyboard conventions
+milestone, outside the numbered minor-release scopes above. Schedule it when the
+main screens and user journeys have settled, before extending inconsistent keyboard conventions
 to more features. Reassess the timing during each release planning cycle; do not
 wait for an arbitrary version number.
 

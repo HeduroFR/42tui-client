@@ -3,9 +3,12 @@
 Latest release: **0.4.4** ([`v0.4.4`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.4.4)).
 Package version: **0.4.4**. The working tree also contains unreleased tester
 changes; the published patch uses isolated candidate `bbb619d`.
-Suggested next release: **0.5.0** (minor), for the unreleased tester setup below.
-A release is worth preparing; native Docker/macOS validation and fresh candidate
-checks remain required before publication. No version bump is authorized here.
+Suggested next release: **0.5.0** (minor), targeting the urgent project Git
+workflow; the tester rework moves to **0.6.0**. Existing unreleased tester code
+already on main still needs an explicit candidate inclusion/validation decision.
+The accumulated tester feature warrants a minor release, but 0.5.0 is not ready:
+its Git scope is unimplemented and exact-candidate release checks remain pending.
+This roadmap update alone requires no release or package-version bump.
 
 This file tracks implemented changes since the latest release. Keep published
 history in [CHANGELOG.md](CHANGELOG.md). Maintenance, version selection and reset
@@ -13,13 +16,13 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
-- **2026-10-28 · minor (accumulated tester feature) · 0.5.0 validation:**
+- **2026-10-28 · minor (accumulated tester feature) · Tester validation:**
   track each release-roadmap item in docs/superpowers/plans/2026-10-28-release-0.5.0.md.
   Add ten missing French/Spanish tester diagnostic translations per language,
   preserving technical error details. Isolate the desktop-start regression from
   the host's installed Docker application path; the first native macOS run exposed
   this test-only dependency (69/70 passed). Branch: `feat/0.5.0-validation`;
-  commit/PR pending. Base: `c5dee552f8e494827e6eaa8d0419aa3f82c9cd5c`.
+  reference: PR #36. Base: `c5dee552f8e494827e6eaa8d0419aa3f82c9cd5c`.
   Installation-updates scope: 83 passed. Scope ownership: all 848 tests assigned
   exactly once. Existing locale tests: two passed; 20 diagnostic translations
   and dynamic detail preservation passed an assert-based check. Baseline wheel/
@@ -33,17 +36,68 @@ instructions are in [distribution operations](docs/distribution.md#development-c
   school Linux, real image build/run, clean macOS installation/retry and final
   committed-candidate CI remain release blockers. No API/backend/schema change;
   no backend rollout required. This is local validation, not fresh exact-pair or
-  deployed-backend evidence. Minor 0.5.0 remains worth preparing after review,
-  but is not ready to publish. No version bump, commit, push or publication.
+  deployed-backend evidence. The tester rework now targets 0.6.0 and is not implemented by these checks.
+  Reconcile with current main while retaining its 0.5.0 Git scope, roadmap and
+  publication history. No version bump or publication. Documentation reconciliation
+  checks: relative links, tracker references, conflict markers and whitespace;
+  runtime suites were not repeated for this documentation-only merge resolution.
+
+- **2026-10-28 · no release required · Discord release documentation:** link
+  CONTRIBUTING.md to the emoji release-note template and native GitHub-to-Discord
+  webhook setup in docs/distribution.md. Explain automatic extraction, heading
+  levels, credential handling and delivery verification. Documentation only;
+  no webhook configured or release published. Reference: PR #35.
+  Reconcile with current main, retain one entry per roadmap change and align
+  evaluation milestones with TODO.md. Checks: documentation diff, relative links,
+  template heading extraction, conflict markers and whitespace reviewed;
+  no runtime tests or live delivery test. This documentation needs no release;
+  0.5.0 remains the Git target after implementation, candidate inclusion review
+  and release validation.
+
+- **2026-10-28 · no release required · Agreed 0.5.0 Git design:** consolidate
+  recovery/source choice, existing-folder protection, separate Vogsphere file
+  selection, staging/commits, push review/retries and the initial 42git commands
+  and help. Record project-panel simplification and precise Intra list statuses,
+  with current-attempt precedence and cached-data handling. Planning only;
+  implementation and validation remain pending. Based on fetched main `c5dee55`,
+  carrying roadmap commit `38360ea` without creating a new commit; retain main's
+  evaluation booking/dashboard and reminder scopes under 0.7.0 and 0.8.0.
+  Checks: documentation diff, milestone order, command consistency, relative links,
+  conflict-marker and whitespace checks; no behavioral tests for this docs-only
+  task. Branch: `docs/git-workflow-design`; commit/PR pending. No release required
+  for these documents; minor 0.5.0 remains the Git target after implementation,
+  candidate inclusion review and release validation.
 
 - **2026-10-28 · no release required · Evaluation roadmap:** explicitly record
   project evaluation-slot booking and upcoming evaluations on the dashboard for
-  0.6.0, with evaluation events/reminders in the 0.7.0 notification inbox. Separate
+  0.7.0, with evaluation events/reminders in the 0.8.0 notification inbox. Separate
   booking from existing correction availability management. Planning only; no
   runtime/API changes or new release blocker. Checks: documentation diff and
   existing relative links reviewed; behavioral tests not run for this docs-only
   task. Branch: `docs/evaluation-roadmap`; commit/PR pending. Accumulated tester
-  work still warrants 0.5.0 after native validation and exact-candidate checks.
+  rework targets 0.6.0 after implementation, native validation and exact-candidate checks.
+
+- **2026-10-28 · no release required · Milestone order:** assign the urgent
+  project Git workflow and proposed 42git to 0.5.0. Move testers to 0.6.0,
+  dashboard/interface work to 0.7.0, notifications/presence to 0.8.0 and
+  profiles/clubs to 0.9.0. Reorder TODO sections and update active references;
+  keep published release history and unversioned initiatives intact. Planning
+  only; no implementation, API or package-version changes. The Git scope and
+  candidate checks remain pending; already-merged tester code needs an explicit
+  inclusion/validation decision for 0.5.0. Checks: documentation diff, milestone
+  order, existing relative links and whitespace reviewed; no runtime tests for
+  this docs-only change. Source: `38360ea` on `docs/tester-workspace-roadmap`.
+
+- **2026-10-28 · no release required · Tester workspace roadmap:** record the
+  agreed tester rework (now scheduled for 0.6.0): extend the existing tester
+  catalog, prefer validated native execution, evaluate headless macOS containers,
+  and show progress/results inside
+  a dedicated TUI workspace. Include disposable project copies, cancellation,
+  logs and a second tester to validate extensibility. Planning only; no runtime,
+  API or package-version changes. Source: `38360ea` on
+  `docs/tester-workspace-roadmap`. Checks: documentation diff, relative links and whitespace
+  reviewed; no behavioral tests for this documentation-only task. Accumulated
+  tester rework targets minor 0.6.0 after implementation and release validation.
 
 ### Changed behavior
 
@@ -186,8 +240,10 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 ## Validation and release readiness
 
 The 0.4.4 package publication is verified. Hosted installer deployment remains
-pending access as recorded above. Pending release work belongs to 0.5.0 tester
-setup; the successful patch release does not validate native tester installation.
+pending access as recorded above. The next planned release is the 0.5.0 Git
+workflow, followed by the 0.6.0 tester rework. The successful patch release does
+not validate either scope or native tester installation. Historical version
+targets in the records below reflect the roadmap at the time.
 
 ### Tester setup validation (2026-10-27)
 

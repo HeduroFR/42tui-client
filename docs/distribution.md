@@ -64,6 +64,58 @@ artifacts and rerun only the failed job in the same workflow run. A newly create
 GitHub draft can briefly be invisible to a follow-up lookup; retrying resumes it.
 Do not rebuild or overwrite distributions for an already published version.
 
+## Release notes and Discord
+
+Keep release notes in CHANGELOG.md; do not maintain a separate copy on GitHub.
+During release preparation, move the included Unreleased notes under the exact
+version heading (`## X.Y.Z`). The publication workflow runs
+`release/github_release.py`, which uses that version's section as the description
+when creating the GitHub draft, uploads the assets and publishes the release.
+When resuming an existing release, the script preserves its description.
+
+Use this template within the version section, omitting empty subsections and
+replacing placeholders with actual changes and update instructions:
+
+```markdown
+### ✨ Nouveautés
+- Describe the new user-facing behavior.
+
+### 🐛 Corrections
+- Describe the problem that was fixed.
+
+### 📦 Mise à jour
+- Run `42tui update` or describe any required migration steps.
+```
+
+Use `###` for these subsections: `##` is reserved for version boundaries by the
+release-note extractor. Update instructions must respect pinned/development
+installations and describe any compatibility requirements.
+
+To forward future GitHub release events to the Discord `🔔・releases` channel:
+
+1. In Discord, edit the channel, open **Integrations → Webhooks**, create a webhook
+   named `42TUI Releases` and copy its URL. This requires **Manage Webhooks**;
+   ordinary members can retain read/reaction access without permission to post.
+2. In the client repository on GitHub, open **Settings → Webhooks → Add webhook**.
+   Set **Payload URL** to the Discord URL with `/github` appended, and set
+   **Content type** to `application/json`. Leave **Secret** empty for this direct
+   integration and keep SSL verification enabled.
+3. Choose **Let me select individual events**, select only **Releases**, and keep
+   the webhook active. Save it. Treat the complete webhook URL as a credential;
+   never commit it or paste it into public messages.
+4. After the next separately authorized release, check the message in Discord.
+   If it is missing, inspect **Recent Deliveries** in the GitHub webhook settings
+   before retrying delivery; avoid duplicate announcements.
+
+Editing CHANGELOG.md alone sends no notification. Once configured, the webhook
+can receive events from GitHub releases produced by the existing publication
+workflow. This setup does not backfill old releases, customize the native message
+layout or automatically mention the Release Ping role. Review release notes for
+public sharing before connecting a private repository to a public channel.
+
+See [Discord's GitHub webhook setup](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)
+and [GitHub release events](https://docs.github.com/en/webhooks/webhook-events-and-payloads#release).
+
 ## Development changelog
 
 [DEV_CHANGELOG.md](../DEV_CHANGELOG.md) is the rolling record from the latest
