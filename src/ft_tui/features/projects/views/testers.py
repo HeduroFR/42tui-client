@@ -81,6 +81,7 @@ class ProjectTesters(Vertical):
     ProjectTesters .tester-action-row { height: auto; }
     ProjectTesters .tester-remove { width: 5; min-width: 5; padding: 0; margin-left: 1; }
     #tester-catalog-warning { color: $warning; }
+    #tester-status-scroll { height: auto; max-height: 5; }
     """
 
     def __init__(self, **kwargs):
@@ -95,7 +96,8 @@ class ProjectTesters(Vertical):
     def compose(self):
         yield Static("Testers", classes="panel-title")
         yield Static("", id="tester-catalog-warning")
-        yield Static("Select a project to see testers.", id="tester-status")
+        with VerticalScroll(id="tester-status-scroll"):
+            yield Static("Select a project to see testers.", id="tester-status")
         yield Vertical(id="tester-rows")
 
     def on_mount(self):
@@ -177,8 +179,6 @@ class ProjectTesters(Vertical):
             "unsupported": "Docker testers require Linux or macOS on amd64 or arm64.",
         }
         message = translate(messages[status.state], self.app.language)
-        if status.detail:
-            message += "\n" + escape(status.detail)
         if status.state == "missing" and service.host.system == "linux":
             message = translate(
                 "An accessible Docker engine is required on Linux. Ask school staff if Docker is missing. No system changes were made.",
@@ -186,6 +186,8 @@ class ProjectTesters(Vertical):
             )
         if not has_local_folder(project.local_path):
             message += "\n" + translate("Configure an existing local project folder to run tests.", self.app.language)
+        if status.detail:
+            message += "\n\n" + escape(status.detail)
         self.query_one("#tester-status", Static).update(message)
         rows = self.query_one("#tester-rows")
         for tester in testers:
@@ -205,7 +207,7 @@ class ProjectTesters(Vertical):
                     return
 
     def focus_actions(self) -> None:
-        """Reveal tester controls from the Projects heading or its keyboard shortcut."""
+        """Reveal tester controls using the project keyboard shortcut."""
         for button in self.query(Button):
             if button.display and not button.disabled:
                 button.focus(scroll_visible=False)

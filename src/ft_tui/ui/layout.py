@@ -167,9 +167,7 @@ class MainLayoutMixin:
                         yield Button("Load more projects", id="catalog-more", disabled=True)
                         yield Button("Load more branches", id="catalog-more-branches", disabled=True)
                     with Vertical(id="project-details"):
-                        with Horizontal(id="project-heading-row"):
-                            yield Static("Select a project", id="project-heading", classes="panel-title")
-                            yield Button("Testers", id="show-project-testers", disabled=True)
+                        yield Static("Select a project", id="project-heading", classes="panel-title")
                         yield Static("", id="project-summary")
                         with VerticalScroll(id="project-details-scroll"):
                             with ProjectDetailsColumns(id="project-details-columns"):
@@ -185,25 +183,27 @@ class MainLayoutMixin:
                                             yield Button("Refresh status", id="registration-refresh", disabled=True)
                                         yield Button("Open project on Intra", id="registration-intra-link")
                                     yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
+                                    yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):
                                     yield Static("Workspace", classes="panel-title")
                                     with Horizontal(id="project-actions"):
                                         yield Button("Open editor", id="open-project-editor", variant="primary", disabled=True)
                                         yield Button("Open subject", id="open-subject", disabled=True)
-                                    yield Button("Open in file explorer", id="open-project-folder", disabled=True)
+                                    yield Button("Open folder", id="open-project-folder", tooltip="Open in file explorer", disabled=True)
                                     yield Static("", id="project-subject-status")
                                     yield Static("", id="project-workspace-status")
                                     with Horizontal(id="project-workspace-actions"):
                                         yield Button("Configure", id="configure-project")
                                         yield Button("Details", id="show-project-details")
-                                    with Horizontal(id="project-git-actions"):
+                                    with Vertical(id="project-git-actions"):
                                         yield Button("Push dev", id="project-push-dev", disabled=True)
-                                        yield Button("Push Vogsphere", id="project-push-vog", disabled=True)
+                                        yield Button("Push vog", id="project-push-vog", tooltip="Vogsphere → master", disabled=True)
                                         yield Button("Push all", id="project-push-all", disabled=True)
-                                    yield Static("TOTAL TIME · 0h 00m", id="project-time-spent")
-                                    yield Static("No manual timer running", id="project-timer-status")
-                                    yield Button("Start timer", id="project-timer-toggle", disabled=True)
-                                    yield ProjectTesters(id="project-testers")
+                                    with Horizontal(id="project-timer-row"):
+                                        with Vertical(id="project-timer-info"):
+                                            yield Static("TOTAL TIME · 0h 00m", id="project-time-spent")
+                                            yield Static("No manual timer running", id="project-timer-status")
+                                        yield Button("Start timer", id="project-timer-toggle", disabled=True)
                             with Horizontal(id="project-notes-header"):
                                 yield Static("Notes · Enter to open", id="notes-title")
                                 yield Button("New note", icon="\uf067", icon_only=True, id="new-project-note")

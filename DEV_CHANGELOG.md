@@ -16,6 +16,40 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Tester section layout:**
+  move Testers below Registration/activity in the overview column and remove
+  the top-right shortcut button, its event route and enable/disable references.
+  Preserve the t shortcut and update UI/manual smoke callers and README.
+  Bound status diagnostics to five scrollable lines; keep the actionable summary
+  and missing-folder guidance before the full Docker detail. No diagnostic text
+  is discarded. Branch: `feat/project-git-workflow`; commit/PR pending.
+  Checks: 15 tester UI tests, eight project-layout tests and nine architecture
+  tests passed. Regressions cover the removed header action, section placement,
+  small-terminal shortcut/focus and full long diagnostics in a five-line viewport.
+  All 885 tests have exactly one regression-scope owner; fatal-error lint and
+  whitespace passed. Real Docker/manual smoke and full CI not run.
+  Changes uncommitted; minor 0.5.0 remains
+  worth preparing after review with the existing native/on-campus, tester and
+  exact-candidate release gates. No real tester/container execution in this task.
+
+- **2026-10-29 · patch (accumulated minor 0.5.0) · Git button layout:**
+  align editor, configuration and Git action rows to two equal-width columns
+  across the workspace. Push dev/Push vog sit side by side; Push all and Open
+  folder span both columns, with consistent spacing. Keep the explorer wording
+  in the folder tooltip. Use the short vog label and Vogsphere/master tooltip so translated
+  labels fit narrow sidebars. Keep shared button styling, action IDs and
+  disabled behavior. Put timer control on the right of wrapping time/status text.
+  Branch: `feat/project-git-workflow`; commit/PR pending.
+  Eight UI tests and nine size/locale checks (80/140/160 columns × English/
+  French/Spanish) passed for matching row widths, full-row spans, spacing and
+  readable labels. Final timer-row checks: eight UI tests and nine size/locale
+  assertions passed for right alignment and contained time/status text.
+  Whitespace check passed. Preserve all action IDs and
+  disabled behavior.
+  Changes uncommitted; preserve the unrelated local
+  uv.lock. Minor 0.5.0 remains worth preparing after review, subject to the
+  existing native/on-campus, tester and exact-candidate release gates.
+
 - **2026-10-28 · patch (accumulated minor 0.5.0) · Campus-only Vogsphere:**
   reflect the maintainer-confirmed campus network requirement in CLI/TUI push
   previews, French/Spanish copy and the concise README/detailed Git guide.

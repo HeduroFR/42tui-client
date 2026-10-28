@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Find Testers below Registration in project details, with compact scrollable
+  diagnostics. Use `t` to jump to its actions; the top-right Testers button is removed.
+- Align workspace actions in two columns, with Open folder and Push all spanning
+  the full row and consistent spacing between controls. Place the timer button
+  to the right of its time/status information.
 - Recover existing Vogsphere work before opening a project and stop for manual
   reconciliation when remote history is missing locally, preserving local files
   and existing branches/remotes.

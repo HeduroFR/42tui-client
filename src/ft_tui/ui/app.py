@@ -606,9 +606,6 @@ class FortyTwoTuiApp(
         if event.button.id == "show-project-activity":
             self.action_project_activity()
             return
-        if event.button.id == "show-project-testers":
-            self.action_project_testers()
-            return
         if event.button.id == "show-project-details":
             self.action_project_technical_details()
             return

@@ -133,8 +133,8 @@ are not retained.
 
 ## Project testers
 
-Configure an existing local project folder, open **Testers** (or press `t` in
-Projects), then choose **Run Francinette**. The same button handles setup and retries.
+Configure an existing local project folder, find **Testers** below Registration
+(or press `t` in Projects), then choose **Run Francinette**. The same button handles setup and retries.
 
 On Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an

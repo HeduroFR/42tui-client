@@ -1192,5 +1192,7 @@
   "Recovering project Git history before opening the editor…": "Récupération de l’historique Git avant l’ouverture de l’éditeur…",
   "Editor was not opened: checkout recovery failed: {error}": "L’éditeur n’a pas été ouvert : échec de la récupération du dépôt : {error}",
   "Close": "Fermer",
-  "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.": "Impossible de vérifier Vogsphere. Connectez-vous au réseau du campus 42 pour récupérer le travail distant. Ouverture du dépôt local existant."
+  "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.": "Impossible de vérifier Vogsphere. Connectez-vous au réseau du campus 42 pour récupérer le travail distant. Ouverture du dépôt local existant.",
+  "Push vog": "Pousser vog",
+  "Open folder": "Ouvrir le dossier"
 }

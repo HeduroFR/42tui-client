@@ -37,9 +37,7 @@ PROJECTS_CSS = r"""#workspace { height: 1fr; }
     .state-locked { color: $text-muted; }
     #project-empty { display: none; color: $text-muted; padding: 1; }
     .panel-title { text-style: bold; color: $accent; margin: 0 0 1 0; }
-    #project-heading-row { height: auto; min-height: 3; }
     #project-heading { width: 1fr; height: auto; margin: 1 1 0 0; }
-    #show-project-testers { width: auto; min-width: 0; }
     #project-summary { height: auto; color: $text-muted; margin-bottom: 1; }
     #project-details-scroll { height: 1fr; }
     #project-details-columns { height: auto; min-height: 17; }
@@ -59,13 +57,17 @@ PROJECTS_CSS = r"""#workspace { height: 1fr; }
     #details-content { height: auto; }
     #project-subject-status { height: auto; color: $text-muted; }
     #project-workspace-status { height: auto; margin: 1 0; }
-    #project-actions, #project-workspace-actions { height: 3; }
-    #project-git-actions { height: 3; }
-    #project-git-actions Button { width: 1fr; min-width: 10; }
-    #project-actions Button, #project-workspace-actions Button { width: auto; min-width: 0; margin-right: 1; }
-    #project-time-spent { height: 1; color: $accent; text-style: bold; margin-top: 1; }
+    #project-actions, #project-workspace-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-rows: auto; grid-gutter: 0 1; height: auto; }
+    #open-project-folder { width: 1fr; min-width: 0; margin-top: 1; }
+    #project-git-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-rows: 3 3; grid-gutter: 1; height: 7; margin-top: 1; }
+    #project-git-actions Button { width: 1fr; min-width: 0; padding: 0; }
+    #project-git-actions #project-push-all { column-span: 2; width: 1fr; }
+    #project-actions Button, #project-workspace-actions Button { width: 1fr; min-width: 0; }
+    #project-timer-row { height: auto; min-height: 3; margin-top: 1; align-vertical: middle; }
+    #project-timer-info { width: 1fr; height: auto; margin-right: 1; }
+    #project-time-spent { height: auto; color: $accent; text-style: bold; }
     #project-timer-status { height: auto; color: $text-muted; }
-    #project-timer-toggle { width: auto; min-width: 0; margin-top: 1; }
+    #project-timer-toggle { width: auto; min-width: 0; }
     #project-notes-header { height: 3; margin-top: 1; }
     #notes-title { width: 1fr; height: 3; content-align: left middle; text-style: bold; color: $accent; }
     #new-project-note { width: auto; }

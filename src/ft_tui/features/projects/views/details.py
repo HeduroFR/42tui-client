@@ -137,7 +137,7 @@ class ProjectDetailsMixin(SubjectMixin):
         registration_state=getattr(self,"_registration_state",None)
         if registration_state and registration_state['project_id']==project.official_project_id:
             self._render_project_registration(registration_state)
-        for selector in ("#configure-project", "#show-project-details", "#show-project-testers"):
+        for selector in ("#configure-project", "#show-project-details"):
             self.query_one(selector, Button).disabled = False
         workspace = (f"Folder · {escape(Path(project.local_path).name)}\nGit · {git_status}"
                      if has_local_folder(project.local_path)
@@ -175,7 +175,7 @@ class ProjectDetailsMixin(SubjectMixin):
             self.query_one(selector, Static).update(text)
         self.query_one("#project-notes-list").display = False
         self.query_one("#project-notes-empty").display = True
-        for selector in ("#configure-project", "#show-project-details", "#show-project-testers",
+        for selector in ("#configure-project", "#show-project-details",
                          "#open-project-folder", "#project-push-dev", "#project-push-vog", "#project-push-all"):
             self.query_one(selector, Button).disabled = True
 
