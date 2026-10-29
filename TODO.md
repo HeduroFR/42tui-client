@@ -3,6 +3,8 @@
 ## 0.5.0 — Project Git workflow and `42git`
 
 Status: **0.5.0 published and verified** (PR #38, tag `v0.5.0`).
+The 0.5.1 patch adds remote default/sole-branch discovery and reviewed
+fast-forward-only `42git pull dev|vog|all` (PR #42, tag `v0.5.1`).
 Implemented: conservative checkout recovery, reviewed committed-history pushes,
 `42git status` and `42git push dev|vog|all`, folder opening and project dialog
 improvements. See [the Git guide](docs/project-git.md). Both destinations receive
@@ -155,7 +157,7 @@ Git push success never changes academic status by itself.
 ## 0.6.0 — Testers and update reliability
 
 Status: **reworked scope agreed; implementation and release validation pending**.
-Latest published stable release is 0.5.0. This roadmap does not bump the package
+Latest published stable release is 0.5.1. This roadmap does not bump the package
 version or authorize publication.
 
 | Item | Integration status | 0.6.0 scope |
