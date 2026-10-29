@@ -12,6 +12,15 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Extend the 0.7.0 roadmap with stable time-tracking integrations
+  and installation/update/removal for Vim, Neovim, VS Code and Zed. Replace the
+  planned dashboard Cluster Map card rework with a campus log-time heatmap,
+  distinct from coding time, retaining the dedicated map view. Planning only;
+  no release required. Checks: current integration documentation/source references,
+  roadmap consistency and diff/whitespace review. Runtime/editor and session-data
+  validation remain pending. Branch: `docs/discord-rich-presence-roadmap`;
+  commit/PR pending.
+
 - 2026-10-29: Add opt-in Discord Rich Presence to the 0.8.0 roadmap, alongside
   notifications and presence, with navigation activity, privacy, lifecycle and
   platform-validation requirements. Planning only; no feature implemented and

@@ -234,7 +234,13 @@ redesign are separate future work; they do not expand this release's scope.
 
 Status: **scope agreed; implementation and release validation pending**.
 
-- [ ] Rework the dashboard student-profile and cluster-map cards.
+- [ ] Rework the dashboard student-profile card.
+- [ ] Replace the dashboard Cluster Map card with a log-time heatmap showing
+  time connected to campus workstations, not editor coding time. Confirm source
+  coverage and reuse existing session data where available; define local-day
+  boundaries, sessions crossing midnight and ongoing sessions. Show daily totals
+  and distinguish missing/stale data from zero time. Preserve access to the
+  dedicated Cluster Map view and keep coding-time statistics clearly labelled.
 - [ ] Add hover information to the progress bar and details below weekly coding.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
@@ -256,6 +262,14 @@ Status: **scope agreed; implementation and release validation pending**.
   existing preferences, account/curriculum scope and validation; make save state
   and feedback clear. Validate keyboard access, small-terminal layouts and
   French/Spanish coverage. Keep the later Discord RPC toggle within this structure.
+- [ ] Stabilize time-tracking extensions and their installation for Vim, Neovim,
+  VS Code and Zed. Review each existing integration, provide reproducible install,
+  update and uninstall instructions, and make executable-path setup and a working
+  heartbeat check clear from Settings. Preserve editor configuration and recorded
+  time; handle idle/resume, editor restarts, multiple windows and missing `42tui`
+  without duplicate time or disruptive errors. Preserve local tracking without
+  reading file contents or retaining file paths. Validate fresh installation,
+  upgrade/removal and time attribution on Linux/macOS for each supported editor.
 - [ ] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
 - [ ] Add a Discord button in Settings opening the project's Discord invite, plus
