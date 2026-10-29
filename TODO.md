@@ -356,6 +356,15 @@ Status: **captured for design; versions and dates undecided**.
   safe restore when changing machines. Exclude credentials, validate imports,
   preview conflicts and preserve existing data on cancellation or failure;
   document backup contents and format compatibility.
+- [ ] Explore optional Obsidian integration complementing existing project dev
+  logs/notes: associate a project with a chosen vault folder, export selected notes
+  as Markdown and open the corresponding note in Obsidian. Support explicit import
+  of external edits with conflict review; preserve note identity, timestamps and
+  user content without duplicate imports or silent overwrites/deletions. Consider
+  an opt-in daily dev-log summary linking project notes, recorded work sessions
+  and next steps. Reuse Markdown export/backup work, keep built-in notes usable
+  without Obsidian, and validate vault paths, missing/moved files and Linux/macOS
+  app-opening behavior before delivery; avoid a required plugin or cloud service.
 - [ ] Add an optional music player integrated into the TUI, with provider
   selection targeting Spotify, Deezer, SoundCloud and YouTube. Reuse maintained
   open-source players/libraries after verifying license compatibility, dependency

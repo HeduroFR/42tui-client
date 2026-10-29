@@ -12,6 +12,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add optional Obsidian integration to Further updates, complementing
+  existing dev logs/notes with project-vault links, Markdown export, explicit
+  conflict-reviewed import and a possible daily summary. Preserve built-in notes
+  and reuse planned export/backup work. Planning only; no release required.
+  Checks: existing note storage/editor references, roadmap consistency and
+  diff/whitespace review; Obsidian integration/runtime behavior not verified.
+  Branch: `docs/roadmap-additions`; commit/PR pending.
+
 - 2026-10-29: Add unversioned club-game proposals to Further updates: in-TUI
   chess with Elo/history, babyfoot match scoring and rankings, and a mobile
   companion web app for live scoring. Record club-rework dependency, separate
