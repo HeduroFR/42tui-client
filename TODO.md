@@ -166,6 +166,7 @@ version or authorize publication.
 | Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| Backend storage, backup and connection encryption | Planned; implementation and deployment verification pending | Priority security work alongside 0.6.0 |
 | GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
 
 ### Agreed tester rework
@@ -205,6 +206,43 @@ Existing tester implementation checks and remaining native-validation gates are
 recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
 These checks do not validate the pending 0.6.0 rework.
 
+### Priority backend data protection — target 0.6.0
+
+Status: **planned; no production encryption or recovery validation claimed**.
+The backend owns implementation and operations; client/backend versions remain
+independent. Complete this work as soon as possible, before or alongside 0.6.0.
+
+- [ ] Encrypt all PostgreSQL storage through encrypted volumes or the database
+  provider's storage encryption, covering data files, indexes, WAL/transaction
+  logs, temporary files, replicas and snapshots wherever they are stored. Record
+  deployed coverage and key ownership; preserve existing data during migration
+  and verify recovery before retiring the previous storage.
+- [ ] Encrypt backups separately, including logical dumps and archived WAL.
+  Keep keys in restricted secret/key management, separate from backup access,
+  with recoverable key backups and documented retention and rotation. Replace
+  any backup example that produces an unencrypted dump with a verified encrypted
+  procedure. Restore an encrypted backup into an isolated environment and record
+  integrity, credential decryption and session-revocation/reconciliation checks,
+  achieved recovery time and recovery point before marking this complete.
+- [ ] Require TLS with trusted certificate and hostname verification for every
+  production PostgreSQL connection, including API, workers, migrations and
+  backup/restore tools. Reject plaintext and invalid/untrusted certificates;
+  test successful verified connections and those rejection cases. Keep local
+  development exceptions explicit and unavailable in production configuration.
+- [ ] Preserve credential encryption and device-token hashing. Assess private
+  account, registration, preference and social payloads for protection against
+  database-only compromise; selectively encrypt those requiring it before they
+  reach PostgreSQL. Include duplicated/cache copies in that assessment, record
+  remaining readable identifiers/search metadata, and preserve query behavior.
+  Any field-encryption migration needs tested backfill, key rotation, recovery
+  and compatible rollback without data loss.
+- [ ] Keep existing API contracts and supported clients compatible. Deploy and
+  verify backend/storage changes before announcing these protections with
+  0.6.0; record exact backend revision/image, storage/TLS evidence and restore
+  results. Storage encryption protects offline media, not an authorized database
+  connection or a compromised running backend; do not describe it as end-to-end
+  encryption. Block the security-complete claim until all required checks pass.
+
 ### Integration and release checklist
 
 - [x] Merge the single Run action, unprivileged setup/retries, tester instructions
@@ -222,8 +260,13 @@ These checks do not validate the pending 0.6.0 rework.
   on the exact integrated release candidate; verify locale coverage.
 - [ ] Complete package/version/installer checks and the compatibility checks
   required by [API compatibility](docs/api-compatibility.md), recording exact
-  revisions and healthy deployed-backend evidence where required. No new backend
-  feature, schema migration or API change is required by this scope.
+  revisions and healthy deployed-backend evidence where required. The tester
+  rework requires no backend change; the separate priority data-protection scope
+  above requires backend/infrastructure rollout and may require storage/schema
+  migrations, while preserving the API contract.
+- [ ] Complete and verify the priority backend data-protection checklist before
+  presenting 0.6.0 as delivering those protections; planning and client CI alone
+  are insufficient evidence.
 - [ ] Prepare the 0.6.0 version and final release notes after review, then obtain
   separate publication authorization and verify published artifacts/update path.
 
@@ -234,7 +277,13 @@ redesign are separate future work; they do not expand this release's scope.
 
 Status: **scope agreed; implementation and release validation pending**.
 
-- [ ] Rework the dashboard student-profile and cluster-map cards.
+- [ ] Rework the dashboard student-profile card.
+- [ ] Replace the dashboard Cluster Map card with a log-time heatmap showing
+  time connected to campus workstations, not editor coding time. Confirm source
+  coverage and reuse existing session data where available; define local-day
+  boundaries, sessions crossing midnight and ongoing sessions. Show daily totals
+  and distinguish missing/stale data from zero time. Preserve access to the
+  dedicated Cluster Map view and keep coding-time statistics clearly labelled.
 - [ ] Add hover information to the progress bar and details below weekly coding.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
@@ -248,10 +297,31 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Show upcoming evaluations on the dashboard, both as evaluator and evaluated
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
+- [ ] Display Intra events for the selected campus in an agenda list and weekly
+  calendar, with a detail view and a link to the event on Intra. Validate source
+  coverage and account visibility, use explicit local times and distinguish
+  loading, empty, unavailable and stale data. Assess reuse of the correction
+  calendar's navigation/layout without carrying over slot-editing behavior.
+- [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
+  evaluated student, reusing the dashboard's evaluation data. Visually distinguish
+  Intra events from evaluations and provide filters for each; reflect schedule
+  changes/cancellations consistently across the agenda and dashboard.
 - [ ] Standardize danger-button styling and hover, including the tester removal
   control. One-button tester setup is already implemented for 0.6.0; do not
   duplicate it here or assume its removal styling is complete.
-- [ ] Simplify Curriculum and Appearance settings.
+- [ ] Rework the full Settings interface: review category grouping, navigation,
+  labels and layout, including simplifying Curriculum and Appearance. Preserve
+  existing preferences, account/curriculum scope and validation; make save state
+  and feedback clear. Validate keyboard access, small-terminal layouts and
+  French/Spanish coverage. Keep the later Discord RPC toggle within this structure.
+- [ ] Stabilize time-tracking extensions and their installation for Vim, Neovim,
+  VS Code and Zed. Review each existing integration, provide reproducible install,
+  update and uninstall instructions, and make executable-path setup and a working
+  heartbeat check clear from Settings. Preserve editor configuration and recorded
+  time; handle idle/resume, editor restarts, multiple windows and missing `42tui`
+  without duplicate time or disruptive errors. Preserve local tracking without
+  reading file contents or retaining file paths. Validate fresh installation,
+  upgrade/removal and time attribution on Linux/macOS for each supported editor.
 - [ ] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
 - [ ] Add a Discord button in Settings opening the project's Discord invite, plus
@@ -270,9 +340,19 @@ Status: **scope agreed; implementation and release validation pending**.
   evaluation reminders in the inbox, linking to the relevant project/evaluation.
   Define reminder timing, read/deduplication behavior and DND handling; keep the
   dashboard and notifications consistent after schedule changes.
+- [ ] Add user-selected Intra event reminders, time-change and cancellation
+  notifications to the unified inbox, respecting DND. Define reminder choices,
+  subscriptions and deduplication; link back to the event and keep notifications
+  consistent with the 0.7.0 agenda after refreshes and schedule changes.
 - [ ] Show online, inactive, DND and offline using differently colored round
   Unicode indicators in friends lists, replacing rank numbers outside ranking mode.
   Define presence source, idle/offline timing and DND behavior before implementation.
+- [ ] Add optional Discord Rich Presence (RPC), disabled by default, showing
+  42TUI and the current section/activity while navigating. Provide a Settings
+  toggle; exclude account identifiers, private project details and messages.
+  Define idle/DND behavior, clear activity on disable/exit, and handle Discord
+  being unavailable or reconnecting without blocking the TUI. Validate on Linux
+  and macOS; this is separate from in-app friend presence and the Discord invite.
 - [ ] Replace the poke inbox below search with a direct Send poke action, matching
   friend details; make each poke a message viewed once and define read semantics.
 - [ ] Simplify the poke sender modal, remove excessive details below the message
@@ -292,18 +372,110 @@ Status: **scope agreed; implementation and release validation pending**.
   clubs. Keep private clubs accessible through delegate/owner invitations only,
   with invitations delivered through the notification inbox introduced in 0.8.0.
 
-## Later initiatives — Shops, currency and WIP
+## Further updates — Versions and dates undecided
 
 Status: **captured for design; versions and dates undecided**.
 
+- [ ] Later, support Intra event registration/unregistration from the TUI after
+  validating available capabilities and account permissions. Review and confirm
+  actions, reflect capacity/eligibility where known and refresh uncertain results
+  before retrying. Include club events in the agenda after the club rework,
+  preserving club visibility/permissions and distinguishing them from Intra events.
+- [ ] Prepare a stable release for all 42 campuses: audit features currently
+  tailored to Angouleme and remove campus-specific assumptions using the selected
+  campus context and its available capabilities. Validate feature coverage across
+  campuses, preserve Angouleme behavior and clearly indicate unavailable features
+  rather than showing data from another campus. Confirm readiness per campus
+  before claiming stable support across the network.
+- [ ] Support specific curricula and short programmes, including Piscine Discovery
+  and work-experience placements for seconde students (stages de seconde). Audit
+  available curriculum data and adapt onboarding, project/progress displays and
+  eligible actions to the selected programme instead of assuming the common core.
+  Preserve account/campus/curriculum boundaries and validate each programme with
+  representative fixtures before claiming support.
+- [ ] Add a project readiness checklist before evaluation: review required files,
+  Git state, compilation and tester results, with links to resolve issues. Reuse
+  existing project/Git/tester data, distinguish missing or stale checks from
+  passing results, and make clear that readiness does not guarantee validation.
+- [ ] Add opt-in peer study matching for students working on the same project,
+  including study sessions and mock evaluations. Let users control visibility
+  and withdraw availability; respect campus/curriculum context and existing
+  blocking/privacy rules.
+- [ ] Add a workload planner combining personal project targets, booked evaluations
+  and declared availability into a weekly plan. Reuse evaluation data and keep
+  personal targets distinct from official deadlines; handle schedule changes and
+  overlapping commitments without silently changing bookings.
+- [ ] After 0.10.0 (exact version and detailed design undecided), extend the
+  planner/personal agenda with a milestone view based on the student's selected
+  pace and current progress. Suggest a project sequence and target submission
+  dates to stay on schedule, accounting for prerequisites, availability and
+  evaluation time. Distinguish official milestone deadlines from estimated
+  project durations and suggested dates; show uncertainty or an infeasible plan
+  rather than guaranteeing timely completion. Define pace/deadline sources and
+  campus/curriculum rules during later design, with user review when replanning.
+- [ ] Add exam practice mode with timed sessions in disposable folders, saved
+  results and a review of recurring mistakes. Use permitted practice material,
+  keep personal project files intact and support interruption/restart; distinguish
+  practice results from official exam outcomes.
+- [ ] Add integration diagnostics covering editor heartbeats, executable paths,
+  backend connectivity and stale data. Reuse integration setup checks, show
+  actionable fixes and provide a reviewable sanitized report excluding credentials,
+  personal paths and private account/project data; do not send it automatically.
+- [ ] Add data export and backup for notes, time records and preferences, with
+  safe restore when changing machines. Exclude credentials, validate imports,
+  preview conflicts and preserve existing data on cancellation or failure;
+  document backup contents and format compatibility.
+- [ ] Explore optional Obsidian integration complementing existing project dev
+  logs/notes: associate a project with a chosen vault folder, export selected notes
+  as Markdown and open the corresponding note in Obsidian. Support explicit import
+  of external edits with conflict review; preserve note identity, timestamps and
+  user content without duplicate imports or silent overwrites/deletions. Consider
+  an opt-in daily dev-log summary linking project notes, recorded work sessions
+  and next steps. Reuse Markdown export/backup work, keep built-in notes usable
+  without Obsidian, and validate vault paths, missing/moved files and Linux/macOS
+  app-opening behavior before delivery; avoid a required plugin or cloud service.
+- [ ] Add an optional music player integrated into the TUI, with provider
+  selection targeting Spotify, Deezer, SoundCloud and YouTube. Reuse maintained
+  open-source players/libraries after verifying license compatibility, dependency
+  redistribution and attribution requirements. Assess playback support, provider
+  terms, authentication and subscription requirements per provider before promising
+  support. Provide guided installation/setup and in-TUI playback controls while
+  navigating, with safe credential storage and graceful handling of unavailable
+  providers. Validate installation, playback and cleanup on Linux/macOS; choose
+  the initial supported providers after feasibility review.
 - [ ] Integrate the actual Intra goodies shop and wallets; establish available
   integration capabilities before committing to delivery.
+- [ ] Explore optional game modules within clubs, depending on the club rework
+  planned for 0.9.0. Start with a chess club: play chess inside the TUI, retain
+  match history and provide club rankings with Elo ratings. Reuse a maintained,
+  license-compatible chess library for legal moves and game outcomes; define
+  time controls, draws, resignation and interrupted-game behavior before delivery.
+- [ ] Add a babyfoot (table football) club module for recording players/teams,
+  live scores and completed matches, with history and Elo-based rankings. Define
+  singles/doubles rating rules, result confirmation and correction handling;
+  keep chess and babyfoot ratings separate and avoid rating unfinished or
+  duplicate matches.
+- [ ] Provide a small mobile-friendly companion web app for the babyfoot club:
+  select players/teams, start a match, count points, undo scoring mistakes and
+  confirm the final result. Keep scores, history and rankings consistent with
+  the TUI; handle concurrent scorers and interrupted connections without duplicate
+  points/results. Reuse club membership/permissions, restrict score changes to
+  authorized participants and assess backend/authentication/hosting needs before
+  committing to delivery. Keep club rankings scoped to the relevant club.
+- [ ] Later, extend club games with opt-in inter-campus rankings for babyfoot,
+  chess and other supported games available locally. Record each participating
+  campus's confirmed games/equipment (such as a babyfoot table); unavailable or
+  unknown availability must not count as a loss or zero score. Build on validated
+  club results and retain local rankings. Define whether rankings compare players,
+  teams or campuses, common rules and comparable rating pools before combining
+  results; independent local Elo ratings are not directly comparable. Depends on
+  stable multi-campus support and the relevant club-game modules.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
   upgrading profile customisation. Depends on the profile work above.
 - [ ] Explore WIP, an animated pixel-art royal otter companion with multiple
   states, movement in the TUI and emotes; scope its behavior in a dedicated design.
 
-For future social/profile/club/shop features requiring API changes, assess contracts
+For future campus/curriculum/social/profile/club/shop features requiring API changes, assess contracts
 and older-client compatibility, validate both repositories separately and deploy
 required compatible backend changes before the consuming client release. See
 [API compatibility](docs/api-compatibility.md). These scopes do not imply backend
