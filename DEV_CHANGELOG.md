@@ -12,6 +12,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add unversioned club-game proposals to Further updates: in-TUI
+  chess with Elo/history, babyfoot match scoring and rankings, and a mobile
+  companion web app for live scoring. Record club-rework dependency, separate
+  ratings, result confirmation/correction, permissions and reconnect/concurrency
+  requirements. Planning only; no release required. Checks: roadmap consistency
+  and diff/whitespace review; gameplay, rating rules and web/backend feasibility
+  not validated. Branch: `docs/roadmap-additions`; commit/PR pending.
+
 - 2026-10-29: Add an optional integrated music player to Further updates,
   targeting provider selection for Spotify, Deezer, SoundCloud and YouTube through
   reusable open-source projects. Require license/provider feasibility review,

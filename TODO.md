@@ -367,6 +367,23 @@ Status: **captured for design; versions and dates undecided**.
   the initial supported providers after feasibility review.
 - [ ] Integrate the actual Intra goodies shop and wallets; establish available
   integration capabilities before committing to delivery.
+- [ ] Explore optional game modules within clubs, depending on the club rework
+  planned for 0.9.0. Start with a chess club: play chess inside the TUI, retain
+  match history and provide club rankings with Elo ratings. Reuse a maintained,
+  license-compatible chess library for legal moves and game outcomes; define
+  time controls, draws, resignation and interrupted-game behavior before delivery.
+- [ ] Add a babyfoot (table football) club module for recording players/teams,
+  live scores and completed matches, with history and Elo-based rankings. Define
+  singles/doubles rating rules, result confirmation and correction handling;
+  keep chess and babyfoot ratings separate and avoid rating unfinished or
+  duplicate matches.
+- [ ] Provide a small mobile-friendly companion web app for the babyfoot club:
+  select players/teams, start a match, count points, undo scoring mistakes and
+  confirm the final result. Keep scores, history and rankings consistent with
+  the TUI; handle concurrent scorers and interrupted connections without duplicate
+  points/results. Reuse club membership/permissions, restrict score changes to
+  authorized participants and assess backend/authentication/hosting needs before
+  committing to delivery. Keep club rankings scoped to the relevant club.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
   upgrading profile customisation. Depends on the profile work above.
 - [ ] Explore WIP, an animated pixel-art royal otter companion with multiple
