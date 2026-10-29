@@ -125,6 +125,57 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(service.prepare_and_run.call_args.args[1], str(root))
             self.assertIn("Read the log", widget._workspace.log_path.read_text())
 
+    async def test_workspace_distinguishes_structured_results_from_process_completion(self):
+        from ft_tui.features.projects.tester_results import TestSummary, TesterRunResult
+        from ft_tui.i18n import translate
+        from textual.widgets import Static
+        cases = (
+            (TesterRunResult(0, TestSummary(3, 3, 0, 0, 0)), "Tests passed."),
+            (TesterRunResult(0, TestSummary(3, 2, 1, 0, 0)), "Tests failed. Read the log for details."),
+            (TesterRunResult(1, TestSummary(3, 2, 1, 0, 0)), "Tests failed. Read the log for details."),
+            (TesterRunResult(2), "Tester process failed. Test results are not confirmed. Read the log."),
+            (TesterRunResult(0, unreadable=True), "Tester results could not be read. Read the log."),
+            (TesterRunResult(0), "Tester finished. Test results are unverified. Read the log."),
+        )
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            await self.select(widget, projects["libft"], pilot)
+            for language in ("en", "fr", "es"):
+                app.language = language
+                for outcome, message in cases:
+                    with self.subTest(language=language, status=outcome.status):
+                        if widget._workspace and widget._workspace.is_current:
+                            app.pop_screen()
+                            await pilot.pause()
+                        service.prepare_and_run = Mock(return_value=outcome)
+                        await widget._perform("run", app.tester_catalog.testers[0], str(root), None)
+                        workspace = widget._workspace
+                        workspace.refresh_output()
+                        rendered = str(workspace.query_one("#tester-result", Static).render())
+                        self.assertIn(translate(message, language), rendered)
+                        self.assertIn(translate("Process exit code: {code}", language).format(code=outcome.exit_code), rendered)
+                        if language != "en":
+                            self.assertNotEqual(translate(message, language), message)
+                        transcript = workspace.log_path.read_text()
+                        self.assertIn(translate(message, language), transcript)
+                        if outcome.summary:
+                            counts = translate("Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}", language).format(**vars(outcome.summary))
+                            self.assertIn(counts, transcript)
+                            self.assertIn(counts, rendered)
+                        self.assertFalse(service.busy)
+                        self.assertFalse(workspace.query_one("#tester-rerun", Button).disabled)
+                        await pilot.press("escape")
+                        await pilot.pause()
+
+    async def test_workspace_refresh_waits_for_complete_controls_during_teardown(self):
+        from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+        async with self.workspace() as (app, _widget, _service, _projects, _pilot, root):
+            workspace = TesterWorkspace("Synthetic", root / "log")
+            await app.push_screen(workspace)
+            await workspace.query_one("#tester-cancel", Button).remove()
+            workspace.output.append(b"preserve pending output")
+            workspace.refresh_output()
+            self.assertEqual(list(workspace.output), [b"preserve pending output"])
+
     async def test_testers_below_registration_and_shortcut_reveals_actions_on_small_screens(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, root):
             projects["libft"].local_path = str(root)

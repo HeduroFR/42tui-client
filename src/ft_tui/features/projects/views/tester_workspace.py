@@ -35,6 +35,7 @@ class TesterWorkspace(AppModal):
         self.started = time.monotonic()
         self.finished = None
         self.result = 'Tester operation in progress…'
+        self.result_details = ''
         self.follow = True
         self.console = TesterConsole()
 
@@ -56,6 +57,10 @@ class TesterWorkspace(AppModal):
         self.refresh_output()
 
     def refresh_output(self):
+        # Timers can fire while a replaced workspace's children are unmounting.
+        if not self.is_attached or not all(self.query(selector) for selector in (
+                '#tester-output', '#tester-result', '#tester-rerun', '#tester-cancel', '#tester-input')):
+            return
         log = self.query_one('#tester-output', RichLog)
         chunks = []
         try:
@@ -72,7 +77,8 @@ class TesterWorkspace(AppModal):
                 log.scroll_to(position.x, position.y, animate=False, immediate=True)
         elapsed = (self.finished or time.monotonic()) - self.started
         self.query_one('#tester-result', Static).update(
-            translate(self.result, self.app.language) + f' · {elapsed:.1f}s')
+            translate(self.result, self.app.language) + f' · {elapsed:.1f}s'
+            + ('\n' + self.result_details if self.result_details else ''))
         self.query_one('#tester-rerun', Button).disabled = self.finished is None or self.rerun is None
         self.query_one('#tester-cancel', Button).disabled = self.finished is not None or bool(
             self.session and self.session.cancel_requested)

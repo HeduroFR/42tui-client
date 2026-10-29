@@ -16,6 +16,7 @@ from ft_tui.features.projects.adapters.tester_catalog import Tester
 from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, TesterError
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+from ft_tui.features.projects.tester_results import TesterRunResult
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -262,7 +263,9 @@ class ProjectTesters(Vertical):
         service = self.app.tester_docker
         language = self.app.language
         key = tester.id if tester else "docker"
-        message = "Tester finished. Read the log for test results."
+        message = "Tester finished. Test results are unverified. Read the log."
+        outcome = None
+        result_details = ""
         log_path = None
         error_detail = None
         try:
@@ -280,20 +283,21 @@ class ProjectTesters(Vertical):
                 terminal = workspace.session = WorkspaceSession(log, workspace.output.append, language=language)
 
                 def operate():
+                    result = None
                     try:
                         with service.operation():
                             if action == "run":
-                                service.prepare_and_run(tester, project_path, terminal, plan=plan)
+                                result = service.prepare_and_run(tester, project_path, terminal, plan=plan)
                             elif action == "remove":
                                 service.remove(tester, terminal)
                             terminal.check_cancelled()
                     except (KeyboardInterrupt, EOFError):
-                        return False
-                    return True
+                        return False, None
+                    return True, result
 
                 task = asyncio.create_task(asyncio.to_thread(operate))
                 try:
-                    completed = await asyncio.shield(task)
+                    completed, outcome = await asyncio.shield(task)
                 except asyncio.CancelledError:
                     terminal.cancel()
                     # Keep the transcript open until child and container cleanup finish.
@@ -306,6 +310,19 @@ class ProjectTesters(Vertical):
                 raise EOFError
             if action == "remove":
                 message = "Tester removed. Run it again to reinstall and test."
+            elif isinstance(outcome, TesterRunResult):
+                message = {
+                    "passed": "Tests passed.",
+                    "failed": "Tests failed. Read the log for details.",
+                    "process_failed": "Tester process failed. Test results are not confirmed. Read the log.",
+                    "unreadable": "Tester results could not be read. Read the log.",
+                    "unknown": "Tester finished. Test results are unverified. Read the log.",
+                }[outcome.status]
+                result_details = translate("Process exit code: {code}", language).format(code=outcome.exit_code)
+                if outcome.summary:
+                    result_details += "\n" + translate(
+                        "Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}",
+                        language).format(**vars(outcome.summary))
             self._retry.discard(key)
         except (EOFError, asyncio.CancelledError):
             message = "Tester operation interrupted. You can retry."
@@ -319,6 +336,8 @@ class ProjectTesters(Vertical):
         finally:
             self._operating = False
             text = translate(message, language)
+            if result_details:
+                text += "\n" + result_details
             if error_detail:
                 text += "\n" + translate(error_detail, language)
             if log_path:
@@ -330,6 +349,7 @@ class ProjectTesters(Vertical):
                     text += "\n" + str(error)
             if self._workspace is not None:
                 self._workspace.result = message
+                self._workspace.result_details = result_details
                 self._workspace.finished = time.monotonic()
                 display_text = (text + "\n").replace("\r\n", "\n").replace("\n", "\r\n")
                 self._workspace.output.append(display_text.encode())

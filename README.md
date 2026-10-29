@@ -151,8 +151,30 @@ then choose **Tester workspace** from any project's tester section to return.
 **Pause output** stops automatic scrolling. Full logs are saved automatically;
 **Open log folder** opens its directory in your file explorer. The output view retains recent output only.
 The console interprets cursor redraws and colors on a 100-column terminal with
-scrollback; narrow windows can scroll horizontally. Process completion alone does not mean all tests passed: read the tester results
-in the log. Full-screen terminal applications are not supported by this workspace.
+scrollback; narrow windows can scroll horizontally. Process completion alone does
+not mean all tests passed. The workspace and saved log distinguish reported test
+failures, process failures, unreadable reports and unverified results, with the
+process exit code and available test counts. The bundled Francinette integration
+does not yet provide a structured summary: its results remain **unverified** and
+must be checked in the log. Full-screen terminal applications are not supported.
+
+Custom definitions in `~/.config/42tui/testers.toml` (or
+`$XDG_CONFIG_HOME/42tui/testers.toml`) can opt into structured results by adding
+`result_file = "reports/result.json"` to their `[[testers]]` entry. The tester must
+write a UTF-8 JSON report at that path under `/project` during each run:
+
+```json
+{"version": 1, "total": 4, "passed": 2, "failed": 1, "errors": 0, "skipped": 1}
+```
+
+All counts are required nonnegative integers, must add up to `total`, and must
+include at least one executed test. Only a valid report with no failures/errors
+and process exit code zero yields **Tests passed**. An absent, invalid, empty or
+all-skipped report cannot confirm passing tests. Reports are limited to 64 KiB;
+symbolic links and nonregular files are rejected. Use a dedicated report path,
+not a source file: an inherited report is removed from the disposable copy before execution
+to prevent stale results. The original project is unchanged. Reported success
+describes that tester's checks, not official project validation.
 
 On Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an

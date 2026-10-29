@@ -29,6 +29,7 @@ class Tester:
     context: str
     command: tuple[str, ...]
     architectures: tuple[str, ...] = ("amd64",)
+    result_file: str | None = None
 
     @property
     def image(self) -> str:
@@ -63,7 +64,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         raise ValueError("Expected [[testers]] entries")
     result: dict[str, Tester | None] = {}
     fields = {"id", "name", "projects", "platforms", "repository", "ref", "context", "command", "enabled",
-              "architectures"}
+              "architectures", "result_file"}
     for entry in document["testers"]:
         if not isinstance(entry, dict) or set(entry) - fields:
             raise ValueError("Unknown tester field")
@@ -103,10 +104,16 @@ def _entries(content: str) -> dict[str, Tester | None]:
             raise ValueError(f"{identifier}: context must stay inside the repository")
         if any(not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", slug) for slug in entry["projects"]):
             raise ValueError(f"{identifier}: invalid project slug")
+        result_file = entry.get("result_file")
+        if "result_file" in entry and (
+                not isinstance(result_file, str) or not result_file.strip() or "\x00" in result_file
+                or PurePosixPath(result_file).is_absolute() or not PurePosixPath(result_file).parts
+                or any(part in {"..", ".git"} for part in PurePosixPath(result_file).parts)):
+            raise ValueError(f"{identifier}: result_file must be a file inside the project copy")
         result[identifier] = Tester(
             identifier, entry["name"], tuple(project_slug(slug) for slug in entry["projects"]),
             tuple(entry["platforms"]), entry["repository"], entry["ref"].lower(),
-            entry["context"], tuple(entry["command"]), tuple(architectures),
+            entry["context"], tuple(entry["command"]), tuple(architectures), result_file,
         )
     return result
 

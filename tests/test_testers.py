@@ -77,6 +77,17 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         self.path.write_bytes(b"\xff")
         self.assertEqual(load_catalog(self.path).testers, self.catalog.testers)
 
+    def test_optional_result_file_is_a_project_relative_json_report(self):
+        catalog = self.write(self.entry() + 'result_file = "reports/result.json"\n')
+        self.assertFalse(catalog.error)
+        self.assertEqual(catalog.testers[-1].result_file, "reports/result.json")
+        self.assertIsNone(self.tester.result_file)
+        for value in ('"/outside.json"', '"../outside.json"', '"."', '""', 'false', '".git/result.json"'):
+            with self.subTest(value=value):
+                catalog = self.write(self.entry() + f'result_file = {value}\n')
+                self.assertTrue(catalog.error)
+                self.assertEqual(catalog.testers, self.catalog.testers)
+
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):
             self.assertEqual(user_catalog_path(), self.path.parent / "42tui/testers.toml")
@@ -277,16 +288,139 @@ class TesterDockerTests(unittest.TestCase):
                     patch.object(self.service, "_user_arguments", return_value=[]), \
                     patch.object(self.service, "_preflight"), \
                     patch.object(self.service, "_cleanup"):
-                if failure:
-                    with self.assertRaises(type(failure)):
+                if isinstance(failure, KeyboardInterrupt):
+                    with self.assertRaises(KeyboardInterrupt):
                         self.service.run(self.tester, str(project), terminal)
                 else:
-                    self.service.run(self.tester, str(project), terminal)
+                    result = self.service.run(self.tester, str(project), terminal)
+                    self.assertEqual(result.status, "process_failed" if failure else "unknown")
             self.assertEqual((project / "source.c").read_text(), "original")
             self.assertEqual((project / ".git/config").read_text(), "private remote configuration")
             self.assertFalse((project / "artifact").exists())
             self.assertEqual(len(mounted), 1)
             self.assertFalse(mounted[0].exists())
+
+    def synthetic_result(self, report=None, *, exit_code=0, configured=True, inherited=None, script=None):
+        from io import BytesIO
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        project = self.root / "project"
+        project.mkdir(exist_ok=True)
+        if inherited is not None:
+            (project / "result.json").write_text(inherited)
+        tester = replace(self.tester, result_file="result.json" if configured else None)
+        log = BytesIO()
+        terminal = WorkspaceSession(log, lambda data: None)
+        mounted = []
+
+        def run(terminal, args, **kwargs):
+            fields = next(csv.reader([args[args.index("--mount") + 1]]))
+            copy = Path(next(field.removeprefix("source=") for field in fields if field.startswith("source=")))
+            mounted.append(copy)
+            program = "from pathlib import Path; import sys, os; "
+            if report is not None:
+                program += f"Path('result.json').write_text({report!r}); "
+            if script is not None:
+                program += script + "; "
+            program += f"print('synthetic tester finished'); sys.exit({exit_code})"
+            terminal.run([sys.executable, "-c", program], cwd=copy)
+
+        with (patch.object(self.service, "_require_ready", return_value="docker"),
+              patch.object(self.service, "status", return_value=DockerStatus("ready")),
+              patch.object(self.service, "_install"),
+              patch.object(self.service, "installed", return_value=True),
+              patch.object(self.service, "_user_arguments", return_value=[]),
+              patch.object(self.service, "_preflight"),
+              patch.object(self.service, "_run", side_effect=run),
+              patch.object(self.service, "_cleanup")):
+            result = self.service.prepare_and_run(tester, str(project), terminal)
+        self.assertIn(b"synthetic tester finished", log.getvalue())
+        self.assertFalse(mounted[0].exists())
+        return result
+
+    def test_zero_exit_does_not_hide_structured_test_failures(self):
+        result = self.synthetic_result(json.dumps(dict(version=1, total=3, passed=2, failed=1, skipped=0, errors=0)))
+        self.assertIsNotNone(result, "the runner must return a structured outcome")
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.summary.failed, 1)
+        self.assertEqual(result.summary.total, 3)
+        self.assertFalse((self.root / "project/result.json").exists())
+
+    def test_process_exit_without_a_reader_is_not_a_passing_test_result(self):
+        self.assertEqual(self.synthetic_result(configured=False).status, "unknown")
+        result = self.synthetic_result(configured=False, exit_code=1)
+        self.assertEqual(result.status, "process_failed")
+        self.assertEqual(result.exit_code, 1)
+
+    def test_nonzero_exit_with_reported_failures_is_a_test_failure(self):
+        report = json.dumps(dict(version=1, total=3, passed=2, failed=1, skipped=0, errors=0))
+        result = self.synthetic_result(report, exit_code=1)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.exit_code, 1)
+
+    def test_nonzero_exit_cannot_be_overridden_by_a_passing_report(self):
+        report = json.dumps(dict(version=1, total=3, passed=3, failed=0, skipped=0, errors=0))
+        self.assertEqual(self.synthetic_result(report).status, "passed")
+        self.assertEqual(self.synthetic_result(report, exit_code=2).status, "process_failed")
+
+    def test_invalid_or_empty_summaries_are_unreadable_not_passing(self):
+        valid = dict(version=1, total=3, passed=3, failed=0, skipped=0, errors=0)
+        invalid = [None, "not JSON", "[]", "{}", "{" + "[" * 2000,
+                   json.dumps({**valid, "version": 2}), json.dumps({**valid, "version": True}),
+                   json.dumps({**valid, "failed": -1}), json.dumps({**valid, "passed": True}),
+                   json.dumps({**valid, "passed": "3"}), json.dumps({**valid, "passed": 2}),
+                   json.dumps(dict(version=1, total=0, passed=0, failed=0, skipped=0, errors=0)),
+                   json.dumps(dict(version=1, total=3, passed=0, failed=0, skipped=3, errors=0))]
+        for report in invalid:
+            with self.subTest(report=report):
+                try:
+                    result = self.synthetic_result(report)
+                except (ValueError, TypeError, KeyError, OSError, RecursionError) as error:
+                    self.fail(f"unreadable summaries must be outcomes, not crashes: {type(error).__name__}")
+                self.assertEqual(result.status, "unreadable")
+                self.assertIsNone(result.summary)
+
+    def test_results_must_be_fresh_regular_bounded_files_inside_the_copy(self):
+        report = json.dumps(dict(version=1, total=1, passed=1, failed=0, skipped=0, errors=0))
+        self.assertEqual(self.synthetic_result(inherited=report).status, "unreadable")
+        self.assertEqual((self.root / "project/result.json").read_text(), report)
+        outside = self.root / "outside.json"
+        outside.write_text(report)
+        for script in (f"Path('result.json').symlink_to({str(outside)!r})",
+                       "Path('result.json').mkdir()",
+                       "os.mkfifo('result.json')",
+                       "Path('result.json').write_bytes(b' ' * 65537)",
+                       "Path('result.json').write_bytes(b'\\xff')"):
+            with self.subTest(script=script):
+                self.assertEqual(self.synthetic_result(script=script).status, "unreadable")
+        self.assertEqual(outside.read_text(), report)
+
+    def test_docker_launch_failures_cannot_be_reported_as_test_failures(self):
+        report = json.dumps(dict(version=1, total=1, passed=0, failed=1, skipped=0, errors=0))
+        for code in (125, 126, 127):
+            with self.subTest(code=code), self.assertRaises(subprocess.CalledProcessError):
+                self.synthetic_result(report, exit_code=code)
+
+    def test_nested_report_paths_reject_symlink_parents_without_deleting_the_target(self):
+        from ft_tui.features.projects.adapters.tester_reports import clear_report, read_report
+        report = json.dumps(dict(version=1, total=1, passed=1, failed=0, skipped=0, errors=0))
+        project, outside = self.root / "copy", self.root / "outside"
+        project.mkdir()
+        outside.mkdir()
+        target = outside / "result.json"
+        target.write_text(report)
+        (project / "reports").symlink_to(outside, target_is_directory=True)
+        for operation in (clear_report, read_report):
+            with self.subTest(operation=operation.__name__), self.assertRaises(OSError):
+                operation(project, "reports/result.json")
+        self.assertEqual(target.read_text(), report)
+        (project / "reports").unlink()
+        (project / "reports").mkdir()
+        (project / "reports/result.json").write_text(report)
+        self.assertEqual(read_report(project, "reports/result.json").passed, 1)
+        clear_report(project, "reports/result.json")
+        self.assertFalse((project / "reports/result.json").exists())
 
     def test_global_operation_lock_is_released_after_interruption(self):
         with self.assertRaises(KeyboardInterrupt), self.service.operation():

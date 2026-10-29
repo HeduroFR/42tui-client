@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Distinguish reported test failures from tester process failures, unreadable
+  reports and unverified results. Show exit codes and available test counts in
+  the workspace and saved log, with French/Spanish translations. Custom testers
+  can provide a fresh JSON summary through `result_file`; Francinette results
+  still require reading the log and are not inferred from a successful exit.
+- Avoid a workspace refresh error when replacing a finished tester run.
+
 - Recover new or empty project folders from the development remote when Vogsphere
   is unreachable, with a warning that Vogsphere history remains unverified.
   Existing local work still requires review before synchronization.

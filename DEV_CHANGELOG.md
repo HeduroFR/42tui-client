@@ -2,11 +2,12 @@
 
 Latest release: **0.5.2** ([`v0.5.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.2)).
 Package version: **0.5.2**.
-Suggested next release: **none**. No unreleased product changes.
+Suggested next release: **0.6.0** (minor), for the implemented tester workspace,
+project copy protection and structured result reporting; not publication-ready.
 The tester workspace rework remains planned for 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
 The implemented tester workspace and copy protection warrant preparing 0.6.0
-(minor) after the existing 0.5.2 candidate; they are outside that immutable artifact.
+(minor) beyond the published 0.5.2 artifact.
 Remaining runtime/platform and release gates prevent publication readiness.
 
 This file tracks implemented changes since the latest successful release. Keep
@@ -15,8 +16,28 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
-The following roadmap documentation landed after the release candidate; it
-requires no package release and remains pending implementation.
+- 2026-10-29: Add portable tester outcomes and opt-in TOML `result_file` JSON
+  summaries, read before disposable-copy cleanup. Distinguish test failures,
+  process failures, unreadable reports and unverified results; require consistent
+  counts and a successful process before confirming passing tests. Reject stale,
+  linked, nonregular, oversized, invalid and all-skipped reports. Display exit
+  codes/counts in the workspace and transcript with French/Spanish coverage;
+  document the contract and keep Francinette explicitly unverified without a
+  validated reader. Fix a teardown-timer crash exposed by repeated result runs.
+  Checks: tester scope 90 passed (synthetic real-PTY subprocesses and headless UI),
+  architecture 9 and locale 2 passed; scope ownership covers all 949 discovered
+  tests without overlap; whitespace/diff reviewed and added-line/new-file security
+  scan found no matches. Full-suite and packaging checks not run. Minor impact for
+  planned 0.6.0, worth preparing against the published 0.5.2 baseline but not ready to publish. Branch
+  `feat/tester-workspace-0.6.0`; PR #47. Independent review found no blocking
+  security or logic issues; focused tester, architecture and locale checks were
+  repeated successfully after synchronizing with the updated PR branch. Real
+  Docker/Francinette Linux/macOS result validation, contrasting/native testers,
+  exact-candidate CI/package/compatibility gates and separate backend security
+  work remain pending. No version bump, backend change or external write.
+
+Implemented tester changes and later roadmap documentation are retained below;
+planning-only entries do not imply completed features.
 
 - 2026-10-29: Consolidate the pending tester line-ending/button fixes, checkout
   SSH modal, development-remote fallback and unnumbered group-Git roadmap for

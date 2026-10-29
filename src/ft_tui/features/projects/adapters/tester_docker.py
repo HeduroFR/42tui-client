@@ -22,6 +22,8 @@ from urllib.parse import quote
 
 from ft_tui.config.settings import data_dir
 from ft_tui.features.projects.adapters.tester_catalog import Tester
+from ft_tui.features.projects.adapters.tester_reports import clear_report, read_report
+from ft_tui.features.projects.tester_results import TesterRunResult
 
 ENGINE_DOCS = "https://docs.docker.com/engine/install/"
 MAC_DOCS = "https://docs.docker.com/desktop/setup/install/mac-install/"
@@ -338,13 +340,13 @@ class TesterDocker:
             finally:
                 self._cleanup([docker, "image", "rm", staging])
 
-    def run(self, tester: Tester, project_path: str | None, terminal) -> None:
+    def run(self, tester: Tester, project_path: str | None, terminal) -> TesterRunResult:
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
         with self.connection():
-            self._run_tester(tester, project_path, terminal)
+            return self._run_tester(tester, project_path, terminal)
 
-    def _run_tester(self, tester: Tester, project_path: str, terminal) -> None:
+    def _run_tester(self, tester: Tester, project_path: str, terminal) -> TesterRunResult:
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
         path = Path(project_path).expanduser().resolve()
@@ -358,9 +360,24 @@ class TesterDocker:
             copy = Path(directory) / path.name
             terminal.write("Preparing a disposable project copy…")
             shutil.copytree(path, copy, symlinks=True, ignore=shutil.ignore_patterns(".git"))
-            self._run_project_copy(tester, copy, docker, terminal)
+            report_ready = True
+            if tester.result_file:
+                try:
+                    clear_report(copy, tester.result_file)
+                except (OSError, ValueError):
+                    report_ready = False
+            exit_code = self._run_project_copy(tester, copy, docker, terminal)
+            summary = None
+            if tester.result_file:
+                try:
+                    if not report_ready:
+                        return TesterRunResult(exit_code, unreadable=True)
+                    summary = read_report(copy, tester.result_file)
+                except (ValueError, TypeError, KeyError, OSError, RecursionError):
+                    return TesterRunResult(exit_code, unreadable=True)
+            return TesterRunResult(exit_code, summary)
 
-    def _run_project_copy(self, tester: Tester, path: Path, docker: str, terminal) -> None:
+    def _run_project_copy(self, tester: Tester, path: Path, docker: str, terminal) -> int:
         architecture = self.architecture(tester)
         user = self._user_arguments(docker)
         self._preflight(docker, tester, path, user, terminal)
@@ -373,6 +390,12 @@ class TesterDocker:
         try:
             terminal.write("Running the tester…")
             self._run(terminal, args)
+            return 0
+        except subprocess.CalledProcessError as error:
+            # Docker reserves these codes for engine/command launch failures.
+            if error.returncode in {125, 126, 127} or error.returncode < 0:
+                raise
+            return error.returncode
         finally:
             self._cleanup([docker, "rm", "--force", container])
 
@@ -478,7 +501,7 @@ class TesterDocker:
         return None
 
     def prepare_and_run(self, tester: Tester, project_path: str | None, terminal,
-                        *, plan: DockerInstallation | None = None) -> None:
+                        *, plan: DockerInstallation | None = None) -> TesterRunResult:
         """Set up user-owned dependencies, then install and run on one Docker connection."""
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
@@ -532,7 +555,7 @@ class TesterDocker:
             raise TesterError(message + ("\n" + status.detail if status.detail else ""))
         with self.connection():
             self._install(tester, terminal)
-            self._run_tester(tester, project_path, terminal)
+            return self._run_tester(tester, project_path, terminal)
 
     def installation(self) -> DockerInstallation | None:
         if self.host.system != "darwin" or self.host.architecture not in {"amd64", "arm64"}:
