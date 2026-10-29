@@ -362,6 +362,14 @@ Status: **captured for design; versions and dates undecided**.
   and declared availability into a weekly plan. Reuse evaluation data and keep
   personal targets distinct from official deadlines; handle schedule changes and
   overlapping commitments without silently changing bookings.
+- [ ] After 0.10.0 (exact version and detailed design undecided), extend the
+  planner/personal agenda with a milestone view based on the student's selected
+  pace and current progress. Suggest a project sequence and target submission
+  dates to stay on schedule, accounting for prerequisites, availability and
+  evaluation time. Distinguish official milestone deadlines from estimated
+  project durations and suggested dates; show uncertainty or an infeasible plan
+  rather than guaranteeing timely completion. Define pace/deadline sources and
+  campus/curriculum rules during later design, with user review when replanning.
 - [ ] Add exam practice mode with timed sessions in disposable folders, saved
   results and a review of recurring mistakes. Use permitted practice material,
   keep personal project files intact and support interruption/restart; distinguish

@@ -12,6 +12,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Extend the future workload-planner roadmap with a pace-based
+  milestone calendar and suggested project submission dates, targeted after
+  0.10.0 with detailed design deferred. Distinguish official deadlines from
+  estimates and flag infeasible plans. Planning only; no release required.
+  Checks: existing planner/agenda scope and diff/whitespace review; scheduling
+  logic and pace/deadline sources not validated. Branch: `docs/roadmap-additions`;
+  commit/PR pending.
+
 - 2026-10-29: Schedule Intra event browsing and a personal agenda with upcoming
   evaluations for 0.7.0, user-selected reminders/change/cancellation notifications
   respecting DND for 0.8.0, and event participation plus club-event integration
