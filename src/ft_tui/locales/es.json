@@ -1239,5 +1239,6 @@
   "Only committed work is pushed, without force. Confirm to continue.": "Solo se publica el trabajo confirmado, sin forzar. Confirma para continuar.",
   "Running Git operation…": "Ejecutando operación Git…",
   "Use the action buttons to view output here. Pull and push require confirmation; terminal commands remain available below.": "Usa los botones para ver la salida aquí. Pull y push requieren confirmación; los comandos para el terminal siguen disponibles abajo.",
-  "Inspect commits": "Inspeccionar commits"
+  "Inspect commits": "Inspeccionar commits",
+  "Preparing a disposable project copy…": "Preparando una copia temporal del proyecto…"
 }

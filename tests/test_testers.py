@@ -1,5 +1,6 @@
 """Catalog validation and Docker operations without an engine or administrator access."""
 
+import csv
 import json
 import os
 import shlex
@@ -247,6 +248,46 @@ class TesterDockerTests(unittest.TestCase):
                     self.service.run(self.tester, path, Mock())
             ready.assert_not_called()
 
+    def test_tester_writes_and_cleanup_never_change_the_checkout(self):
+        project = self.root / "project"
+        project.mkdir()
+        (project / "source.c").write_text("original")
+        (project / ".git").mkdir()
+        (project / ".git/config").write_text("private remote configuration")
+        (project / "source-link").symlink_to("source.c")
+        for failure in (None, KeyboardInterrupt(), subprocess.CalledProcessError(1, "tester")):
+            mounted = []
+
+            def run(args, **kwargs):
+                fields = next(csv.reader([args[args.index("--mount") + 1]]))
+                copy = Path(next(field.removeprefix("source=") for field in fields if field.startswith("source=")))
+                mounted.append(copy)
+                self.assertNotEqual(copy, project)
+                self.assertFalse((copy / ".git").exists())
+                self.assertTrue((copy / "source-link").is_symlink())
+                (copy / "source.c").write_text("tester changed this")
+                (copy / "artifact").write_text("build output")
+                if failure:
+                    raise failure
+
+            terminal = Mock()
+            terminal.run.side_effect = run
+            with patch.object(self.service, "_require_ready", return_value="docker"), \
+                    patch.object(self.service, "installed", return_value=True), \
+                    patch.object(self.service, "_user_arguments", return_value=[]), \
+                    patch.object(self.service, "_preflight"), \
+                    patch.object(self.service, "_cleanup"):
+                if failure:
+                    with self.assertRaises(type(failure)):
+                        self.service.run(self.tester, str(project), terminal)
+                else:
+                    self.service.run(self.tester, str(project), terminal)
+            self.assertEqual((project / "source.c").read_text(), "original")
+            self.assertEqual((project / ".git/config").read_text(), "private remote configuration")
+            self.assertFalse((project / "artifact").exists())
+            self.assertEqual(len(mounted), 1)
+            self.assertFalse(mounted[0].exists())
+
     def test_global_operation_lock_is_released_after_interruption(self):
         with self.assertRaises(KeyboardInterrupt), self.service.operation():
             with self.assertRaises(TesterError), self.service.operation():
@@ -428,7 +469,9 @@ class TesterArchitectureTests(unittest.TestCase):
         terminal = Mock()
         def simulate(args, **kwargs):
             if "--entrypoint" in args:
-                folder = next(self.root.glob(".42tui-probe-*"))
+                fields = next(csv.reader([args[args.index("--mount") + 1]]))
+                source = next(field.removeprefix("source=") for field in fields if field.startswith("source="))
+                folder = next(Path(source).glob(".42tui-probe-*"))
                 (folder / "output").write_text((folder / "input").read_text())
         terminal.run.side_effect = simulate
         with patch.object(self.service, "_cleanup") as cleanup:

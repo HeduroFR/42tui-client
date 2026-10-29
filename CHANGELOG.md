@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No unreleased package changes.
+- Run Docker testers against a disposable project copy, excluding Git metadata,
+  so tester builds and cleanup preserve your working folder. Generated files in
+  the copy are discarded after the run; diagnostics remain in the tester log.
 
 ## 0.5.2
 

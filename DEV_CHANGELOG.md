@@ -7,12 +7,27 @@ on 2026-10-29 after the user confirmed native editor review/cache testing works.
 Pending exact-candidate PR CI, merge, tag and verified GitHub/PyPI publication.
 The tester workspace rework remains planned for 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
+The tester copy protection below is new work intended for 0.6.0, outside the
+existing 0.5.2 release candidate; it does not authorize changing that artifact.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.5.1
+
+- 2026-10-29: Begin the 0.6.0 tester rework after roadmap PR #45 merged as
+  `13f966b` with all 21 CI checks passing. Run Docker testers and their mount
+  probes against a disposable project copy, excluding Git metadata and preserving
+  symlinks. Clean up the copy on success, process failure and interruption;
+  retain existing logs, Docker context/CPU/user mapping and container cleanup.
+  Patch impact, targeted for the planned 0.6.0 minor release. Branch:
+  `feat/tester-workspace-0.6.0`; uncommitted. Checks: tester scope 72 passed,
+  including destructive-write and interrupted-run preservation checks; architecture
+  checks 9 passed, locale checks 2 passed, French/Spanish copy-message assertions
+  and diff/whitespace review passed. Native Docker runs and disk-space behavior
+  remain unverified. Modular/native execution, in-TUI workspace, backend data
+  protection and final 0.6.0 release gates remain pending; no release ready.
 
 - 2026-10-29: Reconcile roadmap additions with current main for PR #45,
   preserving all pending 0.5.2 release work and future plans. Planning only;

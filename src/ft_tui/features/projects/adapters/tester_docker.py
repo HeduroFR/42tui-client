@@ -353,6 +353,14 @@ class TesterDocker:
             raise TesterError("This tester is unavailable on this platform.")
         if not self.installed(tester):
             raise TesterError("The tester image is missing. Install it and retry.")
+        # Never let tester builds or cleanup write into the user's checkout.
+        with tempfile.TemporaryDirectory(prefix="42tui-project-") as directory:
+            copy = Path(directory) / path.name
+            terminal.write("Preparing a disposable project copy…")
+            shutil.copytree(path, copy, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+            self._run_project_copy(tester, copy, docker, terminal)
+
+    def _run_project_copy(self, tester: Tester, path: Path, docker: str, terminal) -> None:
         architecture = self.architecture(tester)
         user = self._user_arguments(docker)
         self._preflight(docker, tester, path, user, terminal)

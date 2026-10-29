@@ -1256,5 +1256,6 @@
   "Only committed work is pushed, without force. Confirm to continue.": "Seul le travail commité est poussé, sans forçage. Confirmez pour continuer.",
   "Running Git operation…": "Opération Git en cours…",
   "Use the action buttons to view output here. Pull and push require confirmation; terminal commands remain available below.": "Utilisez les boutons pour afficher la sortie ici. Pull et push nécessitent une confirmation ; les commandes restent disponibles ci-dessous pour le terminal.",
-  "Inspect commits": "Examiner les commits"
+  "Inspect commits": "Examiner les commits",
+  "Preparing a disposable project copy…": "Préparation d’une copie temporaire du projet…"
 }

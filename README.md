@@ -140,6 +140,11 @@ are not retained.
 Configure an existing local project folder, find **Testers** below Registration
 (or press `t` in Projects), then choose **Run Francinette**. The same button handles setup and retries.
 
+Tester builds and cleanup run against a temporary copy of the project, excluding
+Git metadata. Your original files stay in place; generated files in the copy are
+discarded after the run, including after failure or cancellation. Keep the tester
+log when you need its diagnostics. Allow enough temporary disk space for the copy.
+
 On Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an
 existing rootless user service; it does not install system packages, start system
