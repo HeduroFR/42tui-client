@@ -1,111 +1,65 @@
 # Development changelog
 
-Latest release: **0.5.0** ([`v0.5.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.0)).
-Package version: **0.5.1** (candidate; not published).
-Suggested next release: **0.5.1**, as requested for the Vogsphere branch fix,
-reviewed fast-forward pull commands and website root redirect. Preparation, PR
-and merge are authorized; stop before creating or pushing any release tag.
-Candidate CI and review are tracked in PR #42. Latest verified baseline stays 0.5.0;
-no release tag or publication is authorized for this task.
-The tester workspace rework remains planned for 0.6.0; remaining Git design tasks
-are tracked in [TODO.md](TODO.md). Plans alone do not justify publication.
+Latest release: **0.5.1** ([`v0.5.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.1)).
+Package version: **0.5.1**.
+Suggested next release: **none**. No unreleased product changes.
+The tester workspace rework remains planned for 0.6.0; unfinished Git design
+work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
-## Changes since 0.5.0
+## Changes since 0.5.1
 
-- **2026-10-29 · patch (requested 0.5.1) · Remote branches and pull:** share
-  advertised-default/sole-branch selection across checkout recovery and Vogsphere
-  push; reject ambiguity and recheck destination branch after review. An empty
-  Vogsphere remote uses the reviewed local branch. Add CLI pull dev/vog/all with
-  fetched commit review, clean-worktree/operation checks, one fast-forward after
-  all selected sources are validated, ignored-file protection and review drift
-  checks. Never automatically stash, reset, switch branches or merge divergent
-  histories. Update TUI copy, translations, commands, guide and regressions.
-  Also redirect the website root to GitHub, extend the existing Nginx CI assertion,
-  and make the contributor/release template headings English. Set package/version
-  notes to 0.5.1 while retaining the verified 0.5.0 publication baseline. Branch:
-  `fix/git-remote-branches`; PR #42. Checks: branch regressions reproduced
-  the hard-coded-master failure before the fix. Final disposable Git suite: 41
-  passed; CLI: six passed; locale: two passed; release validation: two passed.
-  Version/tag consistency, non-overlapping regression ownership and wheel/sdist
-  contents passed. Broader project scope: 153 passed; final focused Git rerun
-  includes two additional branch/recovery regressions (41 passed). Final ownership
-  check covers all 904 tests. Clean committed archive wheel/sdist contents and
-  installed CLI/resources/42git pull help passed; unrelated duplicate files are
-  excluded. Full CI is tracked in PR #42, including the live Nginx container
-  root-redirect assertion. No live Vogsphere credentials or user repositories
-  were used.
-  No API/backend/schema changes.
-  Stop before release tag/publication per user instruction. Website rollout is
-  separate from package publication; no rollout claimed here.
-
-- **2026-10-29 · no package release required · Discord website redirect:** add
-  exact Nginx `/discord` HTTP 301 to the maintainer-provided invite
-  `https://discord.gg/QrRBcK5MeP`, matching `/github`. Extend the existing
-  distribution-container CI assertion and document the destination. Website
-  deployment required; no Python runtime/version change. Branch:
-  `fix/discord-redirect`; PR #40. Initial container CI passed the exact redirect
-  assertion; diff/whitespace and destination agreement reviewed. Local Docker
-  test unavailable because the daemon socket is absent. Retain verified 0.5.0
-  publication baseline from PR #39. PR #40 merged as `fb22488` after all
-  21 CI checks passed in run 40791484292. Deploy the existing Installer service
-  through Safari/Dokploy from main. Public checks confirm `/discord` returns
-  `301 https://discord.gg/QrRBcK5MeP` and `/github` retains its 301 destination.
-  All four hosted installer/uninstaller files match main byte for byte, completing
-  the previously pending coordinated installer rollout. Maintainer also confirmed
-  the Discord link works. Record deployment in this documentation-only follow-up;
-  no new Python release is needed.
-
+No unreleased changes.
 
 ## Verified publication · 2026-10-29
 
-- Integrate the pushed Git workflow and release metadata through
-  [PR #38](https://github.com/HeduroFR/42tui-client/pull/38). Tag exact reviewed
-  main `32ec455b041845890015d07d5c9dc068839c13a3` as v0.5.0 after all 21 PR
-  checks passed. All 888 regression tests ran: 882 passed, six optional
-  integrations skipped. Local project scope (139), account UI (30), locales
-  (two), installer unit tests (23), clean archive builds/package contents,
-  installed entry points/resources, installer hashes/syntax and disposable
-  fresh/repeat/exact-version install/uninstall passed. Preserve untracked
-  duplicate files outside the release archive.
-- [Release run 40790223898](https://github.com/HeduroFR/42tui-client/actions/runs/40790223898)
-  succeeded on attempt 1, including all regression/platform checks and both
-  publishers. GitHub published at 2026-10-28T23:56:44Z. All seven GitHub assets
-  and checksums are verified; both PyPI/GitHub distributions match original CI
-  artifacts byte for byte. Wheel SHA-256:
-  `05c665022af5fa91a08e40670870859777d8f9091d37f9e3f2c67bc2d42ec112`;
-  sdist: `ab13421ee322c3197741c9c3be9269a6c139510556d5021480f533b2eabbdd4a`.
-- The real unpinned `42tui update` upgraded a disposable PyPI 0.4.4 installation
-  to 0.5.0, installed all four executables including 42git, preserved a local-data
-  sentinel and passed installed CLI/resource smoke. Initial index propagation
-  selected 0.4.4; retry succeeded. The version-specific PyPI JSON endpoint briefly
-  returned 404; current project metadata and both downloaded package hashes
-  verified 0.5.0. No tag/artifact was replaced or republished.
-- Exact merged-candidate [compatibility run 40790011375](https://github.com/HeduroFR/42tui-backend/actions/runs/40790011375)
+- [PR #42](https://github.com/HeduroFR/42tui-client/pull/42) integrates branch-aware
+  Vogsphere recovery/push, reviewed fast-forward-only `42git pull dev|vog|all`,
+  the website root redirect and English contributor/release guidance. Tag merged
+  main `3343a29b69c7cccd0d462bb0c597688eaf04b97a` as v0.5.1 after the user resumed
+  the release previously stopped before tagging. Authoritative version and notes
+  match. All 21 PR checks passed in run 40812785438; unchanged onboarding UI tests
+  required one accounts-scope retry. Release tests passed on their first attempt.
+- [Release run 40814022012](https://github.com/HeduroFR/42tui-client/actions/runs/40814022012)
+  succeeded on attempt 2. PyPI publication succeeded on attempt 1; retry only the
+  GitHub publisher after its new draft was briefly invisible to lookup. Reuse the
+  original artifacts without rebuilding, replacing the tag or republishing PyPI.
+  GitHub published at 2026-10-29T03:53:16Z. All seven GitHub assets/checksums and
+  both PyPI downloads are verified; distributions match original CI artifacts
+  byte for byte. Wheel SHA-256:
+  `0691d26549080d9f807fa2c64801832346c3eb78568df8f17438a57acbcc1b2d`;
+  sdist: `514160a5706ad80330364080608943b92f72450fdbd917d394f96d11a1e72b7d`.
+- Local Git suite: 41 passed; CLI: six passed; locales: two passed; release
+  validation: two passed. Broader local project scope: 153 passed, followed by
+  two added regressions in the final Git rerun. All 904 tests have exactly one
+  scope owner; full regression/platform/package/container checks passed in release
+  CI, with optional integrations skipped. Clean archive wheel/sdist, installed
+  CLI/resources and pull help passed. Unrelated untracked duplicate files were
+  preserved and excluded from the archive.
+- Actual unpinned `42tui update` upgraded a disposable PyPI 0.5.0 installation to
+  0.5.1, installed all four commands and preserved local data. Initial index/cache
+  propagation still selected 0.5.0; clear only the disposable cache and retry
+  successfully. Version-specific PyPI metadata confirms 0.5.1; the project metadata
+  endpoint briefly retained the old version. Published-package smoke also uses
+  disposable SQLite and real Git remotes to verify subfolder project resolution,
+  cancellation, pull-all fast-forward from main and preservation of untracked work.
+- Exact merged-revision [compatibility run 40813755591](https://github.com/HeduroFR/42tui-backend/actions/runs/40813755591)
   passed candidate, oldest supported client (0.4.0, `bb5caff`) and fallback pairs
   against backend `f6d31cd482defe22f6c7c3421ee10cb0791c131c`. This synthetic
-  friend-preview scenario is partial API coverage, not live OAuth verification.
-- Backend [PR #8](https://github.com/HeduroFR/42tui-backend/pull/8) adds the
-  requested 10-second close attempt with hashed CSP and manual-close fallback.
-  Backend CI/typecheck passed; local suite: 486 passed, 34 optional integrations
-  skipped. Deploy through existing Safari/Dokploy session before client tagging.
-  Successful build image ID:
-  `sha256:3f75bac77fe71c960600dbcb5876a95095eef9a145a2efbdaa0d381fd27790ae`.
-  API-container source hash matches the merged page; 19 synthetic OAuth route
-  tests (117 assertions), PostgreSQL SELECT 1, Redis PING and configured-port
-  API health passed. Public API health passed. Compatibility/deployment evidence
-  checker accepted the exact pair. No migration or credential changes.
-- Native Vogsphere and Linux/macOS tester validation were confirmed by the
-  maintainer, not independently rerun. Local Chromium launch was blocked by
-  macOS sandbox permissions; browser tab-closing restrictions still apply.
-  Native pipx/Windows, live OAuth/provider writes and full API coverage were not
-  exercised. Hosted installer deployment was still pending at package publication;
-  the subsequent verified rollout is recorded in the Discord redirect entry above.
-- Reset included development entries only after publication/artifact/update
-  verification. Keep user-facing notes, pending Git design and tester rework in
-  CHANGELOG.md/TODO.md. Documentation checks: release evidence, relative links,
-  version consistency and whitespace reviewed; no runtime changes or additional
-  package release required. Branch: `docs/verified-0.5.0-publication`; PR pending.
+  friend-preview scenario is partial API coverage; no API/backend/schema change
+  or new backend rollout was required by this client-only patch.
+- Website rollout from reviewed main 3343a29 was verified before tagging: `/`
+  and `/github` return the GitHub HTTP 301, `/discord` returns the expected invite,
+  and all four hosted installer/uninstaller files match main byte for byte.
+  No new hosting change was needed for package publication.
+- Live Vogsphere/campus credentials, native pipx/Windows and full live API coverage
+  were not exercised. Use the documented remote branch review and manual conflict
+  resolution; never assume synthetic tests establish live campus authentication.
+  Retain the known onboarding test timing limitation noted above.
+- Reset shipped entries only after GitHub/PyPI, artifact and update verification.
+  Keep release notes and future roadmap tasks. This documentation follow-up needs
+  no new package release. Checks: release evidence, version consistency, links
+  and whitespace reviewed. Branch: `docs/verified-0.5.1-publication`; PR pending.
