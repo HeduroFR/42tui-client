@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
 
+from .ssh_askpass import ssh_environment
+
 
 class ProjectGitError(RuntimeError):
     """A Git operation cannot safely proceed."""
@@ -32,7 +34,8 @@ def _run_git(root: Path, *args: str, timeout: float = 60) -> subprocess.Complete
     try:
         return subprocess.run(
             ("git", "-C", str(root), *args), check=False, capture_output=True,
-            text=True, timeout=timeout, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            text=True, stdin=subprocess.DEVNULL if ssh_environment.get() else None, timeout=timeout,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0", **ssh_environment.get()},
         )
     except FileNotFoundError as error:
         raise ProjectGitError("Git is not installed or is not on PATH.") from error
@@ -229,7 +232,7 @@ def _clean_pull_head(root: Path, timeout: float) -> tuple[str, str]:
         location = Path(_checked_git(root, "rev-parse", "--git-path", marker, timeout=timeout))
         if (root / location).exists():
             raise ProjectGitError("Finish the current merge, rebase or cherry-pick before pulling.")
-    if _checked_git(root, "status", "--porcelain=v1", "--untracked-files=all",
+    if _checked_git(root, "--no-optional-locks", "status", "--porcelain=v1", "--untracked-files=all",
                     "--ignore-submodules=none", timeout=timeout):
         raise ProjectGitError("Commit or move local changes and untracked files before pulling. Nothing was stashed.")
     return head
@@ -303,6 +306,68 @@ class GitSnapshot:
     @property
     def dirty_count(self) -> int:
         return self.staged + self.changed + self.untracked
+
+
+@dataclass(frozen=True)
+class CheckoutReview:
+    branch: str
+    head: str
+    status: str
+    diff: str
+    relationship: str = "unknown"
+    local_only: int = 0
+    remote_only: int = 0
+    remote_url: str = ""
+    pull_blocker: str | None = None
+
+
+def review_project_checkout(path: str | Path, commit: str, *, remote: str | None = None) -> CheckoutReview:
+    """Compare the fetched snapshot with tracked local files without changing Git."""
+    root = _repository_path(path, 10.0)
+    # Resolve to an object ID before passing it to diff, never an option or path.
+    fetched = _checked_git(root, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{commit}}")
+    branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    head = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+    status = _run_git(root, "--no-optional-locks", "status", "--short", "--untracked-files=all")
+    if status.returncode:
+        raise ProjectGitError(_safe_detail(status.stderr) or "Git could not read repository status.")
+    diff = _checked_git(root, "--no-optional-locks", "diff", "--no-ext-diff", "--no-textconv",
+                        "--no-color", fetched, "--")
+    relationship, local_only, remote_only, blocker = "unborn", 0, 0, None
+    if head.returncode:
+        remote_only = int(_checked_git(root, "rev-list", "--count", fetched, "--"))
+    else:
+        local = head.stdout.strip()
+        local_only, remote_only = map(int, _checked_git(
+            root, "rev-list", "--left-right", "--count", f"{local}...{fetched}", "--",
+        ).split())
+        common = _run_git(root, "merge-base", local, fetched)
+        if common.returncode not in (0, 1):
+            raise ProjectGitError(_safe_detail(common.stderr) or "Could not compare Git histories.")
+        relationship = ("unrelated" if common.returncode else "diverged" if local_only and remote_only
+                        else "behind" if remote_only else "ahead" if local_only else "equal")
+        if relationship == "behind":
+            try:
+                _clean_pull_head(root, 10.0)
+            except ProjectGitError as error:
+                blocker = str(error)
+    url = _display_url(_remote_url(root, remote, None, 10.0)) if remote else ""
+    return CheckoutReview(branch.stdout.strip() if not branch.returncode else "(detached HEAD)",
+                          head.stdout.strip() if not head.returncode else "—", status.stdout.rstrip(), diff,
+                          relationship, local_only, remote_only, url, blocker)
+
+
+def project_git_output(path: str | Path, *, history_commit: str | None = None) -> str:
+    """Read status or a bounded commit graph; never execute a shell command."""
+    root = _repository_path(path, 10.0)
+    if history_commit is None:
+        return _safe_detail(_checked_git(root, "--no-optional-locks", "status", "--short", "--branch",
+                                        "--untracked-files=all"))
+    commit = _checked_git(root, "rev-parse", "--verify", "--end-of-options", f"{history_commit}^{{commit}}")
+    head = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+    revisions = (head.stdout.strip(), commit) if not head.returncode else (commit,)
+    return _safe_detail(_checked_git(root, "log", "--oneline", "--graph", "--no-color", "--no-show-signature", "--max-count=100",
+                                    *revisions, "--"))
 
 
 _SENSITIVE_NAMES = {".npmrc", ".pypirc", "id_rsa", "id_ed25519"}

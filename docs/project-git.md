@@ -32,13 +32,44 @@ Before the first editor launch in an app session, setup recovers existing
 Vogsphere work into a new or empty folder. If Vogsphere is empty, it uses the
 development repository; if both are empty, it initializes a local repository.
 
+Editor recovery reuses completed remote checks for five minutes in the same app
+session when local files, HEAD, branches, index, remote configuration and operation
+state remain unchanged. This caches results, not passphrases. Local changes or
+expiry trigger a new check; remote-only changes can remain unseen until expiry.
+Authentication failures and off-campus warnings are not cached. Pull and push
+always revalidate their own plans before writing.
+
+Editor recovery displays a cancellable loading dialog while checking remotes.
+If OpenSSH needs a key passphrase, enter it in the masked SSH authentication
+dialog. The app reuses the same key passphrase in memory across connections
+within that operation, so checking and fetching do not ask twice. If SSH rejects
+a value and retries, enter it again. The value is discarded when the operation
+ends. Existing SSH configuration and agents still apply. Cancel prevents the editor from
+opening; an already-running Git check may finish in the background.
+
 Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
-locally, editor launch stops for manual reconciliation. Inspect the fetched history
-and reconcile it yourself, then retry. If Vogsphere is unreachable, an existing
-checkout with committed work still opens with a warning; its remote history will
-be checked again on the next editor launch. New, empty and unborn checkouts must
-complete recovery first. Setup never resets or force-pushes work.
+locally, a review dialog shows the fetched remote snapshot, local branch, working
+changes and a read-only diff of the remote snapshot against tracked local files.
+The source is labelled **dev (origin)** or **vog (vogsphere)** with its branch,
+credential-redacted URL and local/remote unique commit counts. Suggested terminal
+commands depend on the history: review `42git pull dev|vog` for a compatible
+fast-forward, address local blockers first, or inspect divergent/unrelated
+commits before choosing a manual reconciliation. Use **Pull dev/vog**, **Push
+dev/vog**, **Inspect commits** or **Git status** to open an output modal. Pull
+and push show a captured plan and require confirmation; they recheck branch,
+HEAD, destination and remote history before writing. A stale review is blocked.
+Pull remains fast-forward-only; no automatic merge, rebase, stash or reset is
+introduced. Close the output modal to refresh the review. Terminal commands
+remain available as alternatives, and action buttons have separate spacing.
+Untracked files are listed separately; their contents are not included in the diff.
+Choose **Open local files** to inspect or resolve the differences in your editor,
+or **Cancel**. Opening files does not pull, merge, reset or overwrite work;
+reconcile histories explicitly before synchronizing. If Vogsphere is unreachable,
+an existing checkout with committed work still opens with a warning; its remote
+history will be checked again on the next editor launch. New or empty folders
+must complete recovery first. Existing Git folders without a local commit can
+also be reviewed and opened explicitly. Setup never resets or force-pushes work.
 
 ## Publish committed work
 

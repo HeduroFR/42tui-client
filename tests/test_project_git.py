@@ -2,13 +2,14 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, setup_project_checkout
+from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired, setup_project_checkout
 from ft_tui.features.projects.adapters.git import (
-    ProjectGitError, _safe_detail, plan_project_push, push_project, plan_project_pull, pull_project,
+    ProjectGitError, review_project_checkout, _safe_detail, plan_project_push, push_project, plan_project_pull, pull_project,
 )
 
 
@@ -50,6 +51,202 @@ class ProjectGitTests(unittest.TestCase):
         self.git(root, 'add', 'main.c')
         self.git(root, 'commit', '-m', content)
         return self.git(root, 'rev-parse', 'HEAD')
+
+    def test_editor_review_preserves_index_files_and_history(self):
+        other = self.repo('unrelated')
+        self.git(other, 'push', str(self.dev), 'HEAD:refs/heads/main')
+        self.git(self.dev, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        (self.local / 'main.c').write_text('staged')
+        self.git(self.local, 'add', 'main.c')
+        (self.local / 'main.c').write_text('working [bold]')
+        (self.local / 'notes.txt').write_text('untracked private contents')
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        index = (self.local / '.git/index').read_bytes()
+        with self.assertRaises(CheckoutReviewRequired) as caught:
+            setup_project_checkout(self.local, dev_remote_url=str(self.dev))
+        error = caught.exception
+        self.assertEqual((error.path, error.remote, error.branch), (self.local, 'origin', 'main'))
+        review = review_project_checkout(error.path, error.commit)
+        self.assertEqual(review.head, original)
+        self.assertEqual(review.relationship, 'unrelated')
+        self.assertEqual(review.branch, 'work')
+        self.assertIn('MM main.c', review.status)
+        self.assertIn('?? notes.txt', review.status)
+        self.assertIn('+working [bold]', review.diff)
+        self.assertNotIn('untracked private contents', review.diff)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+        self.assertEqual((self.local / 'main.c').read_text(), 'working [bold]')
+
+    def test_editor_review_supports_unborn_checkout_with_files(self):
+        self.git(self.local, 'push', str(self.dev), 'HEAD:refs/heads/main')
+        self.git(self.dev, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        target = self.root / 'unborn'
+        target.mkdir()
+        self.git(target, 'init', '--initial-branch=main')
+        (target / 'main.c').write_text('existing local work')
+        with self.assertRaises(CheckoutReviewRequired) as caught:
+            setup_project_checkout(target, dev_remote_url=str(self.dev))
+        review = review_project_checkout(target, caught.exception.commit)
+        self.assertEqual(review.head, '—')
+        self.assertEqual(review.relationship, 'unborn')
+        self.assertEqual(review.remote_only, 1)
+        self.assertIn('?? main.c', review.status)
+        self.assertEqual((target / 'main.c').read_text(), 'existing local work')
+
+    @unittest.skipUnless(shutil.which('ssh-keygen'), 'OpenSSH keygen is unavailable')
+    def test_ssh_askpass_unlocks_real_encrypted_key_without_terminal(self):
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        key = self.root / 'synthetic_key'
+        password = 'synthetic-test-passphrase'
+        subprocess.run(('ssh-keygen', '-q', '-t', 'ed25519', '-N', password, '-f', str(key)), check=True)
+        prompts = []
+        def answer(prompt, confirm):
+            prompts.append((prompt, confirm))
+            return password
+        with patch('ft_tui.features.projects.adapters.ssh_askpass.__file__', str(self.root / 'removed-checkout.py')), ssh_askpass(answer):
+            environment = {**os.environ, **ssh_environment.get()}
+            helper = Path(environment['SSH_ASKPASS'])
+            # The child must not depend on a checkout that can switch branches.
+            self.assertTrue((helper.parent / 'askpass.py').is_file())
+            self.assertNotIn(str(Path(__file__).resolve().parent.parent / 'src'), helper.read_text())
+            self.assertNotIn(password, helper.read_text())
+            self.assertNotIn(password, environment.values())
+            result = subprocess.run(('ssh-keygen', '-y', '-f', str(key)),
+                                    stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                                    env=environment, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith('ssh-ed25519 '))
+        self.assertEqual(len(prompts), 1)
+        self.assertIn('passphrase', prompts[0][0])
+        self.assertFalse(prompts[0][1])
+        self.assertNotIn(password, result.stdout + result.stderr)
+        self.assertFalse(helper.exists())
+        self.assertFalse(ssh_environment.get())
+
+    def test_ssh_askpass_rejects_bad_token_and_cancellation(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        answer = Mock(return_value=None)
+        with ssh_askpass(answer):
+            environment = {**os.environ, **ssh_environment.get()}
+            for token in ('invalid', environment['FT_TUI_ASKPASS_TOKEN']):
+                result = subprocess.run((environment['SSH_ASKPASS'], 'Enter passphrase:'),
+                                        stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                                        env={**environment, 'FT_TUI_ASKPASS_TOKEN': token}, timeout=5)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout, '')
+        answer.assert_called_once_with('Enter passphrase:', False)
+
+    def test_review_distinguishes_fast_forward_dirty_and_divergent_histories(self):
+        self.publish_seed()
+        newer = self.advance_remote(self.dev, 'work', 'remote work')
+        with self.assertRaises(CheckoutReviewRequired):
+            setup_project_checkout(self.local, dev_remote_url=str(self.dev))
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual((review.relationship, review.local_only, review.remote_only), ('behind', 0, 1))
+        self.assertEqual(review.remote_url, str(self.dev))
+        self.assertIsNone(review.pull_blocker)
+        (self.local / 'main.c').write_text('local work')
+        index = (self.local / '.git/index').read_bytes()
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual(review.relationship, 'behind')
+        self.assertIn('Commit or move', review.pull_blocker)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.commit(self.local, 'local work')
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual((review.relationship, review.local_only, review.remote_only), ('diverged', 1, 1))
+        local = self.git(self.local, 'rev-parse', 'HEAD')
+        review = review_project_checkout(self.local, local, remote='origin')
+        self.assertEqual(review.relationship, 'equal')
+
+    def test_ssh_passphrase_reused_across_connections_but_retry_prompts_again(self):
+        import json
+        import socket
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        prompt = "Enter passphrase for key '/synthetic/key': "
+        answer = Mock(side_effect=['first-entry', 'corrected-entry', 'fresh-operation'])
+        def request(process):
+            env = ssh_environment.get()
+            with socket.create_connection(('127.0.0.1', int(env['FT_TUI_ASKPASS_PORT'])), timeout=3) as connection:
+                with connection.makefile('rwb') as stream:
+                    stream.write(json.dumps({'token': env['FT_TUI_ASKPASS_TOKEN'], 'prompt': prompt,
+                                             'confirm': False, 'process': process}).encode() + b'\n')
+                    stream.flush()
+                    return json.loads(stream.readline())
+        with ssh_askpass(answer):
+            self.assertEqual(request(1001), 'first-entry')
+            self.assertEqual(request(1002), 'first-entry')
+            self.assertEqual(request(1002), 'corrected-entry')
+            self.assertEqual(request(1003), 'corrected-entry')
+            self.assertEqual(answer.call_count, 2)
+        with ssh_askpass(answer):
+            self.assertEqual(request(1004), 'fresh-operation')
+        self.assertEqual(answer.call_count, 3)
+
+    def test_git_output_shows_status_and_both_histories_without_changing_files(self):
+        from ft_tui.features.projects.adapters.git import project_git_output
+        self.publish_seed()
+        remote = self.advance_remote(self.dev, 'work', 'remote commit')
+        self.git(self.local, 'fetch', 'origin', 'work')
+        local = self.commit(self.local, 'local commit')
+        (self.local / 'main.c').write_text('uncommitted work')
+        index = (self.local / '.git/index').read_bytes()
+        self.assertIn('main.c', project_git_output(self.local))
+        history = project_git_output(self.local, history_commit=remote)
+        self.assertIn('local commit', history)
+        self.assertIn('remote commit', history)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), local)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.assertEqual((self.local / 'main.c').read_text(), 'uncommitted work')
+
+    def test_editor_cache_reuses_review_expires_and_invalidates_local_changes(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.checkout import EditorCheckoutCache
+        cache = EditorCheckoutCache()
+        failure = CheckoutReviewRequired('Remote ahead', self.local, 'origin', 'main', 'a' * 40)
+        setup = Mock(side_effect=failure)
+        kwargs = {'dev_remote_url': str(self.dev)}
+        with patch('ft_tui.features.projects.adapters.checkout.time.monotonic', return_value=10):
+            for _ in range(2):
+                with self.assertRaises(CheckoutReviewRequired):
+                    cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 1)
+        with patch('ft_tui.features.projects.adapters.checkout.time.monotonic', return_value=311):
+            with self.assertRaises(CheckoutReviewRequired):
+                cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 2)
+            (self.local / 'main.c').write_text('local edit')
+            for _ in range(2):
+                with self.assertRaises(CheckoutReviewRequired):
+                    cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 3)
+            (self.local / "main.c").write_text("another local edit")
+            with self.assertRaises(CheckoutReviewRequired):
+                cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 4)
+
+    def test_editor_cache_rechecks_config_commits_and_does_not_cache_failures(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.checkout import EditorCheckoutCache, CheckoutResult
+        cache = EditorCheckoutCache()
+        setup = Mock(return_value=CheckoutResult(self.local, False, False, (), (), 'Ready'))
+        cache.run(setup, self.local)
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 1)
+        self.git(self.local, 'config', 'remote.origin.url', str(self.vog))
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 2)
+        self.commit(self.local, 'new commit')
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 3)
+        setup.side_effect = CheckoutSetupError('Authentication failed')
+        fresh = EditorCheckoutCache()
+        for _ in range(2):
+            with self.assertRaises(CheckoutSetupError):
+                fresh.run(setup, self.local)
+        self.assertEqual(setup.call_count, 5)
 
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')

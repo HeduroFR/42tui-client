@@ -4,6 +4,32 @@
 
 No unreleased package changes.
 
+## 0.5.2
+
+### 🐛 Fixes
+
+- Open existing project files even when remote Git history differs: review a
+  colored diff first, then choose **Open local files** or **Cancel**. Local files,
+  staged changes and branches remain intact.
+- Identify the remote as **dev (origin)** or **vog (vogsphere)**, with its URL,
+  branch and commit counts. Suggest actions based on whether histories can
+  fast-forward, diverge or have no common ancestor.
+- Run status, commit inspection, pull and push through spaced review buttons
+  on one row, with output shown in a modal. Pull/push require confirmation and
+  fresh validation; pull stays fast-forward-only and push never uses force.
+- Enter SSH key passphrases in a masked dialog instead of a terminal prompt
+  overwriting the TUI. Reuse the value in memory during one operation, allow
+  correction after rejection and discard it when the operation ends.
+- Reuse editor remote checks for five minutes while local Git state is unchanged,
+  reducing repeated passphrase prompts. Pull/push still revalidate before writing.
+  Remote-only changes can remain unseen until the editor-check cache expires.
+
+### 📦 Update
+
+- Run `42tui update` for a managed installation. Pinned and development installs
+  keep their selected version or checkout and must be updated explicitly.
+- No shell configuration, database migration or backend update is required.
+
 ## 0.5.1
 
 ### 🐛 Fixes
