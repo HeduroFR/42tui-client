@@ -32,6 +32,13 @@ Before the first editor launch in an app session, setup recovers existing
 Vogsphere work into a new or empty folder. If Vogsphere is empty, it uses the
 development repository; if both are empty, it initializes a local repository.
 
+Editor recovery reuses completed remote checks for five minutes in the same app
+session when local files, HEAD, branches, index, remote configuration and operation
+state remain unchanged. This caches results, not passphrases. Local changes or
+expiry trigger a new check; remote-only changes can remain unseen until expiry.
+Authentication failures and off-campus warnings are not cached. Pull and push
+always revalidate their own plans before writing.
+
 Editor recovery displays a cancellable loading dialog while checking remotes.
 If OpenSSH needs a key passphrase, enter it in the masked SSH authentication
 dialog. The app reuses the same key passphrase in memory across connections

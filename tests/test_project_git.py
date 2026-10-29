@@ -201,6 +201,53 @@ class ProjectGitTests(unittest.TestCase):
         self.assertEqual((self.local / '.git/index').read_bytes(), index)
         self.assertEqual((self.local / 'main.c').read_text(), 'uncommitted work')
 
+    def test_editor_cache_reuses_review_expires_and_invalidates_local_changes(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.checkout import EditorCheckoutCache
+        cache = EditorCheckoutCache()
+        failure = CheckoutReviewRequired('Remote ahead', self.local, 'origin', 'main', 'a' * 40)
+        setup = Mock(side_effect=failure)
+        kwargs = {'dev_remote_url': str(self.dev)}
+        with patch('ft_tui.features.projects.adapters.checkout.time.monotonic', return_value=10):
+            for _ in range(2):
+                with self.assertRaises(CheckoutReviewRequired):
+                    cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 1)
+        with patch('ft_tui.features.projects.adapters.checkout.time.monotonic', return_value=311):
+            with self.assertRaises(CheckoutReviewRequired):
+                cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 2)
+            (self.local / 'main.c').write_text('local edit')
+            for _ in range(2):
+                with self.assertRaises(CheckoutReviewRequired):
+                    cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 3)
+            (self.local / "main.c").write_text("another local edit")
+            with self.assertRaises(CheckoutReviewRequired):
+                cache.run(setup, self.local, **kwargs)
+            self.assertEqual(setup.call_count, 4)
+
+    def test_editor_cache_rechecks_config_commits_and_does_not_cache_failures(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.checkout import EditorCheckoutCache, CheckoutResult
+        cache = EditorCheckoutCache()
+        setup = Mock(return_value=CheckoutResult(self.local, False, False, (), (), 'Ready'))
+        cache.run(setup, self.local)
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 1)
+        self.git(self.local, 'config', 'remote.origin.url', str(self.vog))
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 2)
+        self.commit(self.local, 'new commit')
+        cache.run(setup, self.local)
+        self.assertEqual(setup.call_count, 3)
+        setup.side_effect = CheckoutSetupError('Authentication failed')
+        fresh = EditorCheckoutCache()
+        for _ in range(2):
+            with self.assertRaises(CheckoutSetupError):
+                fresh.run(setup, self.local)
+        self.assertEqual(setup.call_count, 5)
+
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')
         self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/master')

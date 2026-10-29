@@ -14,6 +14,16 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Cache completed editor remote checks and history-review results for
+  five minutes per project/remotes in the app session. Fingerprint local HEAD,
+  refs/config, status, tracked/index diffs, untracked metadata and Git-operation
+  markers before reuse. Do not cache authentication failures or warning results;
+  retain no passphrases. Replace the old session-long successful-check bypass.
+  Pull/push retain fresh validation. Patch refinement for 0.5.2, local branch
+  `fix/editor-git-review`; no push/tag/version bump. Checks: two cache regressions
+  cover expiry, unchanged reuse, edits, commits, config changes and failure retry;
+  21 UI tests passed. Native user/Windows verification and PR CI remain pending.
+
 - 2026-10-29: Place all four Git review buttons on one horizontal row, retain
   two-cell gaps and use content-sized buttons. Allow horizontal scrolling for
   narrow terminals/long translations. Patch layout refinement for pending 0.5.2;

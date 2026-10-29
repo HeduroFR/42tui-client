@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from hashlib import sha256
 import subprocess
+import time
 
 from ft_tui.features.projects.subjects.adapters.files import ensure_pdf_gitignore
 from .ssh_askpass import ssh_askpass
@@ -188,3 +190,63 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         message += "; fetched and inspected configured remote histories"
     return CheckoutResult(target, initialized, source == "origin", ("dev",) if initialized else (),
                           tuple(configured), message + ".", source == "vogsphere", tuple(warnings))
+
+
+def _editor_checkout_signature(path):
+    """Fingerprint local Git state without remote access or index refresh."""
+    try:
+        root = _repository_path(path, 2.0)
+        outputs = tuple(_checked_git(root, *args, timeout=2) for args in (
+            ("rev-parse", "HEAD^{commit}"), ("symbolic-ref", "HEAD"),
+            ("config", "--list", "--show-origin"), ("show-ref",),
+            ("--no-optional-locks", "status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=none"),
+            ("diff", "--no-ext-diff", "--no-textconv", "--binary", "HEAD", "--"),
+            ("diff", "--cached", "--no-ext-diff", "--no-textconv", "--binary", "--"),
+        ))
+        names = _run_git(root, "ls-files", "--others", "--exclude-standard", "-z", timeout=2)
+        if names.returncode:
+            return None
+        files = []
+        for name in names.stdout.split('\0'):
+            if name:
+                info = (root / name).lstat()
+                files.append((name, info.st_mtime_ns, info.st_ctime_ns, info.st_size))
+        markers = []
+        for marker in ('MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'sequencer'):
+            location = Path(_checked_git(root, "rev-parse", "--git-path", marker, timeout=2))
+            markers.append((root / location).exists())
+        return sha256(repr((outputs, files, markers)).encode()).hexdigest()
+    except (ProjectGitError, OSError):
+        return None
+
+
+class EditorCheckoutCache:
+    """Five-minute, app-session cache of checks, never of authentication secrets."""
+
+    def __init__(self):
+        self.entries = {}
+
+    def run(self, setup, path, **kwargs):
+        key = (str(path), kwargs.get('dev_remote_url'), kwargs.get('vogsphere_url'))
+        signature = _editor_checkout_signature(path)
+        cached = self.entries.pop(key, None)
+        now = time.monotonic()
+        if signature is not None and cached and now - cached[0] < 300 and signature == cached[1]:
+            self.entries[key] = cached
+            outcome = cached[2]
+            if isinstance(outcome, CheckoutReviewRequired):
+                # The UI may update its copy after a confirmed pull/push.
+                raise CheckoutReviewRequired(str(outcome), outcome.path, outcome.remote, outcome.branch, outcome.commit)
+            return outcome
+        try:
+            result = setup(path, **kwargs)
+        except CheckoutReviewRequired as error:
+            if signature is not None and _editor_checkout_signature(path) == signature:
+                self.entries[key] = (time.monotonic(), signature, CheckoutReviewRequired(
+                    str(error), error.path, error.remote, error.branch, error.commit))
+            raise
+        if signature is not None and not getattr(result, 'warnings', ()) and _editor_checkout_signature(path) == signature:
+            self.entries[key] = (time.monotonic(), signature, result)
+        # Keep this bounded even when many projects are opened in one session.
+        self.entries = {key: value for key, value in self.entries.items() if time.monotonic() - value[0] < 300}
+        return result

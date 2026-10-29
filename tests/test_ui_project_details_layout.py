@@ -299,7 +299,8 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             original.local_path = '/disposable/original'
             harness.selected_project_key = 'one'
             harness._open_selected_project_in_editor()
-            self.assertEqual(len(tasks), 1)  # Successful first-launch recovery is reused.
+            await tasks[-1]
+            self.assertEqual(len(tasks), 2)  # Local state is checked before reusing remote results.
             original.local_path = '/disposable/failure'
             harness.project_service.setup_checkout.side_effect = CheckoutSetupError('Divergent history')
             harness._open_project_in_editor.reset_mock()

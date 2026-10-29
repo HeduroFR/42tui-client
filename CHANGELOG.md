@@ -4,6 +4,8 @@
 
 ### 🐛 Fixes
 
+- Reuse editor remote checks for five minutes while local Git state is unchanged,
+  avoiding repeated SSH prompts. Pull and push still revalidate before writing.
 - Run the proposed Git status, commit inspection, pull or push from review buttons
   and read the output in a modal. Pull/push require confirmation and reject stale
   reviews; buttons share one spaced row.

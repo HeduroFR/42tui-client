@@ -5,7 +5,7 @@ import asyncio
 from textual.widgets import DataTable, Input as TextInput, Tabs
 from ft_tui.ui.select import AppSelect
 from ft_tui.features.projects.adapters.explorer import open_project_folder
-from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired
+from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired, EditorCheckoutCache
 from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
 from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
 from ft_tui.features.projects.views.checkout_progress import ProjectCheckoutProgressScreen
@@ -86,8 +86,7 @@ class ProjectNavigationMixin:
         project_path = Path(project.local_path).expanduser()
         remotes = (project.dev_repo_url or None, project.vogsphere_url or None)
         recovery_key = (str(project_path), *remotes)
-        recovered = getattr(self, "_editor_recovered_checkouts", set())
-        if any(remotes) and recovery_key not in recovered:
+        if any(remotes):
             self._project_checkout_busy = True
             self.notify("Recovering project Git history before opening the editor…")
             self.run_worker(self._recover_project_for_editor(project.name, project_path, recovery_key))
@@ -98,13 +97,15 @@ class ProjectNavigationMixin:
         if not self.is_mounted:
             self._project_checkout_busy = False
             return
+        if not hasattr(self, "_editor_checkout_cache"):
+            self._editor_checkout_cache = EditorCheckoutCache()
         progress = ProjectCheckoutProgressScreen(project_name)
         prompts = ProjectSshPromptHandler(self, cancelled=lambda: progress.cancelled)
 
         try:
             await self.push_screen(progress)
             result = await asyncio.to_thread(
-                self.project_service.setup_checkout, str(project_path),
+                self._editor_checkout_cache.run, self.project_service.setup_checkout, str(project_path),
                 dev_remote_url=recovery_key[1], vogsphere_url=recovery_key[2], ssh_prompt=prompts,
             )
         except CheckoutReviewRequired as error:
