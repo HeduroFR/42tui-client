@@ -384,6 +384,14 @@ Status: **captured for design; versions and dates undecided**.
   points/results. Reuse club membership/permissions, restrict score changes to
   authorized participants and assess backend/authentication/hosting needs before
   committing to delivery. Keep club rankings scoped to the relevant club.
+- [ ] Later, extend club games with opt-in inter-campus rankings for babyfoot,
+  chess and other supported games available locally. Record each participating
+  campus's confirmed games/equipment (such as a babyfoot table); unavailable or
+  unknown availability must not count as a loss or zero score. Build on validated
+  club results and retain local rankings. Define whether rankings compare players,
+  teams or campuses, common rules and comparable rating pools before combining
+  results; independent local Elo ratings are not directly comparable. Depends on
+  stable multi-campus support and the relevant club-game modules.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
   upgrading profile customisation. Depends on the profile work above.
 - [ ] Explore WIP, an animated pixel-art royal otter companion with multiple

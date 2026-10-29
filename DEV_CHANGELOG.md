@@ -16,7 +16,9 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   chess with Elo/history, babyfoot match scoring and rankings, and a mobile
   companion web app for live scoring. Record club-rework dependency, separate
   ratings, result confirmation/correction, permissions and reconnect/concurrency
-  requirements. Planning only; no release required. Checks: roadmap consistency
+  requirements. Extend the later scope with opt-in inter-campus rankings based
+  on confirmed local games/equipment, preserving local rankings and requiring
+  comparable rules/rating pools. Planning only; no release required. Checks: roadmap consistency
   and diff/whitespace review; gameplay, rating rules and web/backend feasibility
   not validated. Branch: `docs/roadmap-additions`; commit/PR pending.
 
