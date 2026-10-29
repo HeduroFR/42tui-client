@@ -14,6 +14,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Make the temporary SSH askpass executable self-contained instead
+  of launching a source file from the active checkout. Native testing exposed a
+  shared branch switch removing that file while the old TUI process was alive.
+  Use an isolated `42tui-client-editor-review` worktree for manual testing and
+  preserve unrelated roadmap work in the main checkout. Patch follow-up on
+  `fix/editor-git-review`; no version bump, push or tag. Checks: both askpass
+  regressions passed under a pseudo-terminal, including a real encrypted key
+  with the original module path replaced by a missing checkout path; all 14
+  dialog/layout tests passed in the isolated environment. Source path/version
+  and whitespace verified. User/campus and Windows validation remain pending.
+
 - 2026-10-29: Route OpenSSH askpass requests during editor recovery to a masked
   modal, preserving SSH configuration/agent behavior and keeping answers in
   memory. Use a temporary helper plus an authenticated loopback bridge scoped to

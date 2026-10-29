@@ -101,9 +101,12 @@ class ProjectGitTests(unittest.TestCase):
         def answer(prompt, confirm):
             prompts.append((prompt, confirm))
             return password
-        with ssh_askpass(answer):
+        with patch('ft_tui.features.projects.adapters.ssh_askpass.__file__', str(self.root / 'removed-checkout.py')), ssh_askpass(answer):
             environment = {**os.environ, **ssh_environment.get()}
             helper = Path(environment['SSH_ASKPASS'])
+            # The child must not depend on a checkout that can switch branches.
+            self.assertTrue((helper.parent / 'askpass.py').is_file())
+            self.assertNotIn(str(Path(__file__).resolve().parent.parent / 'src'), helper.read_text())
             self.assertNotIn(password, helper.read_text())
             self.assertNotIn(password, environment.values())
             result = subprocess.run(('ssh-keygen', '-y', '-f', str(key)),

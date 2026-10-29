@@ -14,6 +14,35 @@ from tempfile import TemporaryDirectory
 from threading import Event, Thread
 
 
+_ASKPASS_HELPER = r'''import json
+import os
+import socket
+import sys
+
+
+def main():
+    try:
+        with socket.create_connection(('127.0.0.1', int(os.environ['FT_TUI_ASKPASS_PORT'])), timeout=60) as connection:
+            with connection.makefile('rwb') as stream:
+                request = {'token': os.environ['FT_TUI_ASKPASS_TOKEN'],
+                           'prompt': sys.argv[1] if len(sys.argv) > 1 else 'SSH authentication',
+                           'confirm': os.environ.get('SSH_ASKPASS_PROMPT') == 'confirm'}
+                stream.write(json.dumps(request).encode() + b'\n')
+                stream.flush()
+                answer = json.loads(stream.readline(65536))
+        if not isinstance(answer, str):
+            return 1
+        sys.stdout.write(answer + '\n')
+        return 0
+    except (KeyError, OSError, ValueError):
+        return 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+'''
+
+
 ssh_environment: ContextVar[dict[str, str]] = ContextVar('ssh_environment', default={})
 
 
@@ -51,11 +80,12 @@ def ssh_askpass(prompt):
                         continue
 
         helper = Path(directory) / ('askpass.cmd' if os.name == 'nt' else 'askpass')
-        module = str(Path(__file__).resolve())
+        module = Path(directory) / "askpass.py"
+        module.write_text(_ASKPASS_HELPER, encoding="utf-8")
         if os.name == 'nt':
             helper.write_text(f'@echo off\n"{sys.executable}" "{module}" %*\n')
         else:
-            helper.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(module)} "$@"\n')
+            helper.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(module))} "$@"\n')
             helper.chmod(0o700)
         thread = Thread(target=serve, daemon=True)
         thread.start()
@@ -72,26 +102,3 @@ def ssh_askpass(prompt):
             stopped.set()
             listener.close()
             thread.join(timeout=0.3)
-
-
-def main():
-    """Executed by OpenSSH, outside the TUI process."""
-    try:
-        with socket.create_connection(('127.0.0.1', int(os.environ['FT_TUI_ASKPASS_PORT'])), timeout=60) as connection:
-            with connection.makefile('rwb') as stream:
-                request = {'token': os.environ['FT_TUI_ASKPASS_TOKEN'],
-                           'prompt': sys.argv[1] if len(sys.argv) > 1 else 'SSH authentication',
-                           'confirm': os.environ.get('SSH_ASKPASS_PROMPT') == 'confirm'}
-                stream.write(json.dumps(request).encode() + b'\n')
-                stream.flush()
-                answer = json.loads(stream.readline(65536))
-        if not isinstance(answer, str):
-            return 1
-        sys.stdout.write(answer + '\n')
-        return 0
-    except (KeyError, OSError, ValueError):
-        return 1
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())
