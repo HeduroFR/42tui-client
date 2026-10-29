@@ -18,6 +18,16 @@ instructions are in [distribution operations](docs/distribution.md#development-c
 
 ## Changes since 0.4.4
 
+- **2026-10-29 · no package release required · Discord website redirect:** add
+  exact Nginx `/discord` HTTP 301 to the maintainer-provided invite
+  `https://discord.gg/QrRBcK5MeP`, matching `/github`. Extend the existing
+  distribution-container CI assertion and document the destination. Website
+  deployment required; no Python runtime/version change. Branch:
+  `fix/discord-redirect`; PR pending. Diff/whitespace and rule/CI destination
+  agreement reviewed. Local container test unavailable: Docker daemon socket
+  absent. Existing CI builds Nginx and checks exact 301/destination. Website
+  rollout remains pending; no claim of live availability yet.
+
 - **2026-10-29 · minor · 0.5.0 release preparation:** integrate pushed Git
   workflow `40d5f19` with main `cf86cb2`; retain OAuth theme handoff, tester
   diagnostics, roadmap tasks and publication history. Set authoritative package

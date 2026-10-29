@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-No unreleased changes.
+- Open the community Discord invite through `https://tui.42wip.in/discord`
+  after the installation website is deployed.
 
 ## 0.5.0
 
