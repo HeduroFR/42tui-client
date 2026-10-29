@@ -42,6 +42,12 @@ Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
 locally, a review dialog shows the fetched remote snapshot, local branch, working
 changes and a read-only diff of the remote snapshot against tracked local files.
+The source is labelled **dev (origin)** or **vog (vogsphere)** with its branch,
+credential-redacted URL and local/remote unique commit counts. Suggested terminal
+commands depend on the history: review `42git pull dev|vog` for a compatible
+fast-forward, address local blockers first, or inspect divergent/unrelated
+commits before choosing a manual reconciliation. These are suggestions only;
+the dialog does not execute a pull, merge or push.
 Untracked files are listed separately; their contents are not included in the diff.
 Choose **Open local files** to inspect or resolve the differences in your editor,
 or **Cancel**. Opening files does not pull, merge, reset or overwrite work;

@@ -448,7 +448,7 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
         app.language = 'fr'
         answers = []
         started, finish = asyncio.Event(), asyncio.Event()
-        async def inspect(*args):
+        async def inspect(*args, **kwargs):
             started.set()
             await finish.wait()
             return CheckoutReview('work', 'a' * 40, '', '')
@@ -457,7 +457,7 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                 error = CheckoutReviewRequired('Different history', Path('/synthetic'), 'origin', 'main', 'a' * 40)
                 screen = ProjectGitReviewScreen(error, project_name='Libft')
                 app.push_screen(screen, answers.append)
-                await started.wait()
+                await asyncio.wait_for(started.wait(), timeout=3)
                 self.assertTrue(screen.query_one('#git-review-open').disabled)
                 await pilot.press('escape')
                 finish.set()
@@ -471,10 +471,14 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
         tree = ast.parse('\n'.join(Path(module.__file__).read_text() for module in
                                    (checkout_progress, git_review, ssh_prompt)))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr':
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr'
+                    and isinstance(node.args[0], ast.Constant)):
                 source = node.args[0].value
                 for language in ('fr', 'es'):
                     self.assertNotEqual(translate(source, language), source, (language, source))
+        for source in git_review._HISTORY_ADVICE.values():
+            for language in ('fr', 'es'):
+                self.assertNotEqual(translate(source, language), source, (language, source))
 
     async def test_ssh_passphrase_is_masked_and_cancel_never_opens_editor(self):
         from types import SimpleNamespace
@@ -552,3 +556,36 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
             await worker.wait()
             app._open_project_in_editor.assert_not_called()
             self.assertFalse(app._project_checkout_busy)
+
+    async def test_review_names_dev_vog_and_suggests_only_compatible_pull(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        for remote, destination, relation in (('origin', 'dev', 'behind'), ('vogsphere', 'vog', 'behind'),
+                                              ('origin', 'dev', 'diverged'), ('vogsphere', 'vog', 'unrelated')):
+            app = App()
+            app.language = 'en'
+            review = CheckoutReview('main', 'b' * 40, '', '', relation, 0, 2, 'git@example.invalid:project.git')
+            with patch('ft_tui.features.projects.views.git_review.review_project_checkout', return_value=review):
+                async with app.run_test(size=(80, 24)) as pilot:
+                    screen = ProjectGitReviewScreen(CheckoutReviewRequired('Different', Path('/synthetic project'),
+                                                    remote, 'master', 'a' * 40), project_name='Libft')
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen.workers.wait_for_complete()
+                    header = str(screen.query_one('#git-review-remote', Static).render())
+                    content = str(screen.query_one('#git-review-content', Static).render())
+                    self.assertIn(f'{destination} ({remote})', header)
+                    self.assertIn('master', header)
+                    self.assertIn(review.remote_url, content)
+                    self.assertIn("cd '/synthetic project'", content)
+                    self.assertIn(f'only on {destination}: 2', content)
+                    if relation == 'behind':
+                        self.assertIn(f'42git pull {destination}', content)
+                    else:
+                        self.assertNotIn('42git pull', content)
+                        self.assertIn('git -C', content)
+                        self.assertIn('a' * 40, content)
+                    self.assertTrue(screen.region.contains_region(screen.query_one('#git-review-open').region))

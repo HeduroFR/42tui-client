@@ -4,6 +4,9 @@
 
 ### 🐛 Fixes
 
+- Identify Git review sources as **dev (origin)** and **vog (vogsphere)**, with
+  the branch, remote URL and commit counts. Suggest the matching pull command
+  for compatible histories, and manual inspection for divergent/unrelated work.
 - Read Git review diffs with colored additions, removals, file headers and hunks,
   plus clearer section headings and muted metadata.
 - Enter an SSH key passphrase in a masked dialog during editor checkout recovery,

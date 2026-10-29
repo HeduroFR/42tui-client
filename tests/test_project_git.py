@@ -68,6 +68,7 @@ class ProjectGitTests(unittest.TestCase):
         self.assertEqual((error.path, error.remote, error.branch), (self.local, 'origin', 'main'))
         review = review_project_checkout(error.path, error.commit)
         self.assertEqual(review.head, original)
+        self.assertEqual(review.relationship, 'unrelated')
         self.assertEqual(review.branch, 'work')
         self.assertIn('MM main.c', review.status)
         self.assertIn('?? notes.txt', review.status)
@@ -88,6 +89,8 @@ class ProjectGitTests(unittest.TestCase):
             setup_project_checkout(target, dev_remote_url=str(self.dev))
         review = review_project_checkout(target, caught.exception.commit)
         self.assertEqual(review.head, '—')
+        self.assertEqual(review.relationship, 'unborn')
+        self.assertEqual(review.remote_only, 1)
         self.assertIn('?? main.c', review.status)
         self.assertEqual((target / 'main.c').read_text(), 'existing local work')
 
@@ -134,6 +137,28 @@ class ProjectGitTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(result.stdout, '')
         answer.assert_called_once_with('Enter passphrase:', False)
+
+    def test_review_distinguishes_fast_forward_dirty_and_divergent_histories(self):
+        self.publish_seed()
+        newer = self.advance_remote(self.dev, 'work', 'remote work')
+        with self.assertRaises(CheckoutReviewRequired):
+            setup_project_checkout(self.local, dev_remote_url=str(self.dev))
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual((review.relationship, review.local_only, review.remote_only), ('behind', 0, 1))
+        self.assertEqual(review.remote_url, str(self.dev))
+        self.assertIsNone(review.pull_blocker)
+        (self.local / 'main.c').write_text('local work')
+        index = (self.local / '.git/index').read_bytes()
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual(review.relationship, 'behind')
+        self.assertIn('Commit or move', review.pull_blocker)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.commit(self.local, 'local work')
+        review = review_project_checkout(self.local, newer, remote='origin')
+        self.assertEqual((review.relationship, review.local_only, review.remote_only), ('diverged', 1, 1))
+        local = self.git(self.local, 'rev-parse', 'HEAD')
+        review = review_project_checkout(self.local, local, remote='origin')
+        self.assertEqual(review.relationship, 'equal')
 
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')

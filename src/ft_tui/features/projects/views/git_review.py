@@ -1,5 +1,6 @@
 """Review fetched history before explicitly opening existing local files."""
 import asyncio
+import shlex
 
 from rich.text import Text
 
@@ -12,6 +13,17 @@ from ft_tui.ui.button import AppButton
 from ft_tui.ui.modal import AppModal
 from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
 from ft_tui.features.projects.adapters.git import ProjectGitError, review_project_checkout
+
+
+_HISTORY_ADVICE = {
+    'behind': 'The remote is ahead. Review a fast-forward pull from {remote}.',
+    'diverged': 'Local and {remote} histories diverge. A fast-forward pull cannot combine them; inspect the commits and choose a merge or rebase manually.',
+    'unrelated': 'Local and {remote} histories have no common ancestor. Verify the remote URL and project before reconciling them manually.',
+    'ahead': 'Local history contains the fetched {remote} snapshot. No pull is needed; review a push to publish local commits.',
+    'equal': 'Local history matches the fetched {remote} snapshot. No pull is needed.',
+    'unborn': 'There is no local commit. Preserve existing files before choosing how to recover the remote history.',
+    'unknown': 'Inspect local Git history before synchronizing.',
+}
 
 
 class ProjectGitReviewScreen(AppModal[bool]):
@@ -34,6 +46,7 @@ class ProjectGitReviewScreen(AppModal[bool]):
         super().__init__()
         self.review = review
         self.project_name = project_name
+        self.destination = {"origin": "dev", "vogsphere": "vog"}.get(review.remote, review.remote)
 
     def compose(self) -> ComposeResult:
         tr = lambda text: translate(text, self.app.language)
@@ -41,7 +54,9 @@ class ProjectGitReviewScreen(AppModal[bool]):
             yield Static(tr('Review Git differences'), classes='panel-title')
             with VerticalScroll(id='git-review-scroll'):
                 yield Static(f'{self.project_name}\n{self.review.path}', markup=False)
-                yield Static(tr('Remote snapshot') + f': {self.review.remote}/{self.review.branch}\n{self.review.commit}', markup=False)
+                yield Static(tr('Remote concerned') + f': {self.destination} ({self.review.remote})\n'
+                             + tr('Remote branch') + f': {self.review.branch}\n{self.review.commit}',
+                             id='git-review-remote', markup=False)
                 yield Static(tr('Opening local files does not pull, merge or overwrite your work. Reconcile Git history before synchronizing.'))
                 yield Static(tr('Untracked files are listed below; their contents are not included in the diff.'))
                 yield Static(tr('Loading') + '…', id='git-review-content', markup=False)
@@ -55,8 +70,26 @@ class ProjectGitReviewScreen(AppModal[bool]):
     async def _load(self) -> None:
         tr = lambda text: translate(text, self.app.language)
         try:
-            result = await asyncio.to_thread(review_project_checkout, self.review.path, self.review.commit)
+            result = await asyncio.to_thread(review_project_checkout, self.review.path, self.review.commit,
+                                             remote=self.review.remote)
+            advice = _HISTORY_ADVICE[result.relationship]
+            commands = [f'cd {shlex.quote(str(self.review.path))}', '42git status']
+            if result.relationship == 'behind':
+                commands.append(shlex.join(('42git', 'pull', self.destination)))
+            elif result.relationship == 'ahead':
+                commands.append(shlex.join(('42git', 'push', self.destination)))
+            elif result.relationship in {'diverged', 'unrelated'}:
+                commands.append(shlex.join(('git', '-C', str(self.review.path), 'log', '--oneline', '--graph',
+                                            'HEAD', self.review.commit, '--')))
             content = Text.assemble(
+                (tr('Remote URL') + ': ', 'bold'), f'{result.remote_url or "—"}\n',
+                (tr('Commits only here: {local} · only on {remote}: {count}').format(
+                    local=result.local_only, remote=self.destination, count=result.remote_only) + '\n\n', 'bold'),
+                (tr('Suggested next step') + '\n', 'bold'),
+                tr(advice).format(remote=self.destination) + '\n',
+                (tr(result.pull_blocker) + '\n' if result.pull_blocker else '', 'bold'),
+                ('\n'.join(commands) + '\n', self.get_component_rich_style('git-review--hunk', partial=True)),
+                tr('Run these commands in your terminal. Nothing is pulled, merged or pushed by this dialog.') + '\n\n',
                 (f'{tr("Local branch")}: ', 'bold'), f'{result.branch}\n',
                 ('HEAD: ', 'bold'), (f'{result.head}\n\n', 'dim'),
                 (tr("Local changes") + '\n', 'bold'), f'{result.status or tr("None")}\n\n',

@@ -14,6 +14,19 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Identify editor Git review sources as dev/origin and vog/vogsphere,
+  expose the credential-redacted remote URL, branch and unique commit counts,
+  and recommend terminal commands according to ancestry. Only recommend a
+  fast-forward pull for compatible history, surface local preflight blockers,
+  and suggest commit inspection for divergent/unrelated histories. No command
+  executes from the review dialog. Reuse pull preflight with optional Git locks
+  disabled to keep inspection from refreshing the index. English/French/Spanish
+  copy, read-only ancestry/blocker regressions and both remote labels covered.
+  Patch refinement for 0.5.2; branch `fix/editor-git-review`; local only, no
+  version bump/push/tag. Checks: Git suite 46 passed; dialog/layout/locales
+  suite 15 passed; architecture boundaries 9 passed; all 916 tests assigned
+  once; whitespace passed. Native user/Windows and PR CI remain pending.
+
 - 2026-10-29: Color the Git review diff using existing theme success/error,
   primary and accent colors. Bold file/hunk and section headers, dim commit/index
   metadata, preserve literal source text and scrollable fixed actions. Patch
