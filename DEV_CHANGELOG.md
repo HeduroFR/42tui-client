@@ -1,10 +1,10 @@
 # Development changelog
 
 Latest release: **0.5.1** ([`v0.5.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.1)).
-Package version: **0.5.1**.
-Suggested next release: **0.5.2** (patch), worth preparing for the editor recovery
-fix below. Not ready to publish: PR review/CI and a native reproduction check
-remain; package version stays 0.5.1.
+Package version: **0.5.2** (release candidate).
+Suggested next release: **0.5.2** (patch), authorized for preparation/publication
+on 2026-10-29 after the user confirmed native editor review/cache testing works.
+Pending exact-candidate PR CI, merge, tag and verified GitHub/PyPI publication.
 The tester workspace rework remains planned for 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -13,6 +13,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.5.1
+
+- 2026-10-29: Prepare authorized 0.5.2 release with matching package version and
+  consolidated English user-facing notes for editor recovery, Git review/actions,
+  SSH modal/reuse and five-minute remote-check caching. User confirmed the local
+  workflow works and resumed publication. No API/schema/backend dependency or
+  hosted installer changes; existing supported peer contracts are unchanged.
+  Keep pending entries until GitHub/PyPI and artifacts are verified. Exact PR CI
+  and publication evidence will be recorded as they complete.
 
 - 2026-10-29: Cache completed editor remote checks and history-review results for
   five minutes per project/remotes in the app session. Fingerprint local HEAD,
