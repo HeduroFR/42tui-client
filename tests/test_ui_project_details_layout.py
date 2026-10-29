@@ -380,13 +380,26 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
             app.language = 'en'
             answers = []
             with patch('ft_tui.features.projects.views.git_review.review_project_checkout',
-                       return_value=CheckoutReview('work', 'b' * 40, '?? notes', '+[bold]literal')):
+                       return_value=CheckoutReview('work', 'b' * 40, '?? notes',
+                                                  'diff --git a/file b/file\n--- a/file\n+++ b/file\n'
+                                                  '@@ -1 +1 @@\n-old\n+[bold]literal')):
                 async with app.run_test(size=(80, 24)) as pilot:
                     screen = ProjectGitReviewScreen(error, project_name='Libft')
                     app.push_screen(screen, answers.append)
                     await pilot.pause()
                     await screen.workers.wait_for_complete()
-                    self.assertIn('[bold]literal', str(screen.query_one('#git-review-content', Static).render()))
+                    rendered = screen.query_one('#git-review-content', Static).render()
+                    self.assertIn('[bold]literal', str(rendered))
+                    added = rendered.get_style_at_offset(rendered.plain.index('+[bold]literal'))
+                    removed = rendered.get_style_at_offset(rendered.plain.index('-old'))
+                    header = rendered.get_style_at_offset(rendered.plain.index('+++ b/file'))
+                    hunk = rendered.get_style_at_offset(rendered.plain.index('@@ -1'))
+                    self.assertIsNotNone(added.foreground)
+                    self.assertIsNotNone(removed.foreground)
+                    self.assertNotEqual(added.foreground, removed.foreground)
+                    self.assertTrue(header.bold)
+                    self.assertNotEqual(header.foreground, added.foreground)
+                    self.assertTrue(hunk.bold)
                     button = screen.query_one('#git-review-open')
                     self.assertFalse(button.disabled)
                     self.assertLess(button.region.bottom, 25)

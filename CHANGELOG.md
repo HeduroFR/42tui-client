@@ -4,6 +4,8 @@
 
 ### 🐛 Fixes
 
+- Read Git review diffs with colored additions, removals, file headers and hunks,
+  plus clearer section headings and muted metadata.
 - Enter an SSH key passphrase in a masked dialog during editor checkout recovery,
   instead of an SSH prompt overwriting the TUI. Cancel aborts the editor launch;
   remote checks show a loading dialog. The app does not save the passphrase.

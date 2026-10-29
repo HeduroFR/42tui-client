@@ -1,6 +1,8 @@
 """Review fetched history before explicitly opening existing local files."""
 import asyncio
 
+from rich.text import Text
+
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import Static
@@ -14,7 +16,14 @@ from ft_tui.features.projects.adapters.git import ProjectGitError, review_projec
 
 class ProjectGitReviewScreen(AppModal[bool]):
     BINDINGS = [('escape', 'cancel', 'Cancel')]
+    COMPONENT_CLASSES = {'git-review--added', 'git-review--removed', 'git-review--file',
+                         'git-review--hunk', 'git-review--metadata'}
     DEFAULT_CSS = """
+    ProjectGitReviewScreen .git-review--added { color: $success; }
+    ProjectGitReviewScreen .git-review--removed { color: $error; }
+    ProjectGitReviewScreen .git-review--file { color: $primary; text-style: bold; }
+    ProjectGitReviewScreen .git-review--hunk { color: $accent; text-style: bold; }
+    ProjectGitReviewScreen .git-review--metadata { text-style: dim; }
     #git-review-dialog { width: 96; max-width: 94%; height: 90%; border: round $primary; padding: 1 2; }
     #git-review-scroll { height: 1fr; }
     #git-review-scroll Static { height: auto; margin-bottom: 1; }
@@ -47,9 +56,27 @@ class ProjectGitReviewScreen(AppModal[bool]):
         tr = lambda text: translate(text, self.app.language)
         try:
             result = await asyncio.to_thread(review_project_checkout, self.review.path, self.review.commit)
-            content = (f'{tr("Local branch")}: {result.branch}\nHEAD: {result.head}\n\n'
-                       f'{tr("Local changes")}\n{result.status or tr("None")}\n\n'
-                       f'{tr("Diff: remote snapshot → local tracked files")}\n{result.diff or tr("No tracked differences")}')
+            content = Text.assemble(
+                (f'{tr("Local branch")}: ', 'bold'), f'{result.branch}\n',
+                ('HEAD: ', 'bold'), (f'{result.head}\n\n', 'dim'),
+                (tr("Local changes") + '\n', 'bold'), f'{result.status or tr("None")}\n\n',
+                (tr("Diff: remote snapshot → local tracked files") + '\n', 'bold'),
+            )
+            for line in (result.diff or tr("No tracked differences")).splitlines(keepends=True):
+                if line.startswith(('diff --git ', '--- ', '+++ ', 'rename from ', 'rename to ')):
+                    kind = 'file'
+                elif line.startswith('@@'):
+                    kind = 'hunk'
+                elif line.startswith('+'):
+                    kind = 'added'
+                elif line.startswith('-'):
+                    kind = 'removed'
+                elif line.startswith(('index ', 'new file mode ', 'deleted file mode ', 'similarity index ')):
+                    kind = 'metadata'
+                else:
+                    kind = None
+                style = self.get_component_rich_style(f'git-review--{kind}', partial=True) if kind else ''
+                content.append(line, style=style)
         except (ProjectGitError, OSError) as error:
             content = f'{tr("Could not inspect Git differences")}: {error}'
         if not self.is_current:

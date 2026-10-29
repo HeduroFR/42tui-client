@@ -14,6 +14,15 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Color the Git review diff using existing theme success/error,
+  primary and accent colors. Bold file/hunk and section headers, dim commit/index
+  metadata, preserve literal source text and scrollable fixed actions. Patch
+  refinement for the pending 0.5.2 editor fix. Branch `fix/editor-git-review`;
+  local only, no version bump/push/tag. Checks: all 14 dialog/layout tests
+  passed, including rendered addition/removal colors, distinct bold file/hunk
+  headers, literal markup and 80×24 actions; whitespace passed. Refreshed the
+  regular test installation. Native visual confirmation remains pending.
+
 - 2026-10-29: Make the temporary SSH askpass executable self-contained instead
   of launching a source file from the active checkout. Native testing exposed a
   shared branch switch removing that file while the old TUI process was alive.
