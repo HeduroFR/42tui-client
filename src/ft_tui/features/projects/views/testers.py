@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import subprocess
+import time
 from functools import partial
 from typing import ClassVar
 
@@ -13,7 +14,8 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from ft_tui.i18n import translate
 from ft_tui.features.projects.adapters.tester_catalog import Tester
 from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, TesterError
-from ft_tui.features.projects.adapters.tester_terminal import TerminalSession, wait_for_key
+from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -92,6 +94,7 @@ class ProjectTesters(Vertical):
         self._retry: set[str] = set()
         self._generation = 0
         self._setup_plan = None
+        self._workspace = None
 
     def compose(self):
         yield Static("Testers", classes="panel-title")
@@ -99,6 +102,7 @@ class ProjectTesters(Vertical):
         with VerticalScroll(id="tester-status-scroll"):
             yield Static("Select a project to see testers.", id="tester-status")
         yield Vertical(id="tester-rows")
+        yield Button("Tester workspace", id="tester-workspace-open")
 
     def on_mount(self):
         for button in self.query(Button):
@@ -143,6 +147,10 @@ class ProjectTesters(Vertical):
         testers = catalog.for_project(project.slug, service.host.system) if project else ()
         for button in self.query(Button):
             button.disabled = True
+        if self._workspace is not None:
+            button = self.query_one("#tester-workspace-open", Button)
+            button.display = True
+            button.disabled = False
         self.query_one("#tester-status", Static).update("Checking Docker…" if testers else (
             "No tester is configured for this project on this platform." if project
             else "Select a project to see testers."
@@ -217,6 +225,10 @@ class ProjectTesters(Vertical):
 
     def on_button_pressed(self, event: Button.Pressed):
         event.stop()
+        if event.button.id == "tester-workspace-open":
+            if self._workspace and not self._workspace.is_current:
+                self.app.push_screen("tester-workspace")
+            return
         if event.button.disabled or self._operating or self.app.tester_docker.busy:
             return
         if isinstance(event.button, TesterAction):
@@ -243,46 +255,58 @@ class ProjectTesters(Vertical):
         self.query_one("#tester-status", Static).update("Tester operation in progress…")
         if project_path is None:
             project_path = self.project.local_path if self.project else None
-        self.run_worker(partial(self._perform, action, tester, project_path, plan), group="tester-operation")
+        self.app.run_worker(self._perform(action, tester, project_path, plan), group="tester-operation")
 
     async def _perform(self, action, tester, project_path, plan):
         service = self.app.tester_docker
         language = self.app.language
         key = tester.id if tester else "docker"
-        message = "Tester operation completed."
+        message = "Tester finished. Read the log for test results."
         log_path = None
         error_detail = None
         try:
-            with service.operation():
-                log_path = service.log_path(action)
-                # Keep child output and the return-key prompt inside the terminal handoff.
-                with log_path.open("wb") as log, self.app.suspend():
-                    terminal = TerminalSession(log, language=language)
+            log_path = service.log_path(action)
+            if self.app.is_screen_installed("tester-workspace"):
+                self.app.uninstall_screen("tester-workspace")
+            workspace = self._workspace = TesterWorkspace(
+                f"{tester.name if tester else 'Docker'} · {project_path or action}", log_path,
+                rerun=partial(self._start, action, tester, plan=plan, project_path=project_path) if action == "run" else None)
+            self.app.install_screen(workspace, "tester-workspace")
+            await self.app.push_screen("tester-workspace")
+            button = self.query_one("#tester-workspace-open", Button)
+            button.display, button.disabled = True, False
+            with log_path.open("wb") as log:
+                terminal = workspace.session = WorkspaceSession(log, workspace.output.append, language=language)
+
+                def operate():
                     try:
-                        if action == "run":
-                            service.prepare_and_run(tester, project_path, terminal, plan=plan)
-                        elif action == "remove":
-                            service.remove(tester, terminal)
-                            message = "Tester removed. Run it again to reinstall and test."
-                        self._retry.discard(key)
+                        with service.operation():
+                            if action == "run":
+                                service.prepare_and_run(tester, project_path, terminal, plan=plan)
+                            elif action == "remove":
+                                service.remove(tester, terminal)
+                            terminal.check_cancelled()
                     except (KeyboardInterrupt, EOFError):
-                        message = "Tester operation interrupted. You can retry."
-                        if action != "remove":
-                            self._retry.add(key)
-                    except (TesterError, OSError, subprocess.SubprocessError) as error:
-                        message = "Tester operation failed. You can retry."
-                        if action != "remove":
-                            self._retry.add(key)
-                        error_detail = str(error)
-                        terminal.write(error_detail)
-                    finally:
-                        terminal.write(message)
-                        terminal.write(translate("Log: {path}", language).format(path=log_path))
-                        try:
-                            wait_for_key(translate("Press any key to return to 42TUI.", language))
-                        except (KeyboardInterrupt, EOFError):
-                            pass
-        except (KeyboardInterrupt, EOFError):
+                        return False
+                    return True
+
+                task = asyncio.create_task(asyncio.to_thread(operate))
+                try:
+                    completed = await asyncio.shield(task)
+                except asyncio.CancelledError:
+                    terminal.cancel()
+                    # Keep the transcript open until child and container cleanup finish.
+                    try:
+                        await task
+                    except (TesterError, OSError, subprocess.SubprocessError):
+                        pass
+                    raise
+            if not completed:
+                raise EOFError
+            if action == "remove":
+                message = "Tester removed. Run it again to reinstall and test."
+            self._retry.discard(key)
+        except (EOFError, asyncio.CancelledError):
             message = "Tester operation interrupted. You can retry."
             if action != "remove":
                 self._retry.add(key)
@@ -291,16 +315,22 @@ class ProjectTesters(Vertical):
             if action != "remove":
                 self._retry.add(key)
             error_detail = str(error)
-            self.app.notify(f"{translate(message, language)} {error}", severity="error")
         finally:
             self._operating = False
             text = translate(message, language)
             if error_detail:
-                text += "\n" + escape(translate(error_detail, language))
+                text += "\n" + translate(error_detail, language)
             if log_path:
-                text += "\n" + translate("Log: {path}", language).format(path=escape(str(log_path)))
-            self._messages[key] = text
-            self.app.refresh(layout=True)
-            self.set_project(self.project)
-            if tester is None:
-                self.app.notify(text, timeout=10)
+                text += "\n" + translate("Log: {path}", language).format(path=log_path)
+                try:
+                    with log_path.open("ab") as log:
+                        log.write((text + "\n").encode())
+                except OSError as error:
+                    text += "\n" + str(error)
+            if self._workspace is not None:
+                self._workspace.result = message
+                self._workspace.finished = time.monotonic()
+                self._workspace.output.append((text + "\n").encode())
+            self._messages[key] = escape(text)
+            if self.is_mounted:
+                self.set_project(self.project)

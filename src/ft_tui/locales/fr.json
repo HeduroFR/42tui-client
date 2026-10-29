@@ -1257,5 +1257,12 @@
   "Running Git operation…": "Opération Git en cours…",
   "Use the action buttons to view output here. Pull and push require confirmation; terminal commands remain available below.": "Utilisez les boutons pour afficher la sortie ici. Pull et push nécessitent une confirmation ; les commandes restent disponibles ci-dessous pour le terminal.",
   "Inspect commits": "Examiner les commits",
-  "Preparing a disposable project copy…": "Préparation d’une copie temporaire du projet…"
+  "Preparing a disposable project copy…": "Préparation d’une copie temporaire du projet…",
+  "Tester workspace": "Espace testeurs",
+  "Send input to tester": "Envoyer une saisie au testeur",
+  "Pause output": "Suspendre le défilement",
+  "Follow output": "Suivre la sortie",
+  "Log location": "Emplacement du journal",
+  "Run again": "Relancer",
+  "Tester finished. Read the log for test results.": "Testeur terminé. Consultez le journal pour les résultats."
 }

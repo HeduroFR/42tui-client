@@ -7,14 +7,29 @@ on 2026-10-29 after the user confirmed native editor review/cache testing works.
 Pending exact-candidate PR CI, merge, tag and verified GitHub/PyPI publication.
 The tester workspace rework remains planned for 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
-The tester copy protection below is new work intended for 0.6.0, outside the
-existing 0.5.2 release candidate; it does not authorize changing that artifact.
+The implemented tester workspace and copy protection warrant preparing 0.6.0
+(minor) after the existing 0.5.2 candidate; they are outside that immutable artifact.
+Remaining runtime/platform and release gates prevent publication readiness.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.5.1
+
+- 2026-10-29: Continue tester work on `feat/tester-workspace-0.6.0`: replace
+  terminal suspension with a persistent in-app workspace and private PTY runner.
+  Capture live output and line input, cancellation with process-group cleanup,
+  elapsed time, follow-output control, rerun against the captured project and
+  automatic full transcripts. Keep recent display output bounded; preserve setup
+  approval, operation locking and disposable copies. Cancellation is consumed
+  before installer cleanup so finally commands can still run. Add French/Spanish
+  labels and terminal/UI regressions. Minor impact, intended release 0.6.0;
+  no version bump or publication. Checks: tester scope 75 passed; extended UI
+  rerun test passed, final PTY tests 5 passed; architecture checks 9 and locale
+  checks 2 passed. Final diff and scope ownership reviewed. Native Docker validation, full-screen terminal emulation, structured
+  result readers and lighter/multiple tester runtime definitions remain pending.
+  Work is uncommitted; 0.6.0 remains unready for publication.
 
 - 2026-10-29: Begin the 0.6.0 tester rework after roadmap PR #45 merged as
   `13f966b` with all 21 CI checks passing. Run Docker testers and their mount

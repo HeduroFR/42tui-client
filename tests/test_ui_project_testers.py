@@ -1,7 +1,7 @@
 """Project tester state transitions and guaranteed terminal restoration."""
 
 import unittest
-from contextlib import asynccontextmanager, contextmanager, nullcontext
+from contextlib import asynccontextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
@@ -74,43 +74,56 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.status.return_value = DockerStatus(state, "test detail")
                 await self.select(widget, projects["libft"], pilot)
                 buttons = list(widget.query(Button))
-                self.assertEqual(len(buttons), 1)
+                self.assertEqual(len([b for b in buttons if b.display]), 1)
                 self.assertEqual(str(buttons[0].label), "Run Francinette")
                 self.assertFalse(buttons[0].disabled)
 
-    async def test_terminal_restored_after_success_failure_and_interrupt_and_double_click(self):
+    async def test_workspace_keeps_output_and_run_when_closed_and_cancels(self):
+        import threading
+        from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
         async with self.workspace() as (app, widget, service, projects, pilot, root):
             projects["libft"].local_path = str(root)
             await self.select(widget, projects["libft"], pilot)
-            restored = []
-            @contextmanager
-            def suspend():
-                restored.append("enter")
-                try:
-                    yield
-                finally:
-                    restored.append("exit")
-            for error in (None, TesterError("build failure"), KeyboardInterrupt()):
-                service.prepare_and_run = Mock(side_effect=error)
-                with patch.object(app, "suspend", side_effect=suspend), \
-                        patch("ft_tui.features.projects.views.testers.wait_for_key") as key, \
-                        patch("ft_tui.features.projects.views.testers.TerminalSession"):
-                    widget._start("run", app.tester_catalog.testers[0])
-                    widget._start("run", app.tester_catalog.testers[0])
-                    self.assertTrue(widget._operating)
-                    await pilot.pause(0.4)
-                    await widget.workers.wait_for_complete()
-                    await pilot.pause()
-                    service.prepare_and_run.assert_called_once()
-                    key.assert_called_once()
-                    self.assertEqual(restored[-2:], ["enter", "exit"])
-                    self.assertFalse(widget._operating)
-                    self.assertFalse(service.busy)
-                    self.assertFalse(widget.query_one(TesterAction).disabled)
-                    self.assertEqual("francinette" in widget._retry, error is not None)
-                    if isinstance(error, TesterError):
-                        self.assertIn("build failure", widget._messages["francinette"])
-            self.assertEqual(len(list((root / "testers/logs").glob("*.log"))), 3)
+            entered = threading.Event()
+            def run(tester, path, terminal, **kwargs):
+                self.assertEqual(path, str(root))
+                terminal.write("live tester output")
+                entered.set()
+                terminal.cancelled.wait(10)
+                terminal.check_cancelled()
+            service.prepare_and_run = Mock(side_effect=run)
+            widget._start("run", app.tester_catalog.testers[0])
+            widget._start("run", app.tester_catalog.testers[0])
+            await pilot.pause(.3)
+            self.assertTrue(entered.is_set())
+            self.assertIsInstance(app.screen, TesterWorkspace)
+            workspace = app.screen
+            await pilot.resize_terminal(80, 24)
+            await pilot.press("escape")
+            await pilot.pause()
+            self.assertTrue(service.busy)
+            await self.select(widget, projects["ft_printf"], pilot)
+            widget.query_one("#tester-workspace-open", Button).press()
+            await pilot.pause()
+            self.assertIs(app.screen, workspace)
+            app.screen.query_one("#tester-cancel", Button).press()
+            await pilot.pause(.3)
+            await widget.workers.wait_for_complete()
+            self.assertFalse(service.busy)
+            self.assertFalse(widget._operating)
+            self.assertIn("francinette", widget._retry)
+            service.prepare_and_run.assert_called_once()
+            transcript = workspace.log_path.read_text()
+            self.assertIn("live tester output", transcript)
+            self.assertIn("interrupted", transcript)
+            await pilot.pause()
+            service.prepare_and_run = Mock()
+            workspace.query_one("#tester-rerun", Button).press()
+            await pilot.pause(.4)
+            await widget.workers.wait_for_complete()
+            self.assertIsNot(widget._workspace, workspace)
+            self.assertEqual(service.prepare_and_run.call_args.args[1], str(root))
+            self.assertIn("Read the log", widget._workspace.log_path.read_text())
 
     async def test_testers_below_registration_and_shortcut_reveals_actions_on_small_screens(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, root):
@@ -197,9 +210,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.has_images.return_value = False
                 service.installed.return_value = False
             service.remove = Mock(side_effect=removed)
-            with patch.object(app, "suspend", side_effect=nullcontext), \
-                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
-                    patch("ft_tui.features.projects.views.testers.TerminalSession"):
+            with patch("ft_tui.features.projects.views.testers.WorkspaceSession"):
                 remove.press()
                 remove.press()
                 await pilot.pause(.4)
@@ -221,9 +232,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await self.select(widget, projects["libft"], pilot)
             self.assertTrue(widget.query_one(TesterAction).disabled)
             self.assertFalse(widget.query_one(TesterRemoveButton).disabled)
-            with patch.object(app, "suspend", side_effect=nullcontext), \
-                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
-                    patch("ft_tui.features.projects.views.testers.TerminalSession"):
+            with patch("ft_tui.features.projects.views.testers.WorkspaceSession"):
                 widget._start("remove", app.tester_catalog.testers[0])
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()
@@ -236,15 +245,15 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 await self.select(widget, projects["libft"], pilot)
                 self.assertTrue(widget.query_one(TesterRemoveButton).disabled)
 
-    async def test_interrupt_during_terminal_handoff_releases_operation(self):
-        async with self.workspace() as (app, widget, service, projects, pilot, _root):
+    async def test_setup_failure_releases_operation_and_preserves_log(self):
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            service.prepare_and_run = Mock(side_effect=TesterError("build failed"))
             await self.select(widget, projects["libft"], pilot)
-            with patch.object(app, "suspend", side_effect=KeyboardInterrupt):
-                await widget._perform("run", app.tester_catalog.testers[0], None, None)
+            await widget._perform("run", app.tester_catalog.testers[0], str(root), None)
             self.assertFalse(service.busy)
             self.assertFalse(widget._operating)
             self.assertIn("francinette", widget._retry)
-            self.assertIn("interrupted", widget._messages["francinette"])
+            self.assertIn("build failed", widget._workspace.log_path.read_text())
 
     async def test_invalid_catalog_warning_keeps_bundled_tester_usable(self):
         async with self.workspace(invalid_catalog=True) as (_app, widget, _service, projects, pilot, root):
@@ -284,9 +293,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             widget.on_button_pressed(Button.Pressed(widget.query_one(TesterAction)))
             await pilot.pause()
             widget.project = projects["ft_printf"]
-            with patch.object(app, "suspend", side_effect=nullcontext), \
-                    patch("ft_tui.features.projects.views.testers.wait_for_key"), \
-                    patch("ft_tui.features.projects.views.testers.TerminalSession") as terminal:
+            with patch("ft_tui.features.projects.views.testers.WorkspaceSession") as terminal:
                 app.screen.query_one("#confirm-docker-install", Button).press()
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()

@@ -145,6 +145,14 @@ Git metadata. Your original files stay in place; generated files in the copy are
 discarded after the run, including after failure or cancellation. Keep the tester
 log when you need its diagnostics. Allow enough temporary disk space for the copy.
 
+Runs open an in-app tester workspace with live, scrollable output, line input,
+cancellation, elapsed time and **Run again**. Close it to keep using the app,
+then choose **Tester workspace** from any project's tester section to return.
+**Pause output** stops automatic scrolling. Full logs are saved automatically;
+**Log location** shows the path. The output view retains recent output only.
+Process completion alone does not mean all tests passed: read the tester results
+in the log. Full-screen terminal applications are not supported by this workspace.
+
 On Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an
 existing rootless user service; it does not install system packages, start system

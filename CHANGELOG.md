@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Keep tester setup and execution inside 42TUI, with live output, line input,
+  cancellation, elapsed time, rerunning and saved logs. Close and reopen the
+  tester workspace while a run continues on its original project.
+
 - Run Docker testers against a disposable project copy, excluding Git metadata,
   so tester builds and cleanup preserve your working folder. Generated files in
   the copy are discarded after the run; diagnostics remain in the tester log.

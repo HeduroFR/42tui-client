@@ -88,3 +88,35 @@ print('PARENT_DONE', flush=True)
 
     def test_ctrl_c_interrupts_child_and_restores_terminal(self):
         self.run_in_terminal(interrupt=True)
+
+
+class WorkspaceSessionTests(unittest.TestCase):
+    def test_private_pty_captures_input_output_and_failure(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        log, output = io.BytesIO(), []
+        session = WorkspaceSession(log, output.append)
+        session.input.put(b'hello\n')
+        session.run([sys.executable, '-c', 'print(input(), flush=True)'])
+        self.assertIn(b'hello', log.getvalue())
+        self.assertEqual(b''.join(output), log.getvalue())
+        with self.assertRaises(subprocess.CalledProcessError):
+            session.run([sys.executable, '-c', 'raise SystemExit(7)'])
+
+    def test_cancel_reaps_process_group(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: session.cancel() if b'READY' in data else None)
+        started = time.monotonic()
+        with self.assertRaises(KeyboardInterrupt):
+            session.run([sys.executable, '-c', 'import time; print("READY",flush=True); time.sleep(30)'])
+        self.assertLess(time.monotonic() - started, 5)
+
+    def test_cancel_does_not_disable_finally_cleanup_commands(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: None)
+        session.cancel()
+        with self.assertRaises(KeyboardInterrupt):
+            session.run([sys.executable, '-c', 'raise SystemExit(99)'])
+        session.run([sys.executable, '-c', 'print("cleanup")'])
