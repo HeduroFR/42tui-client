@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Recover new or empty project folders from the development remote when Vogsphere
+  is unreachable, with a warning that Vogsphere history remains unverified.
+  Existing local work still requires review before synchronization.
+
+- Ask for SSH passphrases in the masked modal during Save + Set Up Checkout,
+  keeping authentication prompts inside the TUI. Cancel stops completion feedback.
+
+- Separate tester Run and removal controls with a visible gap and use the shared
+  square danger button for removal.
+
+- Keep tester status messages and multiline commands aligned at the left edge
+  of the console instead of drifting diagonally across the output.
+
 - Keep tester setup and execution inside 42TUI, with live output, line input,
   cancellation, elapsed time, rerunning and saved logs. Close and reopen the
   tester workspace while a run continues on its original project.

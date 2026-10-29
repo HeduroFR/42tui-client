@@ -148,7 +148,9 @@ class WorkspaceSession:
 
     def write(self, message):
         self.check_cancelled()
-        self._output((translate(message, self.language) + "\n").encode())
+        # App messages bypass the PTY, so supply its usual LF-to-CRLF conversion.
+        text = translate(message, self.language).replace("\r\n", "\n")
+        self._output((text.replace("\n", "\r\n") + "\r\n").encode())
 
     def _output(self, data):
         self.log.write(data)

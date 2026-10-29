@@ -805,3 +805,45 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIs(app.screen, parent)
                 self.assertEqual(parent.snapshot.relationship, 'equal')
                 self.assertTrue(parent.query_one('#git-review-command').disabled)
+
+
+class CheckoutSetupSshTests(unittest.IsolatedAsyncioTestCase):
+    async def test_save_checkout_uses_masked_prompt_and_cancel_skips_completion(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from textual.app import App
+        from textual.widgets import Input
+        from ft_tui.features.projects.views.setup import ProjectSetupMixin
+        from ft_tui.features.projects.views.ssh_prompt import ProjectSshPromptScreen
+        from ft_tui.features.projects.adapters.checkout import CheckoutResult
+        class Harness(ProjectSetupMixin, App):
+            language = 'en'
+        for submit in (True, False):
+            app = Harness()
+            app._project_checkout_busy = True
+            app._report_checkout_setup = Mock()
+            answers, handlers = [], []
+            def setup(path, *, ssh_prompt, **kwargs):
+                handlers.append(ssh_prompt)
+                answers.append(ssh_prompt("Enter passphrase for key 'synthetic':", False))
+                return CheckoutResult(Path(path), False, False, (), (), 'Ready')
+            app.project_service = SimpleNamespace(setup_checkout=setup)
+            values = dict(local_path='/synthetic', dev_repo_url='git@example.invalid:dev.git',
+                          vogsphere_url='', project_name='Test', project_key='test')
+            async with app.run_test(size=(80,24)) as pilot:
+                worker = app.run_worker(lambda: app._setup_checkout_in_background(values), thread=True)
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ProjectSshPromptScreen)
+                field = app.screen.query_one(Input)
+                self.assertTrue(field.password)
+                field.value = 'synthetic-passphrase'
+                if submit:
+                    await pilot.click('#ssh-prompt-submit')
+                else:
+                    await pilot.press('escape')
+                await worker.wait()
+                self.assertEqual(field.value, '')
+                self.assertFalse(app._project_checkout_busy)
+                self.assertTrue(handlers[0].closed)
+                self.assertEqual(answers, ['synthetic-passphrase' if submit else None])
+                self.assertEqual(app._report_checkout_setup.call_count, int(submit))

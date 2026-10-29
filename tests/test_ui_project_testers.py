@@ -203,10 +203,12 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             remove = widget.query_one(TesterRemoveButton)
             self.assertFalse(remove.disabled)
-            self.assertEqual(remove.region.width, 5)
+            self.assertTrue(remove.square)
+            self.assertEqual(remove.variant, "danger")
             run = widget.query_one(TesterAction)
             self.assertEqual(remove.region.y, run.region.y)
             self.assertEqual(remove.region.height, run.region.height)
+            self.assertGreaterEqual(remove.region.x - run.region.right, 2)
             self.assertIn("all projects", str(remove.tooltip))
             self.assertTrue(app.screen.region.contains_region(remove.region))
             def removed(*args):

@@ -17,6 +17,55 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Consolidate the pending tester line-ending/button fixes, checkout
+  SSH modal, development-remote fallback and unnumbered group-Git roadmap for
+  the authorized branch commit/push. Checks previously run: Git suite 52 plus
+  partial-clone preservation regression, terminal 6, rendering 2, project-details
+  UI 22, architecture 9 and focused removal layout test passed. Final tracked
+  diff and whitespace reviewed; unrelated untracked duplicate files excluded.
+  No API/backend or version change; planned 0.6.0 remains subject to native and
+  release validation, with no separate release justified by this consolidation.
+
+- 2026-10-29: Add unnumbered future roadmap work for simpler group-project Git
+  collaboration: shared development setup, guided push/pull, synchronization
+  visibility and conflict guidance, reusing existing Git actions and preserving
+  local work and separate Vogsphere publication. Planning only; no release
+  required. Checks: unversioned placement, existing Git scope and whitespace
+  reviewed; runtime tests skipped. Same branch; uncommitted.
+
+- 2026-10-29: Allow checkout recovery to use a populated development remote
+  when Vogsphere inspection or cloning fails for remote-access reasons. Retain
+  Vogsphere configuration and explicit warnings; never remove a partial clone
+  or overwrite existing/unborn checkout files. Keep development failures and
+  unavailable sources blocking. Add disposable-repository regressions for new,
+  empty and unborn folders plus clone-time refusal. Patch impact within planned
+  0.6.0; no separate release warranted. Same branch, uncommitted. Checks: Git
+  suite 52 passed, additional partial-clone preservation regression passed;
+  whitespace reviewed. Live campus/Vogsphere access unverified.
+
+- 2026-10-29: Pass the existing ProjectSshPromptHandler into Save + Set Up
+  Checkout's background Git operation, covering its remote inspection/recovery
+  authentication. Close prompts and release the busy state on success, failure
+  and cancellation; suppress success reporting after cancelled authentication.
+  Reuse existing masked entry and operation-scoped secret handling. Patch impact
+  within planned 0.6.0; no separate release warranted. Same branch, uncommitted.
+  Checks: project-details UI and architecture regressions; no real SSH key used.
+
+- 2026-10-29: Use the shared AppButton square/danger behavior for tester removal;
+  remove its fixed width and give Run a two-column right margin. Preserve tooltip,
+  removal handling and equal row heights. Patch impact within planned 0.6.0;
+  no separate release warranted. Same branch, uncommitted. Checks: focused
+  removal UI regression and whitespace review; native tester runs not repeated.
+
+- 2026-10-29: Fix diagonal tester output introduced by feeding app-generated
+  bare line feeds into the terminal emulator. Convert synthetic status/command
+  and final-result lines to CRLF while leaving raw PTY output unchanged. Add a
+  real PTY-to-emulator regression with multiline commands and mixed newline forms.
+  Checks: terminal tests 6 passed, redraw/rendering tests 2 passed, whitespace
+  reviewed. Patch impact within planned 0.6.0; no separate release warranted.
+  Same `feat/tester-workspace-0.6.0` branch; uncommitted. Native Francinette run
+  and WezTerm visual inspection remain unverified.
+
 - 2026-10-29: Fix tester console redraws using pyte 0.8.x terminal emulation
   matching the private 100×24 PTY, preserving ANSI colors, partial reads and
   bounded scrollback. Request plain Docker build progress; replace Log location

@@ -70,7 +70,7 @@ class TesterAction(Button):
 class TesterRemoveButton(Button):
     def __init__(self, tester: Tester, language: str):
         tooltip = f"Remove {tester.name} images for all projects to free disk space. Reinstallation will be required."
-        super().__init__("×", variant="error", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
+        super().__init__("×", square=True, variant="danger", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
         self.tester = tester
         self.tooltip = translate(tooltip, language)
 
@@ -82,7 +82,7 @@ class ProjectTesters(Vertical):
     ProjectTesters Button { width: 1fr; min-width: 0; margin-top: 1; }
     ProjectTesters .tester-action-row { height: 3; margin-top: 1; align-vertical: middle; }
     ProjectTesters .tester-action-row Button { height: 3; margin-top: 0; margin-bottom: 0; }
-    ProjectTesters .tester-remove { width: 5; min-width: 5; padding: 0; margin-left: 1; }
+    ProjectTesters .tester-action-row TesterAction { margin-right: 2; }
     #tester-catalog-warning { color: $warning; }
     #tester-status-scroll { height: auto; max-height: 5; }
     """
@@ -331,7 +331,8 @@ class ProjectTesters(Vertical):
             if self._workspace is not None:
                 self._workspace.result = message
                 self._workspace.finished = time.monotonic()
-                self._workspace.output.append((text + "\n").encode())
+                display_text = (text + "\n").replace("\r\n", "\n").replace("\n", "\r\n")
+                self._workspace.output.append(display_text.encode())
             self._messages[key] = escape(text)
             if self.is_mounted:
                 self.set_project(self.project)

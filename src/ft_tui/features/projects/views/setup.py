@@ -1,5 +1,7 @@
 """ProjectSetup actions for the Projects screen."""
 
+from ft_tui.features.projects.views.ssh_prompt import ProjectSshPromptHandler
+
 from ft_tui.ui.components import (
     CheckoutResult,
     CheckoutSetupError,
@@ -126,21 +128,17 @@ class ProjectSetupMixin:
 
     def _setup_checkout_in_background(self, values: dict[str, str]) -> None:
         """Run Git/network work off the UI thread and report the result safely."""
+        prompts = ProjectSshPromptHandler(self)
         try:
             result = self.project_service.setup_checkout(
                 values["local_path"],
                 dev_remote_url=values["dev_repo_url"] or None,
                 vogsphere_url=values["vogsphere_url"] or None,
+                ssh_prompt=prompts,
             )
-        except CheckoutSetupError as error:
-            self.call_from_thread(
-                self.notify,
-                f"Checkout setup failed: {error}",
-                severity="error",
-                timeout=10,
-            )
-            return
-        except OSError as error:
+        except (CheckoutSetupError, OSError) as error:
+            if prompts.was_cancelled:
+                return
             self.call_from_thread(
                 self.notify,
                 f"Checkout setup failed: {error}",
@@ -149,8 +147,11 @@ class ProjectSetupMixin:
             )
             return
         finally:
+            self.call_from_thread(prompts.close)
             self.call_from_thread(setattr, self, "_project_checkout_busy", False)
 
+        if prompts.was_cancelled:
+            return
         self.call_from_thread(
             self._report_checkout_setup,
             values["project_name"],

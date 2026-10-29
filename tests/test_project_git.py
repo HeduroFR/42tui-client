@@ -383,6 +383,58 @@ class ProjectGitTests(unittest.TestCase):
                     setup_project_checkout(target, vogsphere_url=str(self.root / 'missing.git'))
                 self.assertFalse((target / 'main.c').exists())
 
+    def test_unreachable_vogsphere_recovers_development_without_overwriting_local_work(self):
+        self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')
+        missing = str(self.root / 'missing-vogsphere.git')
+        for state in ('new-fallback', 'empty-fallback', 'unborn-fallback'):
+            with self.subTest(state=state):
+                target = self.root / state
+                if state != 'new-fallback':
+                    target.mkdir()
+                if state == 'unborn-fallback':
+                    self.git(target, 'init', '--initial-branch=work')
+                    (target / 'main.c').write_text('local work')
+                    with self.assertRaises(CheckoutReviewRequired):
+                        setup_project_checkout(target, dev_remote_url=str(self.dev), vogsphere_url=missing)
+                    self.assertEqual((target / 'main.c').read_text(), 'local work')
+                else:
+                    result = setup_project_checkout(target, dev_remote_url=str(self.dev), vogsphere_url=missing)
+                    self.assertTrue(result.cloned_development_remote)
+                    self.assertFalse(result.cloned_vogsphere_remote)
+                    self.assertIn('development remote', result.warnings[0])
+                    self.assertEqual((target / 'main.c').read_text(), 'initial')
+                    self.assertEqual(self.git(target, 'remote', 'get-url', 'vogsphere'), missing)
+
+    def test_vogsphere_clone_connection_failure_tries_development(self):
+        self.publish_seed()
+        original = subprocess.run
+        def run(args, **kwargs):
+            if 'clone' in args and str(self.vog) in args:
+                return subprocess.CompletedProcess(args, 128, '', 'ssh: connect: Connection refused')
+            return original(args, **kwargs)
+        with patch('ft_tui.features.projects.adapters.git.subprocess.run', side_effect=run):
+            result = setup_project_checkout(self.root / 'clone-fallback',
+                                            dev_remote_url=str(self.dev), vogsphere_url=str(self.vog))
+        self.assertTrue(result.cloned_development_remote)
+        self.assertEqual((result.path / 'main.c').read_text(), 'initial')
+        self.assertIn('Vogsphere changes remain unverified', result.warnings[0])
+
+    def test_failed_vogsphere_clone_never_deletes_partial_files_for_fallback(self):
+        self.publish_seed()
+        original = subprocess.run
+        target = self.root / 'partial-clone'
+        def run(args, **kwargs):
+            if 'clone' in args and str(self.vog) in args:
+                target.mkdir()
+                (target / 'partial').write_text('preserve this')
+                return subprocess.CompletedProcess(args, 128, '', 'ssh: connect: Connection refused')
+            return original(args, **kwargs)
+        with patch('ft_tui.features.projects.adapters.git.subprocess.run', side_effect=run):
+            with self.assertRaises(CheckoutSetupError):
+                setup_project_checkout(target, dev_remote_url=str(self.dev), vogsphere_url=str(self.vog))
+        self.assertEqual((target / 'partial').read_text(), 'preserve this')
+        self.assertFalse((target / 'main.c').exists())
+
     def test_development_access_failure_still_blocks_existing_checkout(self):
         self.git(self.local, 'remote', 'set-url', 'origin', str(self.root / 'missing.git'))
         with self.assertRaises(CheckoutSetupError):

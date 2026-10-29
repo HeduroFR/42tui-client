@@ -376,6 +376,14 @@ Status: **scope agreed; implementation and release validation pending**.
 
 Status: **captured for design; versions and dates undecided**.
 
+- [ ] Simplify Git collaboration on group projects: guide teammates through
+  connecting a shared development repository, pushing their committed work and
+  pulling each other's changes. Reuse the existing Git review/actions and show
+  incoming/outgoing commits, destination branches and synchronization status.
+  Explain divergent histories and conflicts with guided resolution steps;
+  preserve local edits and require review before changes, without automatic
+  overwrite or force-push. Keep shared development synchronization separate from
+  Vogsphere publication. Detailed design, version and date remain undecided.
 - [ ] Later, support Intra event registration/unregistration from the TUI after
   validating available capabilities and account permissions. Review and confirm
   actions, reflect capacity/eligibility where known and refresh uncertain results

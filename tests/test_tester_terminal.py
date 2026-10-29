@@ -120,3 +120,15 @@ class WorkspaceSessionTests(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             session.run([sys.executable, '-c', 'raise SystemExit(99)'])
         session.run([sys.executable, '-c', 'print("cleanup")'])
+
+    def test_multiline_app_messages_and_real_pty_output_start_at_column_zero(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_console import TesterConsole
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        console = TesterConsole()
+        session = WorkspaceSession(io.BytesIO(), lambda data: console.feed(data.decode()))
+        session.write("Preparing tests\nSecond status\r\nThird status")
+        session.run([sys.executable, '-c', 'print("child one")\nprint("child two")'])
+        lines = console.render().plain.splitlines()
+        for expected in ('Preparing tests', 'Second status', 'Third status', 'child one', 'child two'):
+            self.assertIn(expected, [line.rstrip() for line in lines])
