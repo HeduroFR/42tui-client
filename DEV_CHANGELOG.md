@@ -12,6 +12,15 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Schedule Intra event browsing and a personal agenda with upcoming
+  evaluations for 0.7.0, user-selected reminders/change/cancellation notifications
+  respecting DND for 0.8.0, and event participation plus club-event integration
+  as later work. Record source/permission validation and reuse of existing
+  calendar/evaluation behavior. Planning only; no release required. Checks:
+  roadmap consistency and diff/whitespace review; live Intra capabilities and
+  client/backend integration not validated. Branch: `docs/roadmap-additions`;
+  commit/PR pending.
+
 - 2026-10-29: Add optional Obsidian integration to Further updates, complementing
   existing dev logs/notes with project-vault links, Markdown export, explicit
   conflict-reviewed import and a possible daily summary. Preserve built-in notes

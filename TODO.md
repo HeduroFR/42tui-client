@@ -254,6 +254,15 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Show upcoming evaluations on the dashboard, both as evaluator and evaluated
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
+- [ ] Display Intra events for the selected campus in an agenda list and weekly
+  calendar, with a detail view and a link to the event on Intra. Validate source
+  coverage and account visibility, use explicit local times and distinguish
+  loading, empty, unavailable and stale data. Assess reuse of the correction
+  calendar's navigation/layout without carrying over slot-editing behavior.
+- [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
+  evaluated student, reusing the dashboard's evaluation data. Visually distinguish
+  Intra events from evaluations and provide filters for each; reflect schedule
+  changes/cancellations consistently across the agenda and dashboard.
 - [ ] Standardize danger-button styling and hover, including the tester removal
   control. One-button tester setup is already implemented for 0.6.0; do not
   duplicate it here or assume its removal styling is complete.
@@ -288,6 +297,10 @@ Status: **scope agreed; implementation and release validation pending**.
   evaluation reminders in the inbox, linking to the relevant project/evaluation.
   Define reminder timing, read/deduplication behavior and DND handling; keep the
   dashboard and notifications consistent after schedule changes.
+- [ ] Add user-selected Intra event reminders, time-change and cancellation
+  notifications to the unified inbox, respecting DND. Define reminder choices,
+  subscriptions and deduplication; link back to the event and keep notifications
+  consistent with the 0.7.0 agenda after refreshes and schedule changes.
 - [ ] Show online, inactive, DND and offline using differently colored round
   Unicode indicators in friends lists, replacing rank numbers outside ranking mode.
   Define presence source, idle/offline timing and DND behavior before implementation.
@@ -320,6 +333,11 @@ Status: **scope agreed; implementation and release validation pending**.
 
 Status: **captured for design; versions and dates undecided**.
 
+- [ ] Later, support Intra event registration/unregistration from the TUI after
+  validating available capabilities and account permissions. Review and confirm
+  actions, reflect capacity/eligibility where known and refresh uncertain results
+  before retrying. Include club events in the agenda after the club rework,
+  preserving club visibility/permissions and distinguishing them from Intra events.
 - [ ] Prepare a stable release for all 42 campuses: audit features currently
   tailored to Angouleme and remove campus-specific assumptions using the selected
   campus context and its available capabilities. Validate feature coverage across
