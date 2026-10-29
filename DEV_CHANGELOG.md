@@ -12,7 +12,18 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
-No unreleased changes.
+- 2026-10-29: Add opt-in Discord Rich Presence to the 0.8.0 roadmap, alongside
+  notifications and presence, with navigation activity, privacy, lifecycle and
+  platform-validation requirements. Planning only; no feature implemented and
+  no release required. Checks: roadmap placement and diff/whitespace review;
+  runtime tests skipped for this documentation-only change. Branch:
+  `docs/discord-rich-presence-roadmap`; commit/PR pending.
+- 2026-10-29: Expand the 0.7.0 Settings roadmap from Curriculum/Appearance
+  simplification to a full interface rework, preserving preferences and validation
+  with clear save feedback and accessibility/locale checks. Planning only; no
+  release required. Checks: existing Settings structure, roadmap and diff/whitespace
+  review; runtime tests skipped. Branch: `docs/discord-rich-presence-roadmap`;
+  commit/PR pending.
 
 ## Verified publication · 2026-10-29
 

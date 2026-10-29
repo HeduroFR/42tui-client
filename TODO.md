@@ -251,7 +251,11 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Standardize danger-button styling and hover, including the tester removal
   control. One-button tester setup is already implemented for 0.6.0; do not
   duplicate it here or assume its removal styling is complete.
-- [ ] Simplify Curriculum and Appearance settings.
+- [ ] Rework the full Settings interface: review category grouping, navigation,
+  labels and layout, including simplifying Curriculum and Appearance. Preserve
+  existing preferences, account/curriculum scope and validation; make save state
+  and feedback clear. Validate keyboard access, small-terminal layouts and
+  French/Spanish coverage. Keep the later Discord RPC toggle within this structure.
 - [ ] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
 - [ ] Add a Discord button in Settings opening the project's Discord invite, plus
@@ -273,6 +277,12 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Show online, inactive, DND and offline using differently colored round
   Unicode indicators in friends lists, replacing rank numbers outside ranking mode.
   Define presence source, idle/offline timing and DND behavior before implementation.
+- [ ] Add optional Discord Rich Presence (RPC), disabled by default, showing
+  42TUI and the current section/activity while navigating. Provide a Settings
+  toggle; exclude account identifiers, private project details and messages.
+  Define idle/DND behavior, clear activity on disable/exit, and handle Discord
+  being unavailable or reconnecting without blocking the TUI. Validate on Linux
+  and macOS; this is separate from in-app friend presence and the Discord invite.
 - [ ] Replace the poke inbox below search with a direct Send poke action, matching
   friend details; make each poke a message viewed once and define read semantics.
 - [ ] Simplify the poke sender modal, remove excessive details below the message
