@@ -5,7 +5,8 @@ Package version: **0.5.1** (candidate; not published).
 Suggested next release: **0.5.1**, as requested for the Vogsphere branch fix,
 reviewed fast-forward pull commands and website root redirect. Preparation, PR
 and merge are authorized; stop before creating or pushing any release tag.
-Exact-candidate CI and review remain pending. Latest verified baseline stays 0.5.0.
+Candidate CI and review are tracked in PR #42. Latest verified baseline stays 0.5.0;
+no release tag or publication is authorized for this task.
 The tester workspace rework remains planned for 0.6.0; remaining Git design tasks
 are tracked in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -26,12 +27,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   Also redirect the website root to GitHub, extend the existing Nginx CI assertion,
   and make the contributor/release template headings English. Set package/version
   notes to 0.5.1 while retaining the verified 0.5.0 publication baseline. Branch:
-  `fix/git-remote-branches`; PR pending. Checks: branch regressions reproduced
+  `fix/git-remote-branches`; PR #42. Checks: branch regressions reproduced
   the hard-coded-master failure before the fix. Final disposable Git suite: 41
   passed; CLI: six passed; locale: two passed; release validation: two passed.
   Version/tag consistency, non-overlapping regression ownership and wheel/sdist
-  contents passed. Broader project scope, clean committed archive smoke and CI
-  remain pending. No live Vogsphere credentials or user repositories were used.
+  contents passed. Broader project scope: 153 passed; final focused Git rerun
+  includes two additional branch/recovery regressions (41 passed). Final ownership
+  check covers all 904 tests. Clean committed archive wheel/sdist contents and
+  installed CLI/resources/42git pull help passed; unrelated duplicate files are
+  excluded. Full CI is tracked in PR #42, including the live Nginx container
+  root-redirect assertion. No live Vogsphere credentials or user repositories
+  were used.
   No API/backend/schema changes.
   Stop before release tag/publication per user instruction. Website rollout is
   separate from package publication; no rollout claimed here.
