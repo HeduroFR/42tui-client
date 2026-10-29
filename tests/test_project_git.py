@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -89,6 +90,47 @@ class ProjectGitTests(unittest.TestCase):
         self.assertEqual(review.head, '—')
         self.assertIn('?? main.c', review.status)
         self.assertEqual((target / 'main.c').read_text(), 'existing local work')
+
+    @unittest.skipUnless(shutil.which('ssh-keygen'), 'OpenSSH keygen is unavailable')
+    def test_ssh_askpass_unlocks_real_encrypted_key_without_terminal(self):
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        key = self.root / 'synthetic_key'
+        password = 'synthetic-test-passphrase'
+        subprocess.run(('ssh-keygen', '-q', '-t', 'ed25519', '-N', password, '-f', str(key)), check=True)
+        prompts = []
+        def answer(prompt, confirm):
+            prompts.append((prompt, confirm))
+            return password
+        with ssh_askpass(answer):
+            environment = {**os.environ, **ssh_environment.get()}
+            helper = Path(environment['SSH_ASKPASS'])
+            self.assertNotIn(password, helper.read_text())
+            self.assertNotIn(password, environment.values())
+            result = subprocess.run(('ssh-keygen', '-y', '-f', str(key)),
+                                    stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                                    env=environment, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith('ssh-ed25519 '))
+        self.assertEqual(len(prompts), 1)
+        self.assertIn('passphrase', prompts[0][0])
+        self.assertFalse(prompts[0][1])
+        self.assertNotIn(password, result.stdout + result.stderr)
+        self.assertFalse(helper.exists())
+        self.assertFalse(ssh_environment.get())
+
+    def test_ssh_askpass_rejects_bad_token_and_cancellation(self):
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        answer = Mock(return_value=None)
+        with ssh_askpass(answer):
+            environment = {**os.environ, **ssh_environment.get()}
+            for token in ('invalid', environment['FT_TUI_ASKPASS_TOKEN']):
+                result = subprocess.run((environment['SSH_ASKPASS'], 'Enter passphrase:'),
+                                        stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                                        env={**environment, 'FT_TUI_ASKPASS_TOKEN': token}, timeout=5)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(result.stdout, '')
+        answer.assert_called_once_with('Enter passphrase:', False)
 
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')

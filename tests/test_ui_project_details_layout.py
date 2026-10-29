@@ -215,7 +215,7 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
         import asyncio
         from threading import Event
         from types import SimpleNamespace
-        from unittest.mock import Mock
+        from unittest.mock import ANY, Mock
         from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
         from ft_tui.features.projects.adapters.checkout import CheckoutSetupError
 
@@ -227,6 +227,8 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
         harness.projects = {'one': original}
         harness.selected_project_key = 'one'
         harness.notify = Mock()
+        harness.push_screen = Mock(return_value=asyncio.get_running_loop().create_future())
+        harness.push_screen.return_value.set_result(None)
         harness._open_project_in_editor = Mock()
         tasks = []
         harness.run_worker = lambda coro: tasks.append(asyncio.create_task(coro))
@@ -249,7 +251,7 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             release.set()
             await tasks[0]
             harness.project_service.setup_checkout.assert_called_once_with(
-                '/disposable/original', dev_remote_url='/disposable/dev.git', vogsphere_url='/disposable/vog.git')
+                '/disposable/original', dev_remote_url='/disposable/dev.git', vogsphere_url='/disposable/vog.git', ssh_prompt=ANY)
             harness._open_project_in_editor.assert_called_once_with('Original', Path('/disposable/original'))
             self.assertFalse(harness._project_checkout_busy)
             original.local_path = '/disposable/original'
@@ -396,6 +398,7 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(answers, [expected])
 
     async def test_recovery_requires_explicit_open_and_captures_path(self):
+        import asyncio
         from types import SimpleNamespace
         from unittest.mock import Mock
         from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
@@ -407,7 +410,8 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
             path = Path('/synthetic')
             host.project_service = SimpleNamespace(setup_checkout=Mock(side_effect=
                 CheckoutReviewRequired('Different history', path, 'origin', 'main', 'a' * 40)))
-            host.push_screen = Mock()
+            host.push_screen = Mock(return_value=asyncio.get_running_loop().create_future())
+            host.push_screen.return_value.set_result(None)
             host._open_project_in_editor = Mock()
             await host._recover_project_for_editor('Original', path, (str(path), 'dev', None))
             host._open_project_in_editor.assert_not_called()
@@ -450,10 +454,88 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
     def test_review_copy_has_supported_translations(self):
         import ast
         from ft_tui.i18n import translate
-        from ft_tui.features.projects.views import git_review
-        tree = ast.parse(Path(git_review.__file__).read_text())
+        from ft_tui.features.projects.views import checkout_progress, git_review, ssh_prompt
+        tree = ast.parse('\n'.join(Path(module.__file__).read_text() for module in
+                                   (checkout_progress, git_review, ssh_prompt)))
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr':
                 source = node.args[0].value
                 for language in ('fr', 'es'):
                     self.assertNotEqual(translate(source, language), source, (language, source))
+
+    async def test_ssh_passphrase_is_masked_and_cancel_never_opens_editor(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from textual.app import App
+        from textual.widgets import Input
+        from ft_tui.features.projects.adapters.checkout import CheckoutResult
+        from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
+        from ft_tui.features.projects.views.ssh_prompt import ProjectSshPromptScreen
+        class Harness(ProjectNavigationMixin, App):
+            language = 'en'
+        for submit in (True, False):
+            app = Harness()
+            app._open_project_in_editor = Mock()
+            supplied = []
+            def setup(path, *, ssh_prompt, **kwargs):
+                supplied.append(ssh_prompt('Enter passphrase for key [literal]:', False))
+                return CheckoutResult(Path(path), False, False, (), (), 'Ready',
+                                      warnings=('Vogsphere unavailable',) if supplied[-1] is None else ())
+            app.project_service = SimpleNamespace(setup_checkout=setup)
+            async with app.run_test(size=(80, 24)) as pilot:
+                app._project_checkout_busy = True
+                worker = app.run_worker(app._recover_project_for_editor('Libft', Path('/synthetic'),
+                                                                        ('/synthetic', 'dev', None)))
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ProjectSshPromptScreen)
+                field = app.screen.query_one(Input)
+                self.assertTrue(field.password)
+                field.value = 'synthetic-passphrase'
+                if submit:
+                    await pilot.click('#ssh-prompt-submit')
+                else:
+                    await pilot.press('escape')
+                await worker.wait()
+                await pilot.pause()
+                self.assertEqual(field.value, '')
+                self.assertFalse(app._project_checkout_busy)
+                if submit:
+                    self.assertEqual(supplied, ['synthetic-passphrase'])
+                    app._open_project_in_editor.assert_called_once_with('Libft', Path('/synthetic'))
+                else:
+                    self.assertEqual(supplied, [None])
+                    app._open_project_in_editor.assert_not_called()
+
+    async def test_slow_remote_shows_loading_and_cancel_ignores_late_success(self):
+        from threading import Event
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutResult
+        from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
+        from ft_tui.features.projects.views.checkout_progress import ProjectCheckoutProgressScreen
+        class Harness(ProjectNavigationMixin, App):
+            language = 'en'
+        app = Harness()
+        release = Event()
+        def setup(path, **kwargs):
+            release.wait(5)
+            return CheckoutResult(Path(path), False, False, (), (), 'Ready')
+        app.project_service = SimpleNamespace(setup_checkout=setup)
+        app._open_project_in_editor = Mock()
+        async with app.run_test(size=(80, 24)) as pilot:
+            app._project_checkout_busy = True
+            worker = app.run_worker(app._recover_project_for_editor('Libft', Path('/synthetic'),
+                                                                    ('/synthetic', 'dev', None)))
+            try:
+                await pilot.pause()
+                self.assertIsInstance(app.screen, ProjectCheckoutProgressScreen)
+                await pilot.click('#checkout-progress-cancel')
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, ProjectCheckoutProgressScreen)
+                self.assertTrue(app._project_checkout_busy)
+            finally:
+                release.set()
+            await worker.wait()
+            app._open_project_in_editor.assert_not_called()
+            self.assertFalse(app._project_checkout_busy)

@@ -1218,5 +1218,8 @@
   "Local changes": "Modifications locales",
   "Diff: remote snapshot → local tracked files": "Diff : instantané distant → fichiers locaux suivis",
   "No tracked differences": "Aucune différence sur les fichiers suivis",
-  "Could not inspect Git differences": "Impossible d’examiner les différences Git"
+  "Could not inspect Git differences": "Impossible d’examiner les différences Git",
+  "Checking project Git history…": "Vérification de l’historique Git du projet…",
+  "Waiting for remote Git access. Cancel prevents the editor from opening; the current Git check may finish in the background.": "En attente de l’accès Git distant. Annuler empêche l’ouverture de l’éditeur ; la vérification Git en cours peut se terminer en arrière-plan.",
+  "SSH authentication": "Authentification SSH"
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 
 from ft_tui.features.projects.subjects.adapters.files import ensure_pdf_gitignore
+from .ssh_askpass import ssh_askpass
 from .git import ProjectGitError, _checked_git, _run_git, _repository_path, _remote_heads, _remote_branch
 
 
@@ -55,7 +56,7 @@ def _remote_access_failure(error: ProjectGitError) -> bool:
 
 def setup_project_checkout(
     path: str | Path, *, dev_remote_url: str | None = None,
-    vogsphere_url: str | None = None, timeout: float = 60.0,
+    vogsphere_url: str | None = None, timeout: float = 60.0, ssh_prompt=None,
 ) -> CheckoutResult:
     """Clone Vogsphere work first; fetch and inspect existing checkouts only.
 
@@ -63,7 +64,8 @@ def setup_project_checkout(
     stages, commits, merges, resets, or changes an existing checkout's branch.
     """
     try:
-        return _setup(path, dev_remote_url, vogsphere_url, timeout)
+        with ssh_askpass(ssh_prompt):
+            return _setup(path, dev_remote_url, vogsphere_url, timeout)
     except CheckoutSetupError:
         raise
     except ProjectGitError as error:

@@ -32,6 +32,12 @@ Before the first editor launch in an app session, setup recovers existing
 Vogsphere work into a new or empty folder. If Vogsphere is empty, it uses the
 development repository; if both are empty, it initializes a local repository.
 
+Editor recovery displays a cancellable loading dialog while checking remotes.
+If OpenSSH needs a key passphrase, enter it in the masked SSH authentication
+dialog. The app forwards it to that SSH request without saving it. Existing
+SSH configuration and agents still apply. Cancel prevents the editor from
+opening; an already-running Git check may finish in the background.
+
 Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
 locally, a review dialog shows the fetched remote snapshot, local branch, working

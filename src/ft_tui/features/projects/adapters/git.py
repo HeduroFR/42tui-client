@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
 
+from .ssh_askpass import ssh_environment
+
 
 class ProjectGitError(RuntimeError):
     """A Git operation cannot safely proceed."""
@@ -32,7 +34,8 @@ def _run_git(root: Path, *args: str, timeout: float = 60) -> subprocess.Complete
     try:
         return subprocess.run(
             ("git", "-C", str(root), *args), check=False, capture_output=True,
-            text=True, timeout=timeout, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            text=True, stdin=subprocess.DEVNULL if ssh_environment.get() else None, timeout=timeout,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0", **ssh_environment.get()},
         )
     except FileNotFoundError as error:
         raise ProjectGitError("Git is not installed or is not on PATH.") from error

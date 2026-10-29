@@ -14,6 +14,21 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Route OpenSSH askpass requests during editor recovery to a masked
+  modal, preserving SSH configuration/agent behavior and keeping answers in
+  memory. Use a temporary helper plus an authenticated loopback bridge scoped to
+  one checkout operation; no passphrase in files, command arguments or environment.
+  Show loading before starting remote access, support cancellation and suppress
+  late editor launches, including Vogsphere warning fallback. Clear input on
+  submission/cancel and remove the helper on completion. Patch impact for 0.5.2;
+  branch `fix/editor-git-review`; local follow-up to `c23fb85`, not pushed/tagged.
+  Checks: real disposable encrypted OpenSSH key unlock and bridge cancellation/
+  authentication (also passed under a real pseudo-terminal), masked UI submit/
+  cancel and delayed-recovery cancellation. Final Git suite 45 passed; dialog/
+  layout/locales suite 14 passed; architecture 9 passed; all 914 tests have one
+  regression-scope owner; locale and whitespace checks passed. User/campus and
+  Windows askpass integration remain unverified. No release or API/backend change.
+
 - 2026-10-29: Replace the editor-blocking history mismatch notification with an
   English/French/Spanish Git review modal: fetched snapshot, local branch/HEAD,
   working status and read-only tracked-file diff. Explicit Open local files or

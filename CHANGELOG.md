@@ -4,6 +4,9 @@
 
 ### 🐛 Fixes
 
+- Enter an SSH key passphrase in a masked dialog during editor checkout recovery,
+  instead of an SSH prompt overwriting the TUI. Cancel aborts the editor launch;
+  remote checks show a loading dialog. The app does not save the passphrase.
 - Review fetched Git differences when opening an existing project whose remote
   history differs, then choose **Open local files** or **Cancel**. Local files,
   staged changes and branches remain unchanged; synchronization stays explicit.
