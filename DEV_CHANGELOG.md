@@ -2,7 +2,8 @@
 
 Latest release: **0.5.0** ([`v0.5.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.0)).
 Package version: **0.5.0**.
-Suggested next release: **none**. No unreleased product changes.
+Suggested next release: **none** for the Python package. The Discord website
+redirect below requires a website deployment only.
 The tester workspace rework remains planned for 0.6.0; remaining Git design tasks
 are tracked in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -12,7 +13,16 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.0
 
-No unreleased changes.
+- **2026-10-29 · no package release required · Discord website redirect:** add
+  exact Nginx `/discord` HTTP 301 to the maintainer-provided invite
+  `https://discord.gg/QrRBcK5MeP`, matching `/github`. Extend the existing
+  distribution-container CI assertion and document the destination. Website
+  deployment required; no Python runtime/version change. Branch:
+  `fix/discord-redirect`; PR #40. Initial container CI passed the exact redirect
+  assertion; diff/whitespace and destination agreement reviewed. Local Docker
+  test unavailable because the daemon socket is absent. Retain verified 0.5.0
+  publication baseline from PR #39. Website rollout remains pending.
+
 
 ## Verified publication · 2026-10-29
 
