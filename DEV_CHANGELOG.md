@@ -12,6 +12,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Target priority backend data protection before or alongside 0.6.0:
+  encrypted PostgreSQL storage/WAL, separately encrypted backups with protected
+  keys and an isolated recovery drill, certificate/hostname-verified database
+  TLS across production callers, and selective private-payload encryption after
+  assessment. Add deployment, migration/recovery and compatibility acceptance
+  criteria; distinguish tester-only validation from backend security rollout.
+  Planning only; no release required and no protection implemented or deployed.
+  Checks: roadmap/tracker consistency, relative links and diff/whitespace review;
+  runtime, production encryption/TLS and recovery checks skipped. Branch:
+  `docs/roadmap-additions`; commit/PR pending.
+
 - 2026-10-29: Extend the future workload-planner roadmap with a pace-based
   milestone calendar and suggested project submission dates, targeted after
   0.10.0 with detailed design deferred. Distinguish official deadlines from

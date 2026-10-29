@@ -166,6 +166,7 @@ version or authorize publication.
 | Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
+| Backend storage, backup and connection encryption | Planned; implementation and deployment verification pending | Priority security work alongside 0.6.0 |
 | GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
 
 ### Agreed tester rework
@@ -205,6 +206,43 @@ Existing tester implementation checks and remaining native-validation gates are
 recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
 These checks do not validate the pending 0.6.0 rework.
 
+### Priority backend data protection — target 0.6.0
+
+Status: **planned; no production encryption or recovery validation claimed**.
+The backend owns implementation and operations; client/backend versions remain
+independent. Complete this work as soon as possible, before or alongside 0.6.0.
+
+- [ ] Encrypt all PostgreSQL storage through encrypted volumes or the database
+  provider's storage encryption, covering data files, indexes, WAL/transaction
+  logs, temporary files, replicas and snapshots wherever they are stored. Record
+  deployed coverage and key ownership; preserve existing data during migration
+  and verify recovery before retiring the previous storage.
+- [ ] Encrypt backups separately, including logical dumps and archived WAL.
+  Keep keys in restricted secret/key management, separate from backup access,
+  with recoverable key backups and documented retention and rotation. Replace
+  any backup example that produces an unencrypted dump with a verified encrypted
+  procedure. Restore an encrypted backup into an isolated environment and record
+  integrity, credential decryption and session-revocation/reconciliation checks,
+  achieved recovery time and recovery point before marking this complete.
+- [ ] Require TLS with trusted certificate and hostname verification for every
+  production PostgreSQL connection, including API, workers, migrations and
+  backup/restore tools. Reject plaintext and invalid/untrusted certificates;
+  test successful verified connections and those rejection cases. Keep local
+  development exceptions explicit and unavailable in production configuration.
+- [ ] Preserve credential encryption and device-token hashing. Assess private
+  account, registration, preference and social payloads for protection against
+  database-only compromise; selectively encrypt those requiring it before they
+  reach PostgreSQL. Include duplicated/cache copies in that assessment, record
+  remaining readable identifiers/search metadata, and preserve query behavior.
+  Any field-encryption migration needs tested backfill, key rotation, recovery
+  and compatible rollback without data loss.
+- [ ] Keep existing API contracts and supported clients compatible. Deploy and
+  verify backend/storage changes before announcing these protections with
+  0.6.0; record exact backend revision/image, storage/TLS evidence and restore
+  results. Storage encryption protects offline media, not an authorized database
+  connection or a compromised running backend; do not describe it as end-to-end
+  encryption. Block the security-complete claim until all required checks pass.
+
 ### Integration and release checklist
 
 - [x] Merge the single Run action, unprivileged setup/retries, tester instructions
@@ -222,8 +260,13 @@ These checks do not validate the pending 0.6.0 rework.
   on the exact integrated release candidate; verify locale coverage.
 - [ ] Complete package/version/installer checks and the compatibility checks
   required by [API compatibility](docs/api-compatibility.md), recording exact
-  revisions and healthy deployed-backend evidence where required. No new backend
-  feature, schema migration or API change is required by this scope.
+  revisions and healthy deployed-backend evidence where required. The tester
+  rework requires no backend change; the separate priority data-protection scope
+  above requires backend/infrastructure rollout and may require storage/schema
+  migrations, while preserving the API contract.
+- [ ] Complete and verify the priority backend data-protection checklist before
+  presenting 0.6.0 as delivering those protections; planning and client CI alone
+  are insufficient evidence.
 - [ ] Prepare the 0.6.0 version and final release notes after review, then obtain
   separate publication authorization and verify published artifacts/update path.
 
