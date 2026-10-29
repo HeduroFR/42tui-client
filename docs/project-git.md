@@ -34,11 +34,16 @@ development repository; if both are empty, it initializes a local repository.
 
 Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
-locally, editor launch stops for manual reconciliation. Inspect the fetched history
-and reconcile it yourself, then retry. If Vogsphere is unreachable, an existing
-checkout with committed work still opens with a warning; its remote history will
-be checked again on the next editor launch. New, empty and unborn checkouts must
-complete recovery first. Setup never resets or force-pushes work.
+locally, a review dialog shows the fetched remote snapshot, local branch, working
+changes and a read-only diff of the remote snapshot against tracked local files.
+Untracked files are listed separately; their contents are not included in the diff.
+Choose **Open local files** to inspect or resolve the differences in your editor,
+or **Cancel**. Opening files does not pull, merge, reset or overwrite work;
+reconcile histories explicitly before synchronizing. If Vogsphere is unreachable,
+an existing checkout with committed work still opens with a warning; its remote
+history will be checked again on the next editor launch. New or empty folders
+must complete recovery first. Existing Git folders without a local commit can
+also be reviewed and opened explicitly. Setup never resets or force-pushes work.
 
 ## Publish committed work
 

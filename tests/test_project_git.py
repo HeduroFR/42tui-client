@@ -6,9 +6,9 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, setup_project_checkout
+from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired, setup_project_checkout
 from ft_tui.features.projects.adapters.git import (
-    ProjectGitError, _safe_detail, plan_project_push, push_project, plan_project_pull, pull_project,
+    ProjectGitError, review_project_checkout, _safe_detail, plan_project_push, push_project, plan_project_pull, pull_project,
 )
 
 
@@ -50,6 +50,45 @@ class ProjectGitTests(unittest.TestCase):
         self.git(root, 'add', 'main.c')
         self.git(root, 'commit', '-m', content)
         return self.git(root, 'rev-parse', 'HEAD')
+
+    def test_editor_review_preserves_index_files_and_history(self):
+        other = self.repo('unrelated')
+        self.git(other, 'push', str(self.dev), 'HEAD:refs/heads/main')
+        self.git(self.dev, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        (self.local / 'main.c').write_text('staged')
+        self.git(self.local, 'add', 'main.c')
+        (self.local / 'main.c').write_text('working [bold]')
+        (self.local / 'notes.txt').write_text('untracked private contents')
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        index = (self.local / '.git/index').read_bytes()
+        with self.assertRaises(CheckoutReviewRequired) as caught:
+            setup_project_checkout(self.local, dev_remote_url=str(self.dev))
+        error = caught.exception
+        self.assertEqual((error.path, error.remote, error.branch), (self.local, 'origin', 'main'))
+        review = review_project_checkout(error.path, error.commit)
+        self.assertEqual(review.head, original)
+        self.assertEqual(review.branch, 'work')
+        self.assertIn('MM main.c', review.status)
+        self.assertIn('?? notes.txt', review.status)
+        self.assertIn('+working [bold]', review.diff)
+        self.assertNotIn('untracked private contents', review.diff)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+        self.assertEqual((self.local / 'main.c').read_text(), 'working [bold]')
+
+    def test_editor_review_supports_unborn_checkout_with_files(self):
+        self.git(self.local, 'push', str(self.dev), 'HEAD:refs/heads/main')
+        self.git(self.dev, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        target = self.root / 'unborn'
+        target.mkdir()
+        self.git(target, 'init', '--initial-branch=main')
+        (target / 'main.c').write_text('existing local work')
+        with self.assertRaises(CheckoutReviewRequired) as caught:
+            setup_project_checkout(target, dev_remote_url=str(self.dev))
+        review = review_project_checkout(target, caught.exception.commit)
+        self.assertEqual(review.head, '—')
+        self.assertIn('?? main.c', review.status)
+        self.assertEqual((target / 'main.c').read_text(), 'existing local work')
 
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')

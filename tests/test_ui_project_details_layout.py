@@ -363,3 +363,97 @@ class ProjectExplorerTests(unittest.TestCase):
                     open_project_folder(directory)
         with self.assertRaisesRegex(OSError, 'does not exist'):
             open_project_folder(directory)
+
+
+class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_review_dialog_open_and_cancel(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        error = CheckoutReviewRequired('Different history', Path('/synthetic'), 'origin', 'main', 'a' * 40)
+        for key, expected in [('escape', False), ('open', True)]:
+            app = App()
+            app.language = 'en'
+            answers = []
+            with patch('ft_tui.features.projects.views.git_review.review_project_checkout',
+                       return_value=CheckoutReview('work', 'b' * 40, '?? notes', '+[bold]literal')):
+                async with app.run_test(size=(80, 24)) as pilot:
+                    screen = ProjectGitReviewScreen(error, project_name='Libft')
+                    app.push_screen(screen, answers.append)
+                    await pilot.pause()
+                    await screen.workers.wait_for_complete()
+                    self.assertIn('[bold]literal', str(screen.query_one('#git-review-content', Static).render()))
+                    button = screen.query_one('#git-review-open')
+                    self.assertFalse(button.disabled)
+                    self.assertLess(button.region.bottom, 25)
+                    if key == 'open':
+                        await pilot.click('#git-review-open')
+                    else:
+                        await pilot.press(key)
+                    await pilot.pause()
+                    self.assertEqual(answers, [expected])
+
+    async def test_recovery_requires_explicit_open_and_captures_path(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
+        class Harness(ProjectNavigationMixin):
+            is_mounted = True
+        for approved in (False, True):
+            host = Harness()
+            path = Path('/synthetic')
+            host.project_service = SimpleNamespace(setup_checkout=Mock(side_effect=
+                CheckoutReviewRequired('Different history', path, 'origin', 'main', 'a' * 40)))
+            host.push_screen = Mock()
+            host._open_project_in_editor = Mock()
+            await host._recover_project_for_editor('Original', path, (str(path), 'dev', None))
+            host._open_project_in_editor.assert_not_called()
+            self.assertTrue(host._project_git_operation_busy())
+            host.push_screen.call_args.args[1](approved)
+            self.assertFalse(host._project_git_operation_busy())
+            self.assertFalse(getattr(host, '_editor_recovered_checkouts', set()))
+            if approved:
+                host._open_project_in_editor.assert_called_once_with('Original', path)
+            else:
+                host._open_project_in_editor.assert_not_called()
+
+    async def test_cancel_during_inspection_ignores_late_result(self):
+        import asyncio
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        app = App()
+        app.language = 'fr'
+        answers = []
+        started, finish = asyncio.Event(), asyncio.Event()
+        async def inspect(*args):
+            started.set()
+            await finish.wait()
+            return CheckoutReview('work', 'a' * 40, '', '')
+        with patch('ft_tui.features.projects.views.git_review.asyncio.to_thread', side_effect=inspect):
+            async with app.run_test(size=(80, 24)) as pilot:
+                error = CheckoutReviewRequired('Different history', Path('/synthetic'), 'origin', 'main', 'a' * 40)
+                screen = ProjectGitReviewScreen(error, project_name='Libft')
+                app.push_screen(screen, answers.append)
+                await started.wait()
+                self.assertTrue(screen.query_one('#git-review-open').disabled)
+                await pilot.press('escape')
+                finish.set()
+                await pilot.pause()
+                self.assertEqual(answers, [False])
+
+    def test_review_copy_has_supported_translations(self):
+        import ast
+        from ft_tui.i18n import translate
+        from ft_tui.features.projects.views import git_review
+        tree = ast.parse(Path(git_review.__file__).read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr':
+                source = node.args[0].value
+                for language in ('fr', 'es'):
+                    self.assertNotEqual(translate(source, language), source, (language, source))

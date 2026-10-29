@@ -5,8 +5,9 @@ import asyncio
 from textual.widgets import DataTable, Input as TextInput, Tabs
 from ft_tui.ui.select import AppSelect
 from ft_tui.features.projects.adapters.explorer import open_project_folder
-from ft_tui.features.projects.adapters.checkout import CheckoutSetupError
+from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired
 from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
+from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
 
 from ft_tui.ui.components import (
     Button,
@@ -97,6 +98,19 @@ class ProjectNavigationMixin:
                 self.project_service.setup_checkout, str(project_path),
                 dev_remote_url=recovery_key[1], vogsphere_url=recovery_key[2],
             )
+        except CheckoutReviewRequired as error:
+            if self.is_mounted:
+                self._project_git_busy = True
+                def finish(approved):
+                    self._project_git_busy = False
+                    if approved and self.is_mounted:
+                        self._open_project_in_editor(project_name, project_path)
+                try:
+                    self.push_screen(ProjectGitReviewScreen(error, project_name=project_name), finish)
+                except Exception:
+                    self._project_git_busy = False
+                    raise
+            return
         except (CheckoutSetupError, OSError) as error:
             if self.is_mounted:
                 self.notify(f"Editor was not opened: checkout recovery failed: {error}", severity="error", timeout=10)

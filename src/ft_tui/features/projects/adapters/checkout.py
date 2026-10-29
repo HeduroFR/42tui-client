@@ -25,6 +25,14 @@ class CheckoutSetupError(ProjectGitError):
     """Recovery needs manual attention or Git could not finish."""
 
 
+class CheckoutReviewRequired(CheckoutSetupError):
+    """Fetched history differs; opening local files needs an explicit choice."""
+
+    def __init__(self, message: str, path: Path, remote: str, branch: str, commit: str):
+        super().__init__(message)
+        self.path, self.remote, self.branch, self.commit = path, remote, branch, commit
+
+
 _VOGSPHERE_WARNING = (
     "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. "
     "Opening the existing local checkout."
@@ -56,6 +64,8 @@ def setup_project_checkout(
     """
     try:
         return _setup(path, dev_remote_url, vogsphere_url, timeout)
+    except CheckoutSetupError:
+        raise
     except ProjectGitError as error:
         raise CheckoutSetupError(str(error)) from error
     except OSError as error:
@@ -154,13 +164,15 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
             if remote == "origin" and not local.returncode and not _run_git(
                 target, "merge-base", "--is-ancestor", "HEAD", remote_commit, timeout=timeout,
             ).returncode:
-                raise CheckoutSetupError(
+                raise CheckoutReviewRequired(
                     f"Development remote 'origin/{branch}' has newer commits. Preserve or commit local edits, "
-                    "then fetch/pull development with --ff-only and retry. Local files and branches were preserved."
+                    "then fetch/pull development with --ff-only and retry. Local files and branches were preserved.",
+                    target, remote, branch, remote_commit,
                 )
-            raise CheckoutSetupError(
+            raise CheckoutReviewRequired(
                 f"Remote '{remote}/{branch}' has commits missing from local HEAD (ahead, divergent or unrelated history). "
-                "Fetched for inspection; reconcile the histories manually before opening the editor. Local files and branches were preserved."
+                "Fetched for inspection; review before synchronizing. Local files and branches were preserved.",
+                target, remote, branch, remote_commit,
             )
 
     initialized = not existing and source is None

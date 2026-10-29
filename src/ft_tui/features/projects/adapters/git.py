@@ -305,6 +305,30 @@ class GitSnapshot:
         return self.staged + self.changed + self.untracked
 
 
+@dataclass(frozen=True)
+class CheckoutReview:
+    branch: str
+    head: str
+    status: str
+    diff: str
+
+
+def review_project_checkout(path: str | Path, commit: str) -> CheckoutReview:
+    """Compare the fetched snapshot with tracked local files without changing Git."""
+    root = _repository_path(path, 10.0)
+    # Resolve to an object ID before passing it to diff, never an option or path.
+    fetched = _checked_git(root, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{commit}}")
+    branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    head = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+    status = _run_git(root, "--no-optional-locks", "status", "--short", "--untracked-files=all")
+    if status.returncode:
+        raise ProjectGitError(_safe_detail(status.stderr) or "Git could not read repository status.")
+    diff = _checked_git(root, "--no-optional-locks", "diff", "--no-ext-diff", "--no-textconv",
+                        "--no-color", fetched, "--")
+    return CheckoutReview(branch.stdout.strip() if not branch.returncode else "(detached HEAD)",
+                          head.stdout.strip() if not head.returncode else "—", status.stdout.rstrip(), diff)
+
+
 _SENSITIVE_NAMES = {".npmrc", ".pypirc", "id_rsa", "id_ed25519"}
 
 

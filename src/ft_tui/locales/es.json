@@ -1191,5 +1191,15 @@
   "Your session has expired. Reconnect your 42 account.": "Tu sesión ha caducado. Vuelve a conectar tu cuenta de 42.",
   "Quit TUI": "Salir del TUI",
   "Catalog": "Catálogo",
-  "Vogsphere → remote branch": "Vogsphere → rama remota"
+  "Vogsphere → remote branch": "Vogsphere → rama remota",
+  "Review Git differences": "Revisar diferencias de Git",
+  "Remote snapshot": "Instantánea remota",
+  "Opening local files does not pull, merge or overwrite your work. Reconcile Git history before synchronizing.": "Abrir los archivos locales no descarga, fusiona ni sobrescribe tu trabajo. Reconcilia el historial de Git antes de sincronizar.",
+  "Untracked files are listed below; their contents are not included in the diff.": "Los archivos sin seguimiento aparecen abajo; su contenido no se incluye en el diff.",
+  "Open local files": "Abrir archivos locales",
+  "Local branch": "Rama local",
+  "Local changes": "Cambios locales",
+  "Diff: remote snapshot → local tracked files": "Diff: instantánea remota → archivos locales con seguimiento",
+  "No tracked differences": "Sin diferencias en archivos con seguimiento",
+  "Could not inspect Git differences": "No se pudieron inspeccionar las diferencias de Git"
 }

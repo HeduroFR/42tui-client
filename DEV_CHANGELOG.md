@@ -2,7 +2,9 @@
 
 Latest release: **0.5.1** ([`v0.5.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.1)).
 Package version: **0.5.1**.
-Suggested next release: **none**. No unreleased product changes.
+Suggested next release: **0.5.2** (patch), worth preparing for the editor recovery
+fix below. Not ready to publish: PR review/CI and a native reproduction check
+remain; package version stays 0.5.1.
 The tester workspace rework remains planned for 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -12,7 +14,19 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
-No unreleased changes.
+- 2026-10-29: Replace the editor-blocking history mismatch notification with an
+  English/French/Spanish Git review modal: fetched snapshot, local branch/HEAD,
+  working status and read-only tracked-file diff. Explicit Open local files or
+  Cancel leaves local history/index/files untouched. Preserve strict setup,
+  pull/push and unrelated configuration failures; unresolved recovery is not
+  cached. Tests cover unrelated/unborn histories, staged/unstaged/untracked
+  preservation, 80×24 modal actions and explicit editor approval. Patch impact;
+  branch `fix/editor-git-review`; commit/PR pending. Checks: projects scope
+  159 passed; final Git suite 43 passed; final dialog/layout/locales suite 12
+  passed; architecture boundaries 9 passed; scope ownership and whitespace
+  passed. Live campus/native editor reproduction and PR CI remain unverified.
+  User requests hands-on testing before any new tag; no backend/API change,
+  version bump or release performed.
 
 ## Verified publication · 2026-10-29
 

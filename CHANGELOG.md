@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-No unreleased package changes.
+### 🐛 Fixes
+
+- Review fetched Git differences when opening an existing project whose remote
+  history differs, then choose **Open local files** or **Cancel**. Local files,
+  staged changes and branches remain unchanged; synchronization stays explicit.
 
 ## 0.5.1
 
