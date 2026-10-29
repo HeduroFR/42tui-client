@@ -12,6 +12,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add an optional integrated music player to Further updates,
+  targeting provider selection for Spotify, Deezer, SoundCloud and YouTube through
+  reusable open-source projects. Require license/provider feasibility review,
+  guided installation and platform validation before committing to support.
+  Planning only; no release required. Checks: roadmap placement and diff/whitespace
+  review; project licenses, provider capabilities and playback not verified.
+  Branch: `docs/roadmap-additions`; commit/PR pending.
+
 - 2026-10-29: Add six selected unversioned further updates: project readiness,
   opt-in peer study matching, workload planning, exam practice, integration
   diagnostics and data export/backup. Record reuse, privacy and data-preservation

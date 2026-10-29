@@ -356,6 +356,15 @@ Status: **captured for design; versions and dates undecided**.
   safe restore when changing machines. Exclude credentials, validate imports,
   preview conflicts and preserve existing data on cancellation or failure;
   document backup contents and format compatibility.
+- [ ] Add an optional music player integrated into the TUI, with provider
+  selection targeting Spotify, Deezer, SoundCloud and YouTube. Reuse maintained
+  open-source players/libraries after verifying license compatibility, dependency
+  redistribution and attribution requirements. Assess playback support, provider
+  terms, authentication and subscription requirements per provider before promising
+  support. Provide guided installation/setup and in-TUI playback controls while
+  navigating, with safe credential storage and graceful handling of unavailable
+  providers. Validate installation, playback and cleanup on Linux/macOS; choose
+  the initial supported providers after feasibility review.
 - [ ] Integrate the actual Intra goodies shop and wallets; establish available
   integration capabilities before committing to delivery.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
