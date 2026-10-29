@@ -18,8 +18,8 @@ class TesterWorkspace(AppModal):
     #tester-workspace { width: 96%; height: 92%; border: round $primary; padding: 0 1; }
     #tester-workspace Static { height: auto; }
     #tester-output { height: 1fr; }
-    #tester-workspace-actions { height: auto; }
-    #tester-workspace-actions Button { min-width: 0; width: 1fr; }
+    #tester-workspace-actions { height: auto; margin-top: 1; }
+    #tester-workspace-actions Button { min-width: 0; width: 1fr; margin: 0 1; }
     #tester-input { height: 3; }
     """
 

@@ -17,6 +17,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add horizontal gaps between tester workspace action buttons and
+  a blank row between the input field and action row. Patch impact, included in
+  the planned 0.6.0 minor release; no separate release warranted. Branch:
+  `feat/tester-workspace-0.6.0`; uncommitted. Checks: headless layout at 80×24
+  and 140×65, plus diff/whitespace review. Native tester execution not repeated.
+
 - 2026-10-29: Continue tester work on `feat/tester-workspace-0.6.0`: replace
   terminal suspension with a persistent in-app workspace and private PTY runner.
   Capture live output and line input, cancellation with process-group cleanup,
