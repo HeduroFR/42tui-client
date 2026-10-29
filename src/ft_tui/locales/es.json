@@ -1222,5 +1222,22 @@
   "No committed HEAD: create a commit before continuing.": "HEAD no tiene commits: crea un commit antes de continuar.",
   "Resolve the repository's merge conflicts before continuing.": "Resuelve los conflictos de fusión del repositorio antes de continuar.",
   "Finish the current merge, rebase or cherry-pick before pulling.": "Termina la fusión, el rebase o el cherry-pick actual antes de hacer un pull.",
-  "Commit or move local changes and untracked files before pulling. Nothing was stashed.": "Confirma o mueve los cambios locales y los archivos sin seguimiento antes de hacer un pull. No se ha creado ningún stash."
+  "Commit or move local changes and untracked files before pulling. Nothing was stashed.": "Confirma o mueve los cambios locales y los archivos sin seguimiento antes de hacer un pull. No se ha creado ningún stash.",
+  "Suggested action": "Acción sugerida",
+  "Git status": "Estado de Git",
+  "Pull {remote}": "Pull de {remote}",
+  "Push {remote}": "Push a {remote}",
+  "Review Git pull": "Revisar el pull de Git",
+  "Confirm pull": "Confirmar pull",
+  "Confirm push": "Confirmar push",
+  "Git operation cancelled.": "Operación Git cancelada.",
+  "No output": "Sin salida",
+  "Latest 100 commits at most; both histories are shown.": "Se muestran ambos historiales, con un máximo de los últimos 100 commits.",
+  "Git history or destination changed. Close this dialog and refresh the review.": "El historial o el destino de Git ha cambiado. Cierra este diálogo y actualiza la revisión.",
+  "Target commit: {commit}": "Commit de destino: {commit}",
+  "Confirm to apply this fast-forward. Local changes are never stashed or overwritten.": "Confirma para aplicar este avance rápido. Los cambios locales nunca se guardan en stash ni se sobrescriben.",
+  "Only committed work is pushed, without force. Confirm to continue.": "Solo se publica el trabajo confirmado, sin forzar. Confirma para continuar.",
+  "Running Git operation…": "Ejecutando operación Git…",
+  "Use the action buttons to view output here. Pull and push require confirmation; terminal commands remain available below.": "Usa los botones para ver la salida aquí. Pull y push requieren confirmación; los comandos para el terminal siguen disponibles abajo.",
+  "Inspect commits": "Inspeccionar commits"
 }

@@ -14,6 +14,28 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add review action buttons for Git status, a bounded commit graph,
+  pull and push, with output/error modals and two-cell gaps between buttons.
+  Reuse existing pull/push planning and execution; require confirmation and pin
+  the local branch/HEAD, remote URL/branch and fetched revision before enabling
+  writes. Preserve fast-forward-only pull, no-force push and dirty-work safety.
+  Refresh the parent review after closing results. Share the masked SSH UI
+  handler across editor recovery and command modals. English/French/Spanish
+  copy and workflow docs updated. Patch refinement for the pending 0.5.2 fix;
+  branch `fix/editor-git-review`; no version bump, push, tag or live-project write.
+  Checks: 48 Git tests and 20 dialog/layout/locales tests passed; architecture
+  boundaries 9 passed; all 923 tests assigned once; whitespace passed. The final
+  bounded-history smoke also passed after disabling signature subprocesses.
+  Refreshed the isolated regular installation. Native user, Windows askpass and
+  PR CI remain pending.
+- 2026-10-29: Fix duplicate passphrase prompts during one editor-recovery click.
+  Cache only key-passphrase answers in memory for that askpass scope, reuse them
+  across SSH processes, prompt again when the same SSH process retries after a
+  rejection, and clear answers on cancellation/completion. No credential files,
+  arguments or environment storage. Tests cover reuse, rejected-value correction
+  and a fresh prompt in a later operation. Patch impact; same local branch and
+  release hold as above.
+
 - 2026-10-29: Identify editor Git review sources as dev/origin and vog/vogsphere,
   expose the credential-redacted remote URL, branch and unique commit counts,
   and recommend terminal commands according to ancestry. Only recommend a

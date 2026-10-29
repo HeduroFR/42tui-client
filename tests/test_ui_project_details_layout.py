@@ -467,11 +467,12 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
     def test_review_copy_has_supported_translations(self):
         import ast
         from ft_tui.i18n import translate
-        from ft_tui.features.projects.views import checkout_progress, git_review, ssh_prompt
+        from ft_tui.features.projects.views import checkout_progress, git_action, git_review, ssh_prompt
         tree = ast.parse('\n'.join(Path(module.__file__).read_text() for module in
-                                   (checkout_progress, git_review, ssh_prompt)))
+                                   (checkout_progress, git_action, git_review, ssh_prompt)))
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'tr'
+            if (isinstance(node, ast.Call) and ((isinstance(node.func, ast.Name) and node.func.id == 'tr')
+                         or (isinstance(node.func, ast.Attribute) and node.func.attr == '_t'))
                     and isinstance(node.args[0], ast.Constant)):
                 source = node.args[0].value
                 for language in ('fr', 'es'):
@@ -589,3 +590,168 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                         self.assertIn('git -C', content)
                         self.assertIn('a' * 40, content)
                     self.assertTrue(screen.region.contains_region(screen.query_one('#git-review-open').region))
+                    open_button = screen.query_one('#git-review-open')
+                    cancel_button = screen.query_one('#git-review-cancel')
+                    self.assertGreaterEqual(cancel_button.region.x - open_button.region.right, 2)
+                    command = screen.query_one('#git-review-command')
+                    self.assertFalse(command.disabled)
+                    self.assertEqual(str(command.label), f'Pull {destination}' if relation == 'behind' else 'Inspect commits')
+
+    async def test_git_action_pull_requires_confirmation_and_displays_output(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview, PullPlan, PullTarget
+        from ft_tui.features.projects.views.git_action import ProjectGitActionScreen
+        path = Path('/synthetic')
+        review = CheckoutReviewRequired('Different', path, 'origin', 'main', 'a' * 40)
+        snapshot = CheckoutReview('main', 'b' * 40, '', '', 'behind', 0, 1, 'git@example.invalid:project.git')
+        target = PullTarget('dev', 'origin', snapshot.remote_url, 'main', review.commit, 'fingerprint')
+        plan = PullPlan(path, 'main', snapshot.head, review.commit, (target,))
+        app = App()
+        app.language = 'en'
+        answers = []
+        with patch('ft_tui.features.projects.views.git_action.plan_project_pull', return_value=plan) as prepare, \
+             patch('ft_tui.features.projects.views.git_action.pull_project', return_value='Fast-forward complete') as apply:
+            async with app.run_test(size=(80, 24)) as pilot:
+                screen = ProjectGitActionScreen(review, snapshot, 'pull', project_name='Libft')
+                app.push_screen(screen, answers.append)
+                await pilot.pause()
+                await screen.workers.wait_for_complete()
+                prepare.assert_called_once_with(path, 'dev')
+                apply.assert_not_called()
+                confirm = screen.query_one('#git-action-confirm')
+                close = screen.query_one('#git-action-close')
+                self.assertFalse(confirm.disabled)
+                self.assertGreaterEqual(close.region.x - confirm.region.right, 2)
+                await pilot.click('#git-action-confirm')
+                await pilot.pause()
+                apply.assert_called_once_with(plan)
+                self.assertIn('Fast-forward complete', str(screen.query_one('#git-action-output', Static).render()))
+                self.assertTrue(confirm.disabled)
+                await pilot.click('#git-action-close')
+                await pilot.pause()
+                self.assertEqual(answers, [review.commit])
+
+    async def test_git_action_stale_target_blocks_confirmation(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview, PullPlan, PullTarget
+        from ft_tui.features.projects.views.git_action import ProjectGitActionScreen
+        path = Path('/synthetic')
+        review = CheckoutReviewRequired('Different', path, 'vogsphere', 'master', 'a' * 40)
+        snapshot = CheckoutReview('main', 'b' * 40, '', '', 'behind', 0, 1, 'git@example.invalid:project.git')
+        target = PullTarget('vog', 'vogsphere', snapshot.remote_url, 'main', 'c' * 40, 'fingerprint')
+        plan = PullPlan(path, 'main', snapshot.head, target.commit, (target,))
+        app = App()
+        app.language = 'en'
+        with patch('ft_tui.features.projects.views.git_action.plan_project_pull', return_value=plan), \
+             patch('ft_tui.features.projects.views.git_action.pull_project') as apply:
+            async with app.run_test(size=(80, 24)) as pilot:
+                screen = ProjectGitActionScreen(review, snapshot, 'pull', project_name='Libft')
+                app.push_screen(screen)
+                await pilot.pause()
+                await screen.workers.wait_for_complete()
+                self.assertTrue(screen.query_one('#git-action-confirm').disabled)
+                self.assertIn('changed', str(screen.query_one('#git-action-output', Static).render()))
+                apply.assert_not_called()
+
+    async def test_review_status_button_opens_output_modal(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        from ft_tui.features.projects.views.git_action import ProjectGitActionScreen
+        app = App()
+        app.language = 'en'
+        review = CheckoutReviewRequired('Different', Path('/synthetic'), 'origin', 'main', 'a' * 40)
+        with patch('ft_tui.features.projects.views.git_review.review_project_checkout',
+                   return_value=CheckoutReview('main', 'b' * 40, '', '', 'unrelated')), \
+             patch('ft_tui.features.projects.views.git_action.project_git_output', return_value='## main\n?? [literal]') as output:
+            async with app.run_test(size=(80, 24)) as pilot:
+                parent = ProjectGitReviewScreen(review, project_name='Libft')
+                app.push_screen(parent)
+                await pilot.pause()
+                await parent.workers.wait_for_complete()
+                await pilot.click('#git-review-status')
+                await pilot.pause()
+                child = app.screen
+                self.assertIsInstance(child, ProjectGitActionScreen)
+                await child.workers.wait_for_complete()
+                self.assertIn('?? [literal]', str(child.query_one('#git-action-output', Static).render()))
+                output.assert_called_once_with(review.path, history_commit=None)
+                await pilot.click('#git-action-close')
+                await pilot.pause()
+                self.assertIs(app.screen, parent)
+
+    async def test_push_action_reports_success_or_failure_after_confirmation(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview, PushPlan, PushTarget, PushResult
+        from ft_tui.features.projects.views.git_action import ProjectGitActionScreen
+        for success in (False, True):
+            path = Path('/synthetic')
+            review = CheckoutReviewRequired('Different', path, 'origin', 'main', 'a' * 40)
+            snapshot = CheckoutReview('main', 'b' * 40, ' M file', '', 'ahead', 1, 0, 'git@example.invalid:project.git')
+            target = PushTarget('dev', 'origin', snapshot.remote_url, 'main')
+            plan = PushPlan(path, 'main', snapshot.head, 1, (target,))
+            app = App()
+            app.language = 'en'
+            with patch('ft_tui.features.projects.views.git_action.plan_project_push', return_value=plan), \
+                 patch('ft_tui.features.projects.views.git_action.push_project',
+                       return_value=(PushResult(target, success, 'Synthetic outcome [literal]'),)) as apply:
+                async with app.run_test(size=(80, 24)) as pilot:
+                    screen = ProjectGitActionScreen(review, snapshot, 'push', project_name='Libft')
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen.workers.wait_for_complete()
+                    apply.assert_not_called()
+                    self.assertIn('Uncommitted changes excluded: 1', str(screen.query_one('#git-action-output', Static).render()))
+                    await pilot.click('#git-action-confirm')
+                    await pilot.pause()
+                    apply.assert_called_once_with(plan)
+                    output = screen.query_one('#git-action-output', Static)
+                    self.assertIn('Synthetic outcome [literal]', str(output.render()))
+                    self.assertTrue(output.has_class('success' if success else 'error'))
+                    self.assertEqual(screen.updated_commit, plan.commit if success else None)
+
+    async def test_review_pull_button_refreshes_after_result_modal_closes(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview, PullPlan, PullTarget
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        from ft_tui.features.projects.views.git_action import ProjectGitActionScreen
+        path = Path('/synthetic')
+        review = CheckoutReviewRequired('Different', path, 'vogsphere', 'master', 'a' * 40)
+        snapshot = CheckoutReview('main', 'b' * 40, '', '', 'behind', 0, 1, 'git@example.invalid:project.git')
+        target = PullTarget('vog', 'vogsphere', snapshot.remote_url, 'master', review.commit, 'fingerprint')
+        plan = PullPlan(path, 'main', snapshot.head, review.commit, (target,))
+        after = CheckoutReview('main', review.commit, '', '', 'equal', 0, 0, snapshot.remote_url)
+        app = App()
+        app.language = 'en'
+        with patch('ft_tui.features.projects.views.git_review.review_project_checkout', side_effect=[snapshot, after]), \
+             patch('ft_tui.features.projects.views.git_action.plan_project_pull', return_value=plan), \
+             patch('ft_tui.features.projects.views.git_action.pull_project', return_value='Fast-forward complete'):
+            async with app.run_test(size=(80, 24)) as pilot:
+                parent = ProjectGitReviewScreen(review, project_name='Libft')
+                app.push_screen(parent)
+                await pilot.pause()
+                await parent.workers.wait_for_complete()
+                self.assertEqual(str(parent.query_one('#git-review-command').label), 'Pull vog')
+                await pilot.click('#git-review-command')
+                await pilot.pause()
+                child = app.screen
+                self.assertIsInstance(child, ProjectGitActionScreen)
+                await child.workers.wait_for_complete()
+                await pilot.click('#git-action-confirm')
+                await pilot.pause()
+                await pilot.click('#git-action-close')
+                await pilot.pause()
+                await parent.workers.wait_for_complete()
+                self.assertIs(app.screen, parent)
+                self.assertEqual(parent.snapshot.relationship, 'equal')
+                self.assertTrue(parent.query_one('#git-review-command').disabled)

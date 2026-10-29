@@ -26,7 +26,8 @@ def main():
             with connection.makefile('rwb') as stream:
                 request = {'token': os.environ['FT_TUI_ASKPASS_TOKEN'],
                            'prompt': sys.argv[1] if len(sys.argv) > 1 else 'SSH authentication',
-                           'confirm': os.environ.get('SSH_ASKPASS_PROMPT') == 'confirm'}
+                           'confirm': os.environ.get('SSH_ASKPASS_PROMPT') == 'confirm',
+                           'process': os.getppid()}
                 stream.write(json.dumps(request).encode() + b'\n')
                 stream.flush()
                 answer = json.loads(stream.readline(65536))
@@ -57,6 +58,9 @@ def ssh_askpass(prompt):
         listener.settimeout(0.2)
         secret = secrets.token_hex(32)
         stopped = Event()
+        cancelled = Event()
+        answers = {}
+        attempted = set()
 
         def serve():
             while not stopped.is_set():
@@ -73,7 +77,29 @@ def ssh_askpass(prompt):
                             request = json.loads(stream.readline(65536))
                             if not isinstance(request, dict) or not hmac.compare_digest(request.get('token', ''), secret):
                                 continue
-                            answer = prompt(str(request.get('prompt', '')), bool(request.get('confirm')))
+                            message, confirm = str(request.get('prompt', '')), bool(request.get('confirm'))
+                            process = request.get('process')
+                            attempt = (message, process)
+                            reusable = (not confirm and message.startswith('Enter passphrase for key ')
+                                        and isinstance(process, int) and process > 0)
+                            cached = answers.get(message)
+                            if cancelled.is_set():
+                                answer = None
+                            elif reusable and cached is not None and attempt not in attempted:
+                                answer = cached
+                            else:
+                                answer = prompt(message, confirm)
+                            if stopped.is_set():
+                                return
+                            if answer is None:
+                                cancelled.set()
+                                answers.clear()
+                            if reusable:
+                                attempted.add(attempt)
+                                if answer is None:
+                                    answers.pop(message, None)
+                                else:
+                                    answers[message] = answer
                             stream.write(json.dumps(answer).encode() + b'\n')
                             stream.flush()
                     except (OSError, ValueError, TypeError, RuntimeError, CancelledError):
@@ -102,3 +128,11 @@ def ssh_askpass(prompt):
             stopped.set()
             listener.close()
             thread.join(timeout=0.3)
+            answers.clear()
+            attempted.clear()
+
+
+def run_with_ssh_askpass(operation, prompt, *args, **kwargs):
+    """Keep one in-memory authentication scope around a background Git operation."""
+    with ssh_askpass(prompt):
+        return operation(*args, **kwargs)

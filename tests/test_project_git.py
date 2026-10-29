@@ -160,6 +160,47 @@ class ProjectGitTests(unittest.TestCase):
         review = review_project_checkout(self.local, local, remote='origin')
         self.assertEqual(review.relationship, 'equal')
 
+    def test_ssh_passphrase_reused_across_connections_but_retry_prompts_again(self):
+        import json
+        import socket
+        from unittest.mock import Mock
+        from ft_tui.features.projects.adapters.ssh_askpass import ssh_askpass, ssh_environment
+        prompt = "Enter passphrase for key '/synthetic/key': "
+        answer = Mock(side_effect=['first-entry', 'corrected-entry', 'fresh-operation'])
+        def request(process):
+            env = ssh_environment.get()
+            with socket.create_connection(('127.0.0.1', int(env['FT_TUI_ASKPASS_PORT'])), timeout=3) as connection:
+                with connection.makefile('rwb') as stream:
+                    stream.write(json.dumps({'token': env['FT_TUI_ASKPASS_TOKEN'], 'prompt': prompt,
+                                             'confirm': False, 'process': process}).encode() + b'\n')
+                    stream.flush()
+                    return json.loads(stream.readline())
+        with ssh_askpass(answer):
+            self.assertEqual(request(1001), 'first-entry')
+            self.assertEqual(request(1002), 'first-entry')
+            self.assertEqual(request(1002), 'corrected-entry')
+            self.assertEqual(request(1003), 'corrected-entry')
+            self.assertEqual(answer.call_count, 2)
+        with ssh_askpass(answer):
+            self.assertEqual(request(1004), 'fresh-operation')
+        self.assertEqual(answer.call_count, 3)
+
+    def test_git_output_shows_status_and_both_histories_without_changing_files(self):
+        from ft_tui.features.projects.adapters.git import project_git_output
+        self.publish_seed()
+        remote = self.advance_remote(self.dev, 'work', 'remote commit')
+        self.git(self.local, 'fetch', 'origin', 'work')
+        local = self.commit(self.local, 'local commit')
+        (self.local / 'main.c').write_text('uncommitted work')
+        index = (self.local / '.git/index').read_bytes()
+        self.assertIn('main.c', project_git_output(self.local))
+        history = project_git_output(self.local, history_commit=remote)
+        self.assertIn('local commit', history)
+        self.assertIn('remote commit', history)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), local)
+        self.assertEqual((self.local / '.git/index').read_bytes(), index)
+        self.assertEqual((self.local / 'main.c').read_text(), 'uncommitted work')
+
     def publish_seed(self):
         self.git(self.local, 'push', 'origin', 'HEAD:refs/heads/work')
         self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/master')

@@ -34,8 +34,10 @@ development repository; if both are empty, it initializes a local repository.
 
 Editor recovery displays a cancellable loading dialog while checking remotes.
 If OpenSSH needs a key passphrase, enter it in the masked SSH authentication
-dialog. The app forwards it to that SSH request without saving it. Existing
-SSH configuration and agents still apply. Cancel prevents the editor from
+dialog. The app reuses the same key passphrase in memory across connections
+within that operation, so checking and fetching do not ask twice. If SSH rejects
+a value and retries, enter it again. The value is discarded when the operation
+ends. Existing SSH configuration and agents still apply. Cancel prevents the editor from
 opening; an already-running Git check may finish in the background.
 
 Existing checkouts are fetched and inspected without overwriting files, changing
@@ -46,8 +48,13 @@ The source is labelled **dev (origin)** or **vog (vogsphere)** with its branch,
 credential-redacted URL and local/remote unique commit counts. Suggested terminal
 commands depend on the history: review `42git pull dev|vog` for a compatible
 fast-forward, address local blockers first, or inspect divergent/unrelated
-commits before choosing a manual reconciliation. These are suggestions only;
-the dialog does not execute a pull, merge or push.
+commits before choosing a manual reconciliation. Use **Pull dev/vog**, **Push
+dev/vog**, **Inspect commits** or **Git status** to open an output modal. Pull
+and push show a captured plan and require confirmation; they recheck branch,
+HEAD, destination and remote history before writing. A stale review is blocked.
+Pull remains fast-forward-only; no automatic merge, rebase, stash or reset is
+introduced. Close the output modal to refresh the review. Terminal commands
+remain available as alternatives, and action buttons have separate spacing.
 Untracked files are listed separately; their contents are not included in the diff.
 Choose **Open local files** to inspect or resolve the differences in your editor,
 or **Cancel**. Opening files does not pull, merge, reset or overwrite work;

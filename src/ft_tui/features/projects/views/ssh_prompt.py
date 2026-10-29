@@ -1,4 +1,6 @@
 """Masked SSH authentication without handing the terminal to OpenSSH."""
+import asyncio
+
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Input, Static
@@ -13,6 +15,7 @@ class ProjectSshPromptScreen(AppModal[str | None]):
     DEFAULT_CSS = """
     #ssh-prompt-dialog { width: 80; max-width: 94%; height: auto; border: round $primary; padding: 1 2; }
     #ssh-prompt-dialog Static { height: auto; margin-bottom: 1; }
+    #ssh-prompt-actions AppButton { margin: 0 2; }
     #ssh-prompt-actions { height: 3; margin-top: 1; align-horizontal: center; }
     """
 
@@ -54,3 +57,37 @@ class ProjectSshPromptScreen(AppModal[str | None]):
             self._submit()
         else:
             self.action_cancel()
+
+
+class ProjectSshPromptHandler:
+    """Bridge a background askpass request to the owning UI's masked modal."""
+
+    def __init__(self, owner, *, cancelled=lambda: False):
+        self.owner = owner
+        self.cancelled = cancelled
+        self.was_cancelled = False
+        self.closed = False
+        self.screen = None
+
+    def __call__(self, message, confirm):
+        return self.owner.app.call_from_thread(self._request, message, confirm)
+
+    async def _request(self, message, confirm):
+        if self.closed or self.was_cancelled or not self.owner.is_mounted or self.cancelled():
+            return None
+        answer = asyncio.get_running_loop().create_future()
+        self.screen = ProjectSshPromptScreen(message, confirm)
+        def finish(value):
+            if not answer.done():
+                answer.set_result(value)
+        self.owner.app.push_screen(self.screen, finish)
+        value = await answer
+        if value is None:
+            self.was_cancelled = True
+        return value
+
+    def close(self):
+        self.closed = True
+        if self.screen is not None and self.screen.is_mounted and self.screen.is_current:
+            self.was_cancelled = True
+            self.screen.action_cancel()

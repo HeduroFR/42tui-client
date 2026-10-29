@@ -9,7 +9,7 @@ from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, Check
 from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
 from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
 from ft_tui.features.projects.views.checkout_progress import ProjectCheckoutProgressScreen
-from ft_tui.features.projects.views.ssh_prompt import ProjectSshPromptScreen
+from ft_tui.features.projects.views.ssh_prompt import ProjectSshPromptHandler
 
 from ft_tui.ui.components import (
     Button,
@@ -99,36 +99,18 @@ class ProjectNavigationMixin:
             self._project_checkout_busy = False
             return
         progress = ProjectCheckoutProgressScreen(project_name)
-        prompt_screen = None
-
-        async def request_prompt(message, confirm):
-            nonlocal prompt_screen
-            if not self.is_mounted or progress.cancelled:
-                return None
-            answer = asyncio.get_running_loop().create_future()
-            prompt_screen = ProjectSshPromptScreen(message, confirm)
-            def finish_prompt(value):
-                if not answer.done():
-                    answer.set_result(value)
-            self.push_screen(prompt_screen, finish_prompt)
-            value = await answer
-            if value is None:
-                progress.cancelled = True
-            return value
-
-        def ssh_prompt(message, confirm):
-            return self.call_from_thread(request_prompt, message, confirm)
+        prompts = ProjectSshPromptHandler(self, cancelled=lambda: progress.cancelled)
 
         try:
             await self.push_screen(progress)
             result = await asyncio.to_thread(
                 self.project_service.setup_checkout, str(project_path),
-                dev_remote_url=recovery_key[1], vogsphere_url=recovery_key[2], ssh_prompt=ssh_prompt,
+                dev_remote_url=recovery_key[1], vogsphere_url=recovery_key[2], ssh_prompt=prompts,
             )
         except CheckoutReviewRequired as error:
             if progress.is_mounted and progress.is_current:
                 progress.dismiss()
-            if self.is_mounted and not progress.cancelled:
+            if self.is_mounted and not progress.cancelled and not prompts.was_cancelled:
                 self._project_git_busy = True
                 def finish(approved):
                     self._project_git_busy = False
@@ -141,17 +123,15 @@ class ProjectNavigationMixin:
                     raise
             return
         except (CheckoutSetupError, OSError) as error:
-            if self.is_mounted and not progress.cancelled:
+            if self.is_mounted and not progress.cancelled and not prompts.was_cancelled:
                 self.notify(f"Editor was not opened: checkout recovery failed: {error}", severity="error", timeout=10)
             return
         finally:
             self._project_checkout_busy = False
-            if prompt_screen is not None and prompt_screen.is_mounted and prompt_screen.is_current:
-                progress.cancelled = True
-                prompt_screen.action_cancel()
+            prompts.close()
             if progress.is_mounted and progress.is_current:
                 progress.dismiss()
-        if not self.is_mounted or progress.cancelled:
+        if not self.is_mounted or progress.cancelled or prompts.was_cancelled:
             return
         warnings = getattr(result, "warnings", ())
         for warning in warnings:

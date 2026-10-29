@@ -357,6 +357,19 @@ def review_project_checkout(path: str | Path, commit: str, *, remote: str | None
                           relationship, local_only, remote_only, url, blocker)
 
 
+def project_git_output(path: str | Path, *, history_commit: str | None = None) -> str:
+    """Read status or a bounded commit graph; never execute a shell command."""
+    root = _repository_path(path, 10.0)
+    if history_commit is None:
+        return _safe_detail(_checked_git(root, "--no-optional-locks", "status", "--short", "--branch",
+                                        "--untracked-files=all"))
+    commit = _checked_git(root, "rev-parse", "--verify", "--end-of-options", f"{history_commit}^{{commit}}")
+    head = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}")
+    revisions = (head.stdout.strip(), commit) if not head.returncode else (commit,)
+    return _safe_detail(_checked_git(root, "log", "--oneline", "--graph", "--no-color", "--no-show-signature", "--max-count=100",
+                                    *revisions, "--"))
+
+
 _SENSITIVE_NAMES = {".npmrc", ".pypirc", "id_rsa", "id_ed25519"}
 
 
