@@ -10,10 +10,10 @@ Client CI builds wheel/sdist, checks package contents, rebuilds from sdist, runs
 all 14 regression scopes and validates installers on supported platforms.
 
 The installation website and shell/PowerShell/Python installers stay here.
-The 0.4.3 package is published; its hosted installer deployment is still pending
-access. Existing hosted entry points remain paired with their older helper until
-all three changed installer files are redeployed together. Do not treat package
-publication as proof that the hosted installer has been updated.
+The hosted installer was updated from reviewed main `fb22488` on 2026-10-29.
+All four served installer/uninstaller files match that revision byte for byte;
+`/github` and `/discord` return their expected HTTP 301 destinations. Package
+publication and hosted installer deployment remain separate operations.
 
 On Linux/macOS, the verified Python helper configures both `~/.bashrc` and
 `${ZDOTDIR:-$HOME}/.zshrc`, independently of `$SHELL`. A marked block at the end
