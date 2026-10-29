@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Open the community Discord invite through `https://tui.42wip.in/discord`
-  after the installation website is deployed.
+- Open the community Discord invite through `https://tui.42wip.in/discord`.
+  This website improvement is live and does not require a package update.
 
 ## 0.5.0
 

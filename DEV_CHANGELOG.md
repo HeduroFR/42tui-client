@@ -3,7 +3,7 @@
 Latest release: **0.5.0** ([`v0.5.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.0)).
 Package version: **0.5.0**.
 Suggested next release: **none** for the Python package. The Discord website
-redirect below requires a website deployment only.
+redirect below is deployed; it needs no package release.
 The tester workspace rework remains planned for 0.6.0; remaining Git design tasks
 are tracked in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -21,7 +21,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   `fix/discord-redirect`; PR #40. Initial container CI passed the exact redirect
   assertion; diff/whitespace and destination agreement reviewed. Local Docker
   test unavailable because the daemon socket is absent. Retain verified 0.5.0
-  publication baseline from PR #39. Website rollout remains pending.
+  publication baseline from PR #39. PR #40 merged as `fb22488` after all
+  21 CI checks passed in run 40791484292. Deploy the existing Installer service
+  through Safari/Dokploy from main. Public checks confirm `/discord` returns
+  `301 https://discord.gg/QrRBcK5MeP` and `/github` retains its 301 destination.
+  All four hosted installer/uninstaller files match main byte for byte, completing
+  the previously pending coordinated installer rollout. Maintainer also confirmed
+  the Discord link works. Record deployment in this documentation-only follow-up;
+  no new Python release is needed.
 
 
 ## Verified publication · 2026-10-29
@@ -66,8 +73,8 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   maintainer, not independently rerun. Local Chromium launch was blocked by
   macOS sandbox permissions; browser tab-closing restrictions still apply.
   Native pipx/Windows, live OAuth/provider writes and full API coverage were not
-  exercised. Hosted installer deployment remains pending access as previously
-  recorded; package publication does not establish hosted installer rollout.
+  exercised. Hosted installer deployment was still pending at package publication;
+  the subsequent verified rollout is recorded in the Discord redirect entry above.
 - Reset included development entries only after publication/artifact/update
   verification. Keep user-facing notes, pending Git design and tester rework in
   CHANGELOG.md/TODO.md. Documentation checks: release evidence, relative links,
