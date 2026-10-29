@@ -6,7 +6,7 @@
 
 - Run the proposed Git status, commit inspection, pull or push from review buttons
   and read the output in a modal. Pull/push require confirmation and reject stale
-  reviews; buttons have clearer spacing.
+  reviews; buttons share one spaced row.
 - Reuse the same SSH key passphrase in memory during one operation instead of
   asking again for each connection. A rejected value can be corrected; the app
   discards it when the operation ends.

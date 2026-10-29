@@ -14,6 +14,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Place all four Git review buttons on one horizontal row, retain
+  two-cell gaps and use content-sized buttons. Allow horizontal scrolling for
+  narrow terminals/long translations. Patch layout refinement for pending 0.5.2;
+  branch `fix/editor-git-review`, no version bump/push/tag. Checks: single-row
+  alignment, spacing and keyboard visibility passed at 80×24 for dev/vog pull
+  and history-inspection actions; all 20 existing UI tests and a new full-app
+  Catppuccin editor-recovery regression passed against the installed snapshot.
+  Remove the invalid trial `line-pad: 0` declaration responsible for the reported
+  native stylesheet crash. Whitespace passed; restart the old process to load
+  corrected CSS. Native user and Windows verification remain pending.
+
 - 2026-10-29: Add review action buttons for Git status, a bounded commit graph,
   pull and push, with output/error modals and two-cell gaps between buttons.
   Reuse existing pull/push planning and execution; require confirmation and pin

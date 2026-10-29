@@ -46,6 +46,48 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 factory.kw['bind'].dispose()
 
+    async def test_editor_recovery_mounts_review_in_full_app_with_catppuccin_theme(self):
+        from unittest.mock import Mock, patch
+        from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
+        from ft_tui.features.projects.adapters.git import CheckoutReview
+        from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
+        with TemporaryDirectory() as directory:
+            folder = Path(directory) / 'project'
+            folder.mkdir()
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "review.sqlite"}')
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+                session.add(Project(slug='ft_printf', name='ft_printf', local_path=str(folder),
+                                    dev_repo_url='/synthetic/origin.git'))
+                session.commit()
+            app = FortyTwoTuiApp(factory, None)
+            app.project_service.setup_checkout = Mock(side_effect=CheckoutReviewRequired(
+                'Remote ahead', folder, 'origin', 'main', 'a' * 40))
+            app._open_project_in_editor = Mock()
+            try:
+                with patch('ft_tui.features.projects.views.git_review.review_project_checkout',
+                           return_value=CheckoutReview('main', 'b' * 40, '', '', 'behind', 0, 1,
+                                                       '/synthetic/origin.git')):
+                    async with app.run_test(size=(160, 50)) as pilot:
+                        app.theme = 'catppuccin-macchiato'
+                        app.query_one(TabbedContent).active = 'projects-tab'
+                        await pilot.pause()
+                        app._show_project(next(iter(app.projects.values())))
+                        await pilot.pause()
+                        await pilot.click('#open-project-editor')
+                        await pilot.pause()
+                        self.assertIsInstance(app.screen, ProjectGitReviewScreen)
+                        await app.screen.workers.wait_for_complete()
+                        buttons = list(app.screen.query('#git-review-actions AppButton'))
+                        self.assertEqual(len(buttons), 4)
+                        self.assertEqual(len({button.region.y for button in buttons}), 1)
+                        await pilot.click('#git-review-cancel')
+                        await pilot.pause()
+                        self.assertFalse(app._project_git_operation_busy())
+                        app._open_project_in_editor.assert_not_called()
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_git_inspection_requires_development_remote(self):
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
@@ -596,6 +638,13 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                     command = screen.query_one('#git-review-command')
                     self.assertFalse(command.disabled)
                     self.assertEqual(str(command.label), f'Pull {destination}' if relation == 'behind' else 'Inspect commits')
+                    buttons = [screen.query_one(selector) for selector in
+                               ('#git-review-command', '#git-review-status', '#git-review-open', '#git-review-cancel')]
+                    self.assertEqual(len({button.region.y for button in buttons}), 1)
+                    for button in buttons:
+                        button.focus()
+                        await pilot.pause()
+                        self.assertTrue(screen.region.contains_region(button.region))
 
     async def test_git_action_pull_requires_confirmation_and_displays_output(self):
         from unittest.mock import patch

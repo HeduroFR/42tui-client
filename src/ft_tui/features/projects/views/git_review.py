@@ -5,7 +5,7 @@ import shlex
 from rich.text import Text
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import HorizontalScroll, Vertical, VerticalScroll
 from textual.widgets import Static
 
 from ft_tui.i18n import translate
@@ -40,10 +40,8 @@ class ProjectGitReviewScreen(AppModal[bool]):
     #git-review-dialog { width: 96; max-width: 94%; height: 90%; border: round $primary; padding: 1 2; }
     #git-review-scroll { height: 1fr; }
     #git-review-scroll Static { height: auto; margin-bottom: 1; }
-    #git-review-actions { height: auto; }
-    .git-review-action-row { height: 3; align-horizontal: center; }
-    .git-review-action-row AppButton { margin: 0 2; }
-    #git-review-file-actions { margin-top: 1; }
+    #git-review-actions { height: 4; align-horizontal: center; overflow-y: hidden; }
+    #git-review-actions AppButton { width: auto; min-width: 0; padding: 0 1; margin: 0 2; }
     """
 
     def __init__(self, review: CheckoutReviewRequired, *, project_name: str):
@@ -66,13 +64,11 @@ class ProjectGitReviewScreen(AppModal[bool]):
                 yield Static(tr('Opening local files does not pull, merge or overwrite your work. Reconcile Git history before synchronizing.'))
                 yield Static(tr('Untracked files are listed below; their contents are not included in the diff.'))
                 yield Static(tr('Loading') + '…', id='git-review-content', markup=False)
-            with Vertical(id='git-review-actions'):
-                with Horizontal(classes='git-review-action-row'):
-                    yield AppButton(tr('Suggested action'), id='git-review-command', disabled=True)
-                    yield AppButton(tr('Git status'), id='git-review-status', disabled=True)
-                with Horizontal(id='git-review-file-actions', classes='git-review-action-row'):
-                    yield AppButton(tr('Open local files'), id='git-review-open', disabled=True)
-                    yield AppButton(tr('Cancel'), id='git-review-cancel')
+            with HorizontalScroll(id='git-review-actions'):
+                yield AppButton(tr('Suggested action'), id='git-review-command', disabled=True)
+                yield AppButton(tr('Git status'), id='git-review-status', disabled=True)
+                yield AppButton(tr('Open local files'), id='git-review-open', disabled=True)
+                yield AppButton(tr('Cancel'), id='git-review-cancel')
 
     def on_mount(self) -> None:
         self.run_worker(self._load())
