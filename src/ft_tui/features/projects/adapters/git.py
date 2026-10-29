@@ -63,12 +63,12 @@ def _repository_path(path: str | Path, timeout: float) -> Path:
 def _committed_head(root: Path, timeout: float) -> tuple[str, str]:
     branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD", timeout=timeout)
     if branch.returncode:
-        raise ProjectGitError("Detached HEAD: switch to a branch before publishing.")
+        raise ProjectGitError("Detached HEAD: switch to a branch before continuing.")
     commit = _run_git(root, "rev-parse", "--verify", "HEAD^{commit}", timeout=timeout)
     if commit.returncode:
-        raise ProjectGitError("No committed HEAD: create a commit before publishing.")
+        raise ProjectGitError("No committed HEAD: create a commit before continuing.")
     if _checked_git(root, "ls-files", "--unmerged", timeout=timeout):
-        raise ProjectGitError("Resolve the repository's merge conflicts before publishing.")
+        raise ProjectGitError("Resolve the repository's merge conflicts before continuing.")
     return branch.stdout.strip(), commit.stdout.strip()
 
 
@@ -111,6 +111,36 @@ def _remote_url(root: Path, remote: str, expected: str | None, timeout: float) -
     return urls[0]
 
 
+def _remote_heads(output: str) -> tuple[dict[str, str], str | None]:
+    heads = {}
+    default = None
+    for line in output.splitlines():
+        value, ref = line.split("\t", 1)
+        if value.startswith("ref: refs/heads/") and ref == "HEAD":
+            default = value.removeprefix("ref: refs/heads/")
+        elif ref.startswith("refs/heads/"):
+            heads[ref.removeprefix("refs/heads/")] = value
+    return heads, default
+
+
+def _remote_branch(remote: str, heads: dict[str, str], default: str | None,
+                   *, preferred: str | None = None, empty: str | None = None) -> str:
+    if preferred in heads:
+        return preferred
+    if default in heads:
+        return default
+    if len(heads) == 1:
+        return next(iter(heads))
+    if not heads and empty:
+        return empty
+    raise ProjectGitError(f"Remote '{remote}' has no unambiguous branch; inspect it manually.")
+
+
+def _discover_remote(root: Path, remote: str, timeout: float) -> tuple[dict[str, str], str | None]:
+    return _remote_heads(_checked_git(root, "ls-remote", "--symref", "--", remote,
+                                      "HEAD", "refs/heads/*", timeout=timeout))
+
+
 def plan_project_push(
     path: str | Path, destination: str = "all", *, dev_remote_url: str | None = None,
     vogsphere_url: str | None = None, timeout: float = 60,
@@ -123,12 +153,15 @@ def plan_project_push(
     status = _checked_git(root, "status", "--porcelain=v1", "--untracked-files=all", "-z", timeout=timeout)
     targets = []
     for name, remote, remote_branch, expected in (
-        ("dev", "origin", branch, dev_remote_url), ("vog", "vogsphere", "master", vogsphere_url),
+        ("dev", "origin", branch, dev_remote_url), ("vog", "vogsphere", branch, vogsphere_url),
     ):
         if destination not in {name, "all"}:
             continue
         try:
             url = _remote_url(root, remote, expected, timeout)
+            if name == "vog":
+                heads, default = _discover_remote(root, remote, timeout)
+                remote_branch = _remote_branch(remote, heads, default, empty=branch)
             target = PushTarget(name, remote, _display_url(url), remote_branch,
                                 url_fingerprint=sha256(url.encode()).hexdigest())
         except ProjectGitError as error:
@@ -158,6 +191,10 @@ def push_project(plan: PushPlan, *, timeout: float = 60) -> tuple[PushResult, ..
             url = _remote_url(root, target.remote, None, timeout)
             if sha256(url.encode()).hexdigest() != target.url_fingerprint:
                 raise ProjectGitError("Remote changed since review; review the push again.")
+            if target.destination == "vog":
+                heads, default = _discover_remote(root, target.remote, timeout)
+                if _remote_branch(target.remote, heads, default, empty=plan.branch) != target.branch:
+                    raise ProjectGitError("Remote branch changed since review; review the push again.")
             _checked_git(root, "-c", "push.followTags=false", "-c", "push.recurseSubmodules=no",
                          "-c", f"remote.{target.remote}.mirror=false", "push", "--porcelain",
                          "--", target.remote, f"{plan.commit}:refs/heads/{target.branch}", timeout=timeout)
@@ -165,6 +202,91 @@ def push_project(plan: PushPlan, *, timeout: float = 60) -> tuple[PushResult, ..
         except ProjectGitError as error:
             outcomes.append(PushResult(target, False, str(error)))
     return tuple(outcomes)
+
+
+@dataclass(frozen=True)
+class PullTarget:
+    destination: str
+    remote: str
+    url: str
+    branch: str
+    commit: str
+    url_fingerprint: str = field(repr=False)
+
+
+@dataclass(frozen=True)
+class PullPlan:
+    path: Path
+    branch: str
+    commit: str
+    target_commit: str
+    targets: tuple[PullTarget, ...]
+
+
+def _clean_pull_head(root: Path, timeout: float) -> tuple[str, str]:
+    head = _committed_head(root, timeout)
+    for marker in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "sequencer"):
+        location = Path(_checked_git(root, "rev-parse", "--git-path", marker, timeout=timeout))
+        if (root / location).exists():
+            raise ProjectGitError("Finish the current merge, rebase or cherry-pick before pulling.")
+    if _checked_git(root, "status", "--porcelain=v1", "--untracked-files=all",
+                    "--ignore-submodules=none", timeout=timeout):
+        raise ProjectGitError("Commit or move local changes and untracked files before pulling. Nothing was stashed.")
+    return head
+
+
+def plan_project_pull(
+    path: str | Path, destination: str = "all", *, dev_remote_url: str | None = None,
+    vogsphere_url: str | None = None, timeout: float = 60,
+) -> PullPlan:
+    """Fetch selected branches and review one fast-forward, without changing local files."""
+    if destination not in {"dev", "vog", "all"}:
+        raise ProjectGitError("Choose a pull source: dev, vog or all.")
+    root = _repository_path(path, timeout)
+    branch, commit = _clean_pull_head(root, timeout)
+    targets = []
+    for name, remote, expected in (("dev", "origin", dev_remote_url), ("vog", "vogsphere", vogsphere_url)):
+        if destination not in {name, "all"}:
+            continue
+        url = _remote_url(root, remote, expected, timeout)
+        heads, default = _discover_remote(root, remote, timeout)
+        remote_branch = _remote_branch(remote, heads, default, preferred=branch if name == "dev" else None)
+        _checked_git(root, "fetch", "--no-tags", "--no-recurse-submodules", "--refmap=", "--", remote,
+                     f"refs/heads/{remote_branch}", timeout=timeout)
+        fetched = _checked_git(root, "rev-parse", "--verify", "FETCH_HEAD^{commit}", timeout=timeout)
+        targets.append(PullTarget(name, remote, _display_url(url), remote_branch, fetched,
+                                  sha256(url.encode()).hexdigest()))
+    target_commit = commit
+    for target in targets:
+        if not _run_git(root, "merge-base", "--is-ancestor", target.commit, target_commit, timeout=timeout).returncode:
+            continue
+        if _run_git(root, "merge-base", "--is-ancestor", target_commit, target.commit, timeout=timeout).returncode:
+            raise ProjectGitError("Pull histories diverge or are unrelated. Reconcile manually; local HEAD was not changed.")
+        target_commit = target.commit
+    if _clean_pull_head(root, timeout) != (branch, commit):
+        raise ProjectGitError("Branch or HEAD changed while fetching; review the pull again.")
+    return PullPlan(root, branch, commit, target_commit, tuple(targets))
+
+
+def pull_project(plan: PullPlan, *, timeout: float = 60) -> str:
+    """Apply only the reviewed fast-forward; never stash, reset or create a merge commit."""
+    root = _repository_path(plan.path, timeout)
+    for target in plan.targets:
+        url = _remote_url(root, target.remote, None, timeout)
+        if sha256(url.encode()).hexdigest() != target.url_fingerprint:
+            raise ProjectGitError("Remote changed since review; review the pull again.")
+        heads, default = _discover_remote(root, target.remote, timeout)
+        branch = _remote_branch(target.remote, heads, default,
+                                preferred=plan.branch if target.destination == "dev" else None)
+        if branch != target.branch or heads.get(branch) != target.commit:
+            raise ProjectGitError("Remote branch or commit changed since review; review the pull again.")
+    if _clean_pull_head(root, timeout) != (plan.branch, plan.commit):
+        raise ProjectGitError("Branch or HEAD changed since review; review the pull again.")
+    if plan.target_commit == plan.commit:
+        return "Already up to date; local commits were preserved."
+    _checked_git(root, "-c", "submodule.recurse=false", "merge", "--ff-only", "--no-autostash",
+                 "--no-overwrite-ignore", "--", plan.target_commit, timeout=timeout)
+    return f"Fast-forwarded {plan.branch} to {plan.target_commit[:12]}."
 
 
 @dataclass(frozen=True)

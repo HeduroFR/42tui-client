@@ -2,8 +2,29 @@
 
 ## Unreleased
 
+No unreleased package changes.
+
+## 0.5.1
+
+### 🐛 Fixes
+
 - Open the community Discord invite through `https://tui.42wip.in/discord`.
   This website improvement is live and does not require a package update.
+- Recover and push Vogsphere work using its actual default or only branch,
+  including `main` and `master`. Ambiguous branches require manual resolution.
+- Redirect `https://tui.42wip.in/` to the GitHub repository while preserving
+  installer downloads and the GitHub/Discord shortcuts (requires website rollout).
+
+### ✨ New features
+
+- Review and fast-forward committed project work with `42git pull dev`,
+  `42git pull vog`, and `42git pull all`. Pull preserves local work, requires a
+  clean checkout and stops when histories diverge. Pull all fetches both remotes
+  before applying one compatible fast-forward.
+
+### 📦 Update
+
+- Run `42tui update` after 0.5.1 is published. No additional shell setup is needed.
 
 ## 0.5.0
 

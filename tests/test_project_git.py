@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, setup_project_checkout
 from ft_tui.features.projects.adapters.git import (
-    ProjectGitError, _safe_detail, plan_project_push, push_project,
+    ProjectGitError, _safe_detail, plan_project_push, push_project, plan_project_pull, pull_project,
 )
 
 
@@ -202,12 +202,38 @@ class ProjectGitTests(unittest.TestCase):
             with self.assertRaisesRegex(CheckoutSetupError, 'FETCH_HEAD'):
                 setup_project_checkout(self.local)
 
-    def test_new_vogsphere_with_no_master_requires_explicit_selection(self):
-        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/other')
+    def test_vogsphere_recovery_uses_advertised_default_or_only_branch(self):
+        for branch in ('main', 'master', 'submission'):
+            with self.subTest(branch=branch):
+                remote = self.repo(f'{branch}.git', bare=True)
+                self.git(self.local, 'push', str(remote), f'HEAD:refs/heads/{branch}')
+                self.git(remote, 'symbolic-ref', 'HEAD', f'refs/heads/{branch}')
+                self.git(self.local, 'push', str(remote), 'HEAD:refs/heads/other')
+                result = setup_project_checkout(self.root / f'clone-{branch}', vogsphere_url=str(remote))
+                self.assertEqual(self.git(result.path, 'branch', '--show-current'), branch)
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/submission')
+        result = setup_project_checkout(self.root / 'sole', vogsphere_url=str(self.vog))
+        self.assertEqual(self.git(result.path, 'branch', '--show-current'), 'submission')
+
+    def test_vogsphere_without_default_and_multiple_branches_is_ambiguous(self):
+        for branch in ('main', 'master'):
+            self.git(self.local, 'push', 'vogsphere', f'HEAD:refs/heads/{branch}')
         target = self.root / 'recovery'
-        with self.assertRaisesRegex(CheckoutSetupError, 'no master'):
+        with self.assertRaisesRegex(CheckoutSetupError, 'unambiguous'):
             setup_project_checkout(target, vogsphere_url=str(self.vog))
         self.assertFalse(target.exists())
+
+    def test_push_uses_vogsphere_default_instead_of_creating_master(self):
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/main')
+        self.git(self.vog, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/master')
+        old_master = self.git(self.vog, 'rev-parse', 'master')
+        newer = self.commit(self.local, 'new work')
+        plan = plan_project_push(self.local, 'vog')
+        self.assertEqual(plan.targets[0].branch, 'main')
+        self.assertTrue(push_project(plan)[0].success)
+        self.assertEqual(self.git(self.vog, 'rev-parse', 'main'), newer)
+        self.assertEqual(self.git(self.vog, 'rev-parse', 'master'), old_master)
 
     def test_dirty_push_publishes_committed_head_to_explicit_branches_only(self):
         head = self.git(self.local, 'rev-parse', 'HEAD')
@@ -220,10 +246,10 @@ class ProjectGitTests(unittest.TestCase):
         self.assertEqual(plan.dirty_count, 2)
         self.assertEqual(plan.branch, 'work')
         self.assertEqual(plan.commit, head)
-        self.assertEqual([(t.remote, t.branch) for t in plan.targets], [('origin', 'work'), ('vogsphere', 'master')])
+        self.assertEqual([(t.remote, t.branch) for t in plan.targets], [('origin', 'work'), ('vogsphere', 'work')])
         self.assertTrue(all(result.success for result in push_project(plan)))
         self.assertEqual(self.git(self.dev, 'rev-parse', 'refs/heads/work'), head)
-        self.assertEqual(self.git(self.vog, 'rev-parse', 'refs/heads/master'), head)
+        self.assertEqual(self.git(self.vog, 'rev-parse', 'refs/heads/work'), head)
         self.assertEqual(self.git(self.local, 'status', '--porcelain=v1'), status)
         self.assertEqual(self.git(self.local, 'show', ':main.c'), 'staged')
         self.assertEqual((self.local / 'main.c').read_text(), 'unstaged')
@@ -343,3 +369,145 @@ class ProjectGitTests(unittest.TestCase):
         self.assertIn('Remote changed since review', result.message)
         self.assertNotIn('first', repr(plan))
         self.assertNotIn('second', result.message)
+
+    def advance_remote(self, remote, branch, content):
+        other = self.repo(content.replace(' ', '-'))
+        self.git(other, 'fetch', str(remote), branch)
+        self.git(other, 'reset', '--hard', 'FETCH_HEAD')
+        newer = self.commit(other, content)
+        self.git(other, 'push', str(remote), f'HEAD:refs/heads/{branch}')
+        return newer
+
+    def test_pull_vogsphere_main_reviews_before_fast_forwarding_current_branch(self):
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/main')
+        newer = self.advance_remote(self.vog, 'main', 'remote work')
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        plan = plan_project_pull(self.local, 'vog')
+        self.assertEqual(plan.targets[0].branch, 'main')
+        self.assertEqual(plan.target_commit, newer)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+        pull_project(plan)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), newer)
+        self.assertEqual(self.git(self.local, 'branch', '--show-current'), 'work')
+        self.assertEqual((self.local / 'main.c').read_text(), 'remote work')
+
+    def test_pull_all_fetches_before_advancing_once_to_newest_compatible_commit(self):
+        self.publish_seed()
+        newer = self.advance_remote(self.dev, 'work', 'development work')
+        plan = plan_project_pull(self.local)
+        self.assertEqual(len(plan.targets), 2)
+        self.assertEqual(plan.target_commit, newer)
+        pull_project(plan)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), newer)
+        self.assertEqual(self.git(self.local, 'rev-list', '--count', 'HEAD'), '2')
+
+    def test_pull_all_divergent_remotes_never_partially_advances_local_branch(self):
+        self.publish_seed()
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        self.advance_remote(self.dev, 'work', 'development work')
+        self.advance_remote(self.vog, 'master', 'campus work')
+        with self.assertRaisesRegex(ProjectGitError, 'diverge'):
+            plan_project_pull(self.local)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+        self.assertEqual((self.local / 'main.c').read_text(), 'initial')
+
+    def test_pull_refuses_dirty_and_untracked_work_without_stashing(self):
+        self.publish_seed()
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                (self.local / 'main.c').write_text('my work')
+                if staged:
+                    self.git(self.local, 'add', 'main.c')
+                with self.assertRaisesRegex(ProjectGitError, 'local changes'):
+                    plan_project_pull(self.local)
+                self.assertEqual((self.local / 'main.c').read_text(), 'my work')
+        self.git(self.local, 'reset', '--hard', 'HEAD')
+        (self.local / 'notes').write_text('private notes')
+        with self.assertRaisesRegex(ProjectGitError, 'untracked'):
+            plan_project_pull(self.local)
+        self.assertEqual((self.local / 'notes').read_text(), 'private notes')
+        self.assertEqual(self.git(self.local, 'stash', 'list'), '')
+
+    def test_pull_review_invalidated_by_local_or_remote_changes(self):
+        self.publish_seed()
+        plan = plan_project_pull(self.local, 'dev')
+        self.advance_remote(self.dev, 'work', 'remote changed')
+        with self.assertRaisesRegex(ProjectGitError, 'changed since review'):
+            pull_project(plan)
+        plan = plan_project_pull(self.local, 'dev')
+        self.commit(self.local, 'local changed')
+        with self.assertRaisesRegex(ProjectGitError, 'changed since review'):
+            pull_project(plan)
+        self.assertEqual((self.local / 'main.c').read_text(), 'local changed')
+
+    def test_pull_remote_url_change_and_local_edits_require_another_review(self):
+        self.publish_seed()
+        plan = plan_project_pull(self.local, 'dev')
+        self.git(self.local, 'remote', 'set-url', 'origin', str(self.vog))
+        with self.assertRaisesRegex(ProjectGitError, 'Remote changed'):
+            pull_project(plan)
+        self.git(self.local, 'remote', 'set-url', 'origin', str(self.dev))
+        (self.local / 'notes').write_text('untracked')
+        with self.assertRaisesRegex(ProjectGitError, 'local changes'):
+            pull_project(plan)
+
+    def test_pull_all_missing_remote_and_empty_remote_keep_head(self):
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        with self.assertRaisesRegex(ProjectGitError, 'unambiguous'):
+            plan_project_pull(self.local)
+        self.publish_seed()
+        self.git(self.local, 'remote', 'remove', 'vogsphere')
+        with self.assertRaisesRegex(ProjectGitError, 'not configured'):
+            plan_project_pull(self.local)
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+
+    def test_pull_blocks_clean_in_progress_operations_and_preserves_ahead_commits(self):
+        self.publish_seed()
+        self.commit(self.local, 'local ahead')
+        plan = plan_project_pull(self.local)
+        self.assertIn('up to date', pull_project(plan))
+        (self.local / '.git/rebase-merge').mkdir()
+        with self.assertRaisesRegex(ProjectGitError, 'Finish the current'):
+            plan_project_pull(self.local)
+
+    def test_pull_preserves_ignored_files_and_does_not_enable_autostash(self):
+        self.publish_seed()
+        upstream = self.repo('ignored-upstream')
+        self.git(upstream, 'fetch', str(self.dev), 'work')
+        self.git(upstream, 'reset', '--hard', 'FETCH_HEAD')
+        (upstream / 'notes').write_text('remote notes')
+        self.git(upstream, 'add', 'notes')
+        self.git(upstream, 'commit', '-m', 'notes')
+        self.git(upstream, 'push', str(self.dev), 'HEAD:refs/heads/work')
+        (self.local / '.git/info/exclude').write_text('notes\n')
+        (self.local / 'notes').write_text('private ignored notes')
+        self.git(self.local, 'config', 'merge.autoStash', 'true')
+        plan = plan_project_pull(self.local, 'dev')
+        with self.assertRaises(ProjectGitError):
+            pull_project(plan)
+        self.assertEqual((self.local / 'notes').read_text(), 'private ignored notes')
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), plan.commit)
+
+    def test_push_default_branch_change_requires_another_review(self):
+        self.publish_seed()
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/main')
+        self.git(self.vog, 'symbolic-ref', 'HEAD', 'refs/heads/master')
+        plan = plan_project_push(self.local, 'vog')
+        self.git(self.vog, 'symbolic-ref', 'HEAD', 'refs/heads/main')
+        self.assertIn('branch changed', push_project(plan)[0].message)
+
+    def test_pull_rejects_ambiguous_vogsphere_and_keeps_local_head(self):
+        for branch in ('main', 'master'):
+            self.git(self.local, 'push', 'vogsphere', f'HEAD:refs/heads/{branch}')
+        original = self.git(self.local, 'rev-parse', 'HEAD')
+        with self.assertRaisesRegex(ProjectGitError, 'unambiguous'):
+            plan_project_pull(self.local, 'vog')
+        self.assertEqual(self.git(self.local, 'rev-parse', 'HEAD'), original)
+
+    def test_existing_recovery_inspects_vogsphere_main_and_preserves_local_work(self):
+        self.git(self.local, 'push', 'vogsphere', 'HEAD:refs/heads/main')
+        self.advance_remote(self.vog, 'main', 'campus main work')
+        (self.local / 'main.c').write_text('local work')
+        with self.assertRaisesRegex(CheckoutSetupError, 'vogsphere/main.*commits missing'):
+            setup_project_checkout(self.local)
+        self.assertEqual((self.local / 'main.c').read_text(), 'local work')

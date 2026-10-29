@@ -1,9 +1,12 @@
 # Development changelog
 
 Latest release: **0.5.0** ([`v0.5.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.0)).
-Package version: **0.5.0**.
-Suggested next release: **none** for the Python package. The Discord website
-redirect below is deployed; it needs no package release.
+Package version: **0.5.1** (candidate; not published).
+Suggested next release: **0.5.1**, as requested for the Vogsphere branch fix,
+reviewed fast-forward pull commands and website root redirect. Preparation, PR
+and merge are authorized; stop before creating or pushing any release tag.
+Candidate CI and review are tracked in PR #42. Latest verified baseline stays 0.5.0;
+no release tag or publication is authorized for this task.
 The tester workspace rework remains planned for 0.6.0; remaining Git design tasks
 are tracked in [TODO.md](TODO.md). Plans alone do not justify publication.
 
@@ -12,6 +15,32 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.5.0
+
+- **2026-10-29 · patch (requested 0.5.1) · Remote branches and pull:** share
+  advertised-default/sole-branch selection across checkout recovery and Vogsphere
+  push; reject ambiguity and recheck destination branch after review. An empty
+  Vogsphere remote uses the reviewed local branch. Add CLI pull dev/vog/all with
+  fetched commit review, clean-worktree/operation checks, one fast-forward after
+  all selected sources are validated, ignored-file protection and review drift
+  checks. Never automatically stash, reset, switch branches or merge divergent
+  histories. Update TUI copy, translations, commands, guide and regressions.
+  Also redirect the website root to GitHub, extend the existing Nginx CI assertion,
+  and make the contributor/release template headings English. Set package/version
+  notes to 0.5.1 while retaining the verified 0.5.0 publication baseline. Branch:
+  `fix/git-remote-branches`; PR #42. Checks: branch regressions reproduced
+  the hard-coded-master failure before the fix. Final disposable Git suite: 41
+  passed; CLI: six passed; locale: two passed; release validation: two passed.
+  Version/tag consistency, non-overlapping regression ownership and wheel/sdist
+  contents passed. Broader project scope: 153 passed; final focused Git rerun
+  includes two additional branch/recovery regressions (41 passed). Final ownership
+  check covers all 904 tests. Clean committed archive wheel/sdist contents and
+  installed CLI/resources/42git pull help passed; unrelated duplicate files are
+  excluded. Full CI is tracked in PR #42, including the live Nginx container
+  root-redirect assertion. No live Vogsphere credentials or user repositories
+  were used.
+  No API/backend/schema changes.
+  Stop before release tag/publication per user instruction. Website rollout is
+  separate from package publication; no rollout claimed here.
 
 - **2026-10-29 · no package release required · Discord website redirect:** add
   exact Nginx `/discord` HTTP 301 to the maintainer-provided invite

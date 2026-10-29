@@ -197,7 +197,7 @@ class MainLayoutMixin:
                                         yield Button("Details", id="show-project-details")
                                     with Vertical(id="project-git-actions"):
                                         yield Button("Push dev", id="project-push-dev", disabled=True)
-                                        yield Button("Push vog", id="project-push-vog", tooltip="Vogsphere → master", disabled=True)
+                                        yield Button("Push vog", id="project-push-vog", tooltip="Vogsphere → remote branch", disabled=True)
                                         yield Button("Push all", id="project-push-all", disabled=True)
                                     with Horizontal(id="project-timer-row"):
                                         with Vertical(id="project-timer-info"):

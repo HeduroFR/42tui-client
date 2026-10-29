@@ -107,13 +107,17 @@ buttons, or run these commands inside its folder:
 
 ```sh
 42git status     # Branch and local changes
+42git pull dev   # Review a fast-forward from development
+42git pull vog   # Review a fast-forward from Vogsphere
+42git pull all   # Fetch both; advance only if histories are compatible
 42git push dev   # Current branch → development
-42git push vog   # Committed work → Vogsphere master
+42git push vog   # Committed work → Vogsphere default branch
 42git push all   # Both destinations, separate results
 ```
 
 Each push asks for confirmation and leaves uncommitted edits untouched.
-Vogsphere pushes require the 42 campus network.
+Vogsphere operations require the 42 campus network. Pull requires a clean checkout
+and never stashes, resets or creates a merge commit.
 **Open in file explorer** opens the project folder.
 See [recovery, branch rules and failed pushes](docs/project-git.md) for details.
 

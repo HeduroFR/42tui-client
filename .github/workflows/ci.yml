@@ -149,6 +149,7 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8080/healthz
           test "$(curl -fsS -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:8080/github)" = '301 https://github.com/HeduroFR/42tui-client'
+          test "$(curl -fsS -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:8080/)" = '301 https://github.com/HeduroFR/42tui-client'
           test "$(curl -fsS -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:8080/discord)" = '301 https://discord.gg/QrRBcK5MeP'
           for name in install.sh install.ps1 install.py uninstall.sh; do
             curl -fsS "http://127.0.0.1:8080/$name" -o "$RUNNER_TEMP/$name"
