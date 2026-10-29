@@ -86,3 +86,28 @@ class GitCliTests(unittest.TestCase):
                                               else {'return_value': response})):
                 self.assertEqual(main(['push', 'dev']), 2)
                 push.assert_not_called()
+
+    def test_pull_reviews_sources_and_requires_confirmation(self):
+        plan = SimpleNamespace(commit='a'*40, branch='work', target_commit='b'*40,
+                               targets=(SimpleNamespace(destination='vog', url='remote', branch='main', commit='b'*40),))
+        with patch('ft_tui.git.plan_project_pull', return_value=plan) as prepare, \
+                patch('ft_tui.git.pull_project', return_value='Fast-forwarded') as pull, \
+                patch('builtins.input', return_value='y'):
+            self.assertEqual(main(['pull', 'vog']), 0)
+        prepare.assert_called_once_with(self.root, 'vog', dev_remote_url='https://example.com/dev.git', vogsphere_url=None)
+        pull.assert_called_once_with(plan)
+        self.assertIn('remote -> main', self.output.getvalue())
+        self.assertIn('Fast-forwarded', self.output.getvalue())
+        for reply in ('n', EOFError()):
+            with patch('ft_tui.git.plan_project_pull', return_value=plan), \
+                    patch('ft_tui.git.pull_project') as pull, \
+                    patch('builtins.input', **({'side_effect': reply} if isinstance(reply, Exception) else {'return_value': reply})):
+                self.assertEqual(main(['pull', 'all']), 2)
+                pull.assert_not_called()
+
+    def test_pull_failure_never_applies(self):
+        from ft_tui.features.projects.adapters.git import ProjectGitError
+        with patch('ft_tui.git.plan_project_pull', side_effect=ProjectGitError('Histories diverge')), \
+                patch('ft_tui.git.pull_project') as pull:
+            self.assertEqual(main(['pull', 'all']), 1)
+            pull.assert_not_called()

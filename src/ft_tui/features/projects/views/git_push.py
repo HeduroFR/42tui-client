@@ -79,7 +79,7 @@ class ProjectGitPushScreen(AppModal):
                 if target.error:
                     lines.append(self._t("Blocked: {error}").format(error=target.error))
             lines.extend(("", self._t("Only this commit and its history are pushed. Files are never staged or committed."),
-                          self._t("Vogsphere requires the 42 campus network and receives master; divergent history is rejected without force.")))
+                          self._t("Vogsphere requires the 42 campus network; the reviewed destination branch is used without force.")))
             review.update("\n".join(lines))
         except (ProjectGitError, OSError) as error:
             if self.is_current:

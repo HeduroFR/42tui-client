@@ -1173,7 +1173,7 @@
   "Uncommitted changes excluded: {count}": "Cambios sin commit excluidos: {count}",
   "Blocked: {error}": "Bloqueado: {error}",
   "Only this commit and its history are pushed. Files are never staged or committed.": "Solo se envían este commit y su historial. Nunca se añaden archivos al índice ni se crean commits.",
-  "Vogsphere requires the 42 campus network and receives master; divergent history is rejected without force.": "Vogsphere requiere la red del campus 42 y recibe master; se rechazan historiales divergentes sin forzar.",
+  "Vogsphere requires the 42 campus network; the reviewed destination branch is used without force.": "Vogsphere requiere la red del campus 42; se usa la rama de destino revisada sin forzar.",
   "Cannot prepare push: {error}": "No se puede preparar el envío: {error}",
   "Pushing reviewed commit…": "Enviando el commit revisado…",
   "Succeeded": "Correcto",
@@ -1190,5 +1190,6 @@
   "Open folder": "Abrir carpeta",
   "Your session has expired. Reconnect your 42 account.": "Tu sesión ha caducado. Vuelve a conectar tu cuenta de 42.",
   "Quit TUI": "Salir del TUI",
-  "Catalog": "Catálogo"
+  "Catalog": "Catálogo",
+  "Vogsphere → remote branch": "Vogsphere → rama remota"
 }

@@ -34,7 +34,7 @@ Build using `docker build -f distribution/Dockerfile distribution`.
 For Dokploy select this repository, branch main, Build Path `/distribution`,
 Dockerfile Path `Dockerfile`, Docker Context Path `distribution`, port 8080,
 health path `/healthz`, and hostname `tui.42wip.in`. No secrets or volumes are needed.
-The `/github` path permanently redirects (HTTP 301) to `https://github.com/HeduroFR/42tui-client`.
+The root `/` and `/github` paths permanently redirect (HTTP 301) to `https://github.com/HeduroFR/42tui-client`.
 The `/discord` path uses the same HTTP 301 rule for `https://discord.gg/QrRBcK5MeP`.
 Change the repository binding only after the reviewed client tree is published;
 do not enable deployment as part of repository creation.
@@ -74,17 +74,18 @@ version heading (`## X.Y.Z`). The publication workflow runs
 when creating the GitHub draft, uploads the assets and publishes the release.
 When resuming an existing release, the script preserves its description.
 
-Use this template within the version section, omitting empty subsections and
+Write release notes in English, including subsection headings. Use this template
+within the version section, omitting empty subsections and
 replacing placeholders with actual changes and update instructions:
 
 ```markdown
-### ✨ Nouveautés
+### ✨ New features
 - Describe the new user-facing behavior.
 
-### 🐛 Corrections
+### 🐛 Fixes
 - Describe the problem that was fixed.
 
-### 📦 Mise à jour
+### 📦 Update
 - Run `42tui update` or describe any required migration steps.
 ```
 

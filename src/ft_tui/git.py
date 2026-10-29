@@ -1,4 +1,4 @@
-"""Publish reviewed, committed project work with the same operations as the TUI."""
+"""Inspect, pull and publish configured project work with explicit review."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from ft_tui.config.settings import database_url
 from ft_tui.db import initialize_database
 from ft_tui.features.projects.adapters.git import (
-    ProjectGitError, inspect_repository, plan_project_push, push_project,
+    ProjectGitError, inspect_repository, plan_project_push, push_project, plan_project_pull, pull_project,
 )
 from ft_tui.features.projects.adapters.navigation import configured_projects
 
@@ -23,6 +23,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands.add_parser("status", help="Inspect the configured project containing the current directory")
     push = commands.add_parser("push", help="Review and push committed work; local edits are not committed")
     push.add_argument("destination", choices=("dev", "vog", "all"))
+    pull = commands.add_parser("pull", help="Fetch and review a fast-forward; local changes must be committed first")
+    pull.add_argument("destination", choices=("dev", "vog", "all"))
     args = parser.parse_args(argv)
     try:
         cwd = Path.cwd().resolve()
@@ -47,6 +49,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ProjectGitError(snapshot.error)
             print(f"Branch: {snapshot.branch}")
             print(f"Staged: {snapshot.staged}; changed: {snapshot.changed}; untracked: {snapshot.untracked}")
+            return 0
+        if args.command == "pull":
+            plan = plan_project_pull(path, args.destination, dev_remote_url=dev_url, vogsphere_url=vog_url)
+            print(f"Current: {plan.commit} ({plan.branch})")
+            for target in plan.targets:
+                print(f"{target.destination}: {target.url} -> {target.branch} ({target.commit})")
+            print(f"Fast-forward target: {plan.target_commit}")
+            try:
+                approved = input("Apply this fast-forward? [y/N] ").strip().casefold() == "y"
+            except EOFError:
+                approved = False
+            if not approved:
+                print("Pull cancelled; fetched history remains available for inspection.")
+                return 2
+            print(pull_project(plan))
             return 0
         plan = plan_project_push(path, args.destination, dev_remote_url=dev_url, vogsphere_url=vog_url)
         print(f"Committed work: {plan.commit} ({plan.branch})")

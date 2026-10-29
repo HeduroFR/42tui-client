@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 from ft_tui.features.projects.subjects.adapters.files import ensure_pdf_gitignore
-from .git import ProjectGitError, _checked_git, _run_git, _repository_path
+from .git import ProjectGitError, _checked_git, _run_git, _repository_path, _remote_heads, _remote_branch
 
 
 @dataclass(frozen=True)
@@ -115,25 +115,13 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         heads[remote] = {}
         if output is None:
             continue
-        for line in output.splitlines():
-            value, ref = line.split("\t", 1)
-            if value.startswith("ref: ") and ref == "HEAD":
-                defaults[remote] = value[5:].removeprefix("refs/heads/")
-            elif ref.startswith("refs/heads/"):
-                heads[remote][ref.removeprefix("refs/heads/")] = value
-        if remote == "vogsphere" and heads[remote] and "master" not in heads[remote]:
-            raise CheckoutSetupError("Vogsphere contains branches but no master; choose the history to recover manually.")
+        heads[remote], defaults[remote] = _remote_heads(output)
 
     source = None
     if not existing:
         source = next((remote for remote in ("vogsphere", "origin") if heads.get(remote)), None)
         if source:
-            branches = heads[source]
-            branch = "master" if source == "vogsphere" else defaults.get(source)
-            if not branch and len(branches) == 1:
-                branch = next(iter(branches))
-            if branch not in branches:
-                raise CheckoutSetupError("The development remote has no unambiguous default branch; select it manually.")
+            branch = _remote_branch(source, heads[source], defaults.get(source))
             url = dict(remotes)[source]
             git("clone", "--origin", source, "--branch", branch, "--", url, str(target))
         else:
@@ -155,12 +143,8 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         branches = heads[remote]
         if not branches:
             continue
-        branch = "master" if remote == "vogsphere" else current if current in branches else defaults.get(remote)
-        if branch not in branches:
-            if len(branches) == 1:
-                branch = next(iter(branches))
-            else:
-                raise CheckoutSetupError(f"Remote '{remote}' has no unambiguous recovery branch; inspect it manually.")
+        branch = _remote_branch(remote, branches, defaults.get(remote),
+                                preferred=current if remote == "origin" else None)
         fetched = inspect_remote(remote, "fetch", "--no-tags", "--no-recurse-submodules", "--refmap=",
                                  "--", remote, f"refs/heads/{branch}")
         if fetched is None:

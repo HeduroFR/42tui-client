@@ -159,6 +159,7 @@ Also update CHANGELOG.md under Unreleased for user-facing features, behavior
 changes, fixes and user documentation improvements. Explain the visible effect;
 keep CI/CD, tests, release tooling and internal restructuring in DEV_CHANGELOG.md.
 Use the same user-facing scope for published release notes.
+Write release notes and their headings in English.
 Use the [release-note template and Discord setup](docs/distribution.md#release-notes-and-discord)
 when preparing release announcements. The publication workflow copies the version's
 CHANGELOG.md section into the GitHub release description automatically.
