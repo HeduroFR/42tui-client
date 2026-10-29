@@ -316,10 +316,22 @@ Status: **scope agreed; implementation and release validation pending**.
   clubs. Keep private clubs accessible through delegate/owner invitations only,
   with invitations delivered through the notification inbox introduced in 0.8.0.
 
-## Later initiatives — Shops, currency and WIP
+## Later initiatives — All campuses, specific curricula, shops, currency and WIP
 
 Status: **captured for design; versions and dates undecided**.
 
+- [ ] Prepare a stable release for all 42 campuses: audit features currently
+  tailored to Angouleme and remove campus-specific assumptions using the selected
+  campus context and its available capabilities. Validate feature coverage across
+  campuses, preserve Angouleme behavior and clearly indicate unavailable features
+  rather than showing data from another campus. Confirm readiness per campus
+  before claiming stable support across the network.
+- [ ] Support specific curricula and short programmes, including Piscine Discovery
+  and work-experience placements for seconde students (stages de seconde). Audit
+  available curriculum data and adapt onboarding, project/progress displays and
+  eligible actions to the selected programme instead of assuming the common core.
+  Preserve account/campus/curriculum boundaries and validate each programme with
+  representative fixtures before claiming support.
 - [ ] Integrate the actual Intra goodies shop and wallets; establish available
   integration capabilities before committing to delivery.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
@@ -327,7 +339,7 @@ Status: **captured for design; versions and dates undecided**.
 - [ ] Explore WIP, an animated pixel-art royal otter companion with multiple
   states, movement in the TUI and emotes; scope its behavior in a dedicated design.
 
-For future social/profile/club/shop features requiring API changes, assess contracts
+For future campus/curriculum/social/profile/club/shop features requiring API changes, assess contracts
 and older-client compatibility, validate both repositories separately and deploy
 required compatible backend changes before the consuming client release. See
 [API compatibility](docs/api-compatibility.md). These scopes do not imply backend

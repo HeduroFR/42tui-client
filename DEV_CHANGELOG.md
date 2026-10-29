@@ -12,6 +12,15 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add unversioned future roadmap goals for a stable all-campus
+  release beyond Angouleme-specific behavior and support for specific curricula,
+  including Piscine Discovery and seconde work-experience placements. Record
+  capability/data coverage, context isolation and representative validation as
+  requirements, not delivered support. Planning only; no release required.
+  Checks: roadmap placement, consistency and diff/whitespace review; runtime and
+  cross-campus/programme checks skipped. Branch: `docs/discord-rich-presence-roadmap`;
+  commit/PR pending.
+
 - 2026-10-29: Extend the 0.7.0 roadmap with stable time-tracking integrations
   and installation/update/removal for Vim, Neovim, VS Code and Zed. Replace the
   planned dashboard Cluster Map card rework with a campus log-time heatmap,
