@@ -18,7 +18,7 @@ class ProjectGitPushScreen(AppModal):
     #git-push-scroll { height: 1fr; }
     #git-push-review, #git-push-results { height: auto; margin-bottom: 1; }
     #git-push-actions { height: auto; }
-    #git-push-actions AppButton { width: 1fr; min-width: 10; }
+    #git-push-actions AppButton { width: 1fr; min-width: 10; margin: 0 2; }
     """
 
     def __init__(self, project_name: str, path: str, destination: str, *, dev_remote_url=None, vogsphere_url=None):
