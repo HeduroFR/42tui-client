@@ -5,6 +5,8 @@
 - Keep tester setup and execution inside 42TUI, with live output, line input,
   cancellation, elapsed time, rerunning and saved logs. Close and reopen the
   tester workspace while a run continues on its original project.
+  Render terminal redraws without repeated progress blocks, open the log folder
+  directly, and align the tester removal button with Run.
   Separate the action buttons with gaps and leave space below the input field.
 
 - Run Docker testers against a disposable project copy, excluding Git metadata,

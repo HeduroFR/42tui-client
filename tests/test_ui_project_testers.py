@@ -204,6 +204,9 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             remove = widget.query_one(TesterRemoveButton)
             self.assertFalse(remove.disabled)
             self.assertEqual(remove.region.width, 5)
+            run = widget.query_one(TesterAction)
+            self.assertEqual(remove.region.y, run.region.y)
+            self.assertEqual(remove.region.height, run.region.height)
             self.assertIn("all projects", str(remove.tooltip))
             self.assertTrue(app.screen.region.contains_region(remove.region))
             def removed(*args):
@@ -360,3 +363,44 @@ class TesterInspectionLifecycleTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(widget.query('#tester-status'))
         finally:
             release.set()
+
+
+class TesterConsoleRenderingTests(unittest.TestCase):
+    def test_cursor_redraw_does_not_duplicate_compilation_status(self):
+        from ft_tui.features.projects.adapters.tester_console import TesterConsole
+        console = TesterConsole()
+        console.feed("Compiling tests: fsoares\r\n")
+        for _ in range(15):
+            console.feed("\x1b[1")
+            console.feed("A\r\x1b[2KCompiling tests: fsoares\r\n")
+        output = console.render().plain
+        self.assertEqual(output.count("Compiling tests: fsoares"), 1)
+
+    def test_partial_lines_colors_and_scrollback(self):
+        from ft_tui.features.projects.adapters.tester_console import TesterConsole
+        console = TesterConsole()
+        console.feed("\x1b[31mhel")
+        console.feed("lo\x1b[0m\rbye\x1b[K")
+        self.assertEqual(console.render().plain, "bye")
+        console.feed("\r\n" + "line\r\n" * 35)
+        self.assertTrue(console.screen.history.top)
+        self.assertIn("bye", console.render().plain)
+
+
+class TesterLogFolderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_folder_action_and_failure_feedback(self):
+        from textual.app import App
+        from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+        class Harness(App):
+            language = 'en'
+        app = Harness()
+        async with app.run_test() as pilot:
+            screen = TesterWorkspace('Test', Path('/tmp/tester/logs/run.log'))
+            await app.push_screen(screen)
+            with patch('ft_tui.features.projects.views.tester_workspace.open_project_folder') as open_folder:
+                await screen._open_log_folder()
+                open_folder.assert_called_once_with('/tmp/tester/logs')
+            with patch('ft_tui.features.projects.views.tester_workspace.open_project_folder', side_effect=OSError('denied')), \
+                    patch.object(app, 'notify') as notify:
+                await screen._open_log_folder()
+                self.assertIn('denied', notify.call_args.args[0])

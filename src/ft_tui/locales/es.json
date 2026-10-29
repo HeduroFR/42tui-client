@@ -1247,5 +1247,7 @@
   "Follow output": "Seguir salida",
   "Log location": "Ubicación del registro",
   "Run again": "Ejecutar de nuevo",
-  "Tester finished. Read the log for test results.": "Tester finalizado. Consulta el registro para ver los resultados."
+  "Tester finished. Read the log for test results.": "Tester finalizado. Consulta el registro para ver los resultados.",
+  "Open log folder": "Abrir carpeta de registros",
+  "Could not open log folder: {error}": "No se pudo abrir la carpeta de registros: {error}"
 }

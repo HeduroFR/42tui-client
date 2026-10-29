@@ -162,7 +162,7 @@ class WorkspaceSession:
         process = None
         completed = False
         try:
-            # shortcut: line-oriented PTY, add a terminal emulator before supporting full-screen testers.
+            # Match the console emulator dimensions; input remains line-oriented.
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 100, 0, 0))
             process = subprocess.Popen(args, cwd=cwd, env={**(env if env is not None else os.environ), "TERM": "dumb"},
                                        stdin=slave, stdout=slave, stderr=slave, start_new_session=True)

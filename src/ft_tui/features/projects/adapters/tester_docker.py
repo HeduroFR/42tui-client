@@ -326,7 +326,7 @@ class TesterDocker:
             staging = f"42tui/build:{uuid.uuid4().hex}"
             try:
                 terminal.write("Building the tester image…")
-                self._run(terminal, [docker, "build", "--platform", f"linux/{architecture}",
+                self._run(terminal, [docker, "build", "--progress", "plain", "--platform", f"linux/{architecture}",
                                     "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1", source],
                                     env={"DOCKER_BUILDKIT": "1"})
                 if not self.installed(tester, image=staging):

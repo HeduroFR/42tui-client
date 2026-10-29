@@ -1264,5 +1264,7 @@
   "Follow output": "Suivre la sortie",
   "Log location": "Emplacement du journal",
   "Run again": "Relancer",
-  "Tester finished. Read the log for test results.": "Testeur terminé. Consultez le journal pour les résultats."
+  "Tester finished. Read the log for test results.": "Testeur terminé. Consultez le journal pour les résultats.",
+  "Open log folder": "Ouvrir le dossier des journaux",
+  "Could not open log folder: {error}": "Impossible d’ouvrir le dossier des journaux : {error}"
 }

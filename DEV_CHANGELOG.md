@@ -17,6 +17,18 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Fix tester console redraws using pyte 0.8.x terminal emulation
+  matching the private 100×24 PTY, preserving ANSI colors, partial reads and
+  bounded scrollback. Request plain Docker build progress; replace Log location
+  with Open log folder using the existing explorer adapter and error feedback.
+  Align Run and removal controls on one fixed-height row. Add redraw/scrollback
+  regressions and alignment assertions. Patch impact within planned 0.6.0;
+  same `feat/tester-workspace-0.6.0` branch, uncommitted. Checks: tester scope
+  77 passed, log-folder action/error test passed, architecture 9 and locale 2
+  passed; wheel/sdist checks, installer hashes/syntax and whitespace passed.
+  WezTerm direct inspection was denied by the computer-use tool; native Docker
+  reproduction is unverified. No version bump or publication.
+
 - 2026-10-29: Add horizontal gaps between tester workspace action buttons and
   a blank row between the input field and action row. Patch impact, included in
   the planned 0.6.0 minor release; no separate release warranted. Branch:

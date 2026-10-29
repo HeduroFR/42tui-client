@@ -80,7 +80,8 @@ class ProjectTesters(Vertical):
     ProjectTesters { height: auto; border-top: solid $secondary; margin-top: 1; padding-top: 1; }
     ProjectTesters Static, #tester-rows { height: auto; }
     ProjectTesters Button { width: 1fr; min-width: 0; margin-top: 1; }
-    ProjectTesters .tester-action-row { height: auto; }
+    ProjectTesters .tester-action-row { height: 3; margin-top: 1; align-vertical: middle; }
+    ProjectTesters .tester-action-row Button { height: 3; margin-top: 0; margin-bottom: 0; }
     ProjectTesters .tester-remove { width: 5; min-width: 5; padding: 0; margin-left: 1; }
     #tester-catalog-warning { color: $warning; }
     #tester-status-scroll { height: auto; max-height: 5; }

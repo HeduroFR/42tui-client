@@ -149,8 +149,9 @@ Runs open an in-app tester workspace with live, scrollable output, line input,
 cancellation, elapsed time and **Run again**. Close it to keep using the app,
 then choose **Tester workspace** from any project's tester section to return.
 **Pause output** stops automatic scrolling. Full logs are saved automatically;
-**Log location** shows the path. The output view retains recent output only.
-Process completion alone does not mean all tests passed: read the tester results
+**Open log folder** opens its directory in your file explorer. The output view retains recent output only.
+The console interprets cursor redraws and colors on a 100-column terminal with
+scrollback; narrow windows can scroll horizontally. Process completion alone does not mean all tests passed: read the tester results
 in the log. Full-screen terminal applications are not supported by this workspace.
 
 On Linux, an accessible Docker engine with BuildKit support must already be

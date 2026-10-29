@@ -193,7 +193,7 @@ class TesterDockerTests(unittest.TestCase):
             self.service.install(self.tester, terminal)
         calls = [call.args[0] for call in terminal.run.call_args_list]
         self.assertEqual(calls[0][-1], f"{self.tester.repository}#{self.tester.ref}")
-        self.assertEqual(calls[0][:4], ["docker", "build", "--platform", "linux/amd64"])
+        self.assertEqual(calls[0][:6], ["docker", "build", "--progress", "plain", "--platform", "linux/amd64"])
         self.assertEqual(calls[1][:3], ["docker", "image", "tag"])
         self.assertFalse(any("install.sh" in " ".join(args) for args in calls))
 

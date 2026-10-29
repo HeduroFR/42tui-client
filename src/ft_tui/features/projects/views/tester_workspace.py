@@ -1,9 +1,11 @@
 """Persistent tester output and controls while the rest of the app stays usable."""
+import asyncio
 import codecs
 from collections import deque
 import time
 
-from rich.text import Text
+from ft_tui.features.projects.adapters.tester_console import TesterConsole
+from ft_tui.features.projects.adapters.explorer import open_project_folder
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Input, RichLog
 
@@ -34,17 +36,18 @@ class TesterWorkspace(AppModal):
         self.finished = None
         self.result = 'Tester operation in progress…'
         self.follow = True
+        self.console = TesterConsole()
 
     def compose(self):
         with Vertical(id='tester-workspace'):
             yield Static(self.title_text, markup=False, localize=False)
             yield Static('', id='tester-result', markup=False, localize=False)
-            yield RichLog(id='tester-output', max_lines=5000, min_width=1, wrap=True)
+            yield RichLog(id='tester-output', max_lines=1024, min_width=100, wrap=False)
             yield Input(id='tester-input', placeholder=translate('Send input to tester', self.app.language))
             with Horizontal(id='tester-workspace-actions'):
                 yield Button('Cancel', id='tester-cancel')
                 yield Button('Pause output', id='tester-follow')
-                yield Button('Log location', id='tester-log')
+                yield Button('Open log folder', id='tester-log')
                 yield Button('Run again', id='tester-rerun', disabled=True)
                 yield Button('Close', id='tester-close')
 
@@ -61,9 +64,12 @@ class TesterWorkspace(AppModal):
         except IndexError:
             pass
         if chunks:
-            text = self.decoder.decode(b''.join(chunks))
-            if text:
-                log.write(Text.from_ansi(text), scroll_end=self.follow)
+            self.console.feed(self.decoder.decode(b''.join(chunks)))
+            position = log.scroll_offset
+            log.clear()
+            log.write(self.console.render(), scroll_end=self.follow)
+            if not self.follow:
+                log.scroll_to(position.x, position.y, animate=False, immediate=True)
         elapsed = (self.finished or time.monotonic()) - self.started
         self.query_one('#tester-result', Static).update(
             translate(self.result, self.app.language) + f' · {elapsed:.1f}s')
@@ -95,4 +101,11 @@ class TesterWorkspace(AppModal):
             self.action_close()
             self.app.call_after_refresh(self.rerun)
         elif event.button.id == 'tester-log':
-            self.app.notify(str(self.log_path), timeout=15, markup=False)
+            self.run_worker(self._open_log_folder())
+
+    async def _open_log_folder(self):
+        try:
+            await asyncio.to_thread(open_project_folder, str(self.log_path.parent))
+        except (OSError, RuntimeError) as error:
+            self.app.notify(translate('Could not open log folder: {error}', self.app.language).format(error=error),
+                            severity='error', markup=False)
