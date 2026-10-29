@@ -12,6 +12,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.1
 
+- 2026-10-29: Add six selected unversioned further updates: project readiness,
+  opt-in peer study matching, workload planning, exam practice, integration
+  diagnostics and data export/backup. Record reuse, privacy and data-preservation
+  requirements; rename the future-work heading to cover the expanded scope.
+  Planning only; no release required. Checks: roadmap consistency and
+  diff/whitespace review; runtime tests skipped. Branch: `docs/roadmap-additions`;
+  commit/PR pending.
+
 - 2026-10-29: Add unversioned future roadmap goals for a stable all-campus
   release beyond Angouleme-specific behavior and support for specific curricula,
   including Piscine Discovery and seconde work-experience placements. Record

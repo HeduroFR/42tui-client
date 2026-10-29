@@ -316,7 +316,7 @@ Status: **scope agreed; implementation and release validation pending**.
   clubs. Keep private clubs accessible through delegate/owner invitations only,
   with invitations delivered through the notification inbox introduced in 0.8.0.
 
-## Later initiatives — All campuses, specific curricula, shops, currency and WIP
+## Further updates — Versions and dates undecided
 
 Status: **captured for design; versions and dates undecided**.
 
@@ -332,6 +332,30 @@ Status: **captured for design; versions and dates undecided**.
   eligible actions to the selected programme instead of assuming the common core.
   Preserve account/campus/curriculum boundaries and validate each programme with
   representative fixtures before claiming support.
+- [ ] Add a project readiness checklist before evaluation: review required files,
+  Git state, compilation and tester results, with links to resolve issues. Reuse
+  existing project/Git/tester data, distinguish missing or stale checks from
+  passing results, and make clear that readiness does not guarantee validation.
+- [ ] Add opt-in peer study matching for students working on the same project,
+  including study sessions and mock evaluations. Let users control visibility
+  and withdraw availability; respect campus/curriculum context and existing
+  blocking/privacy rules.
+- [ ] Add a workload planner combining personal project targets, booked evaluations
+  and declared availability into a weekly plan. Reuse evaluation data and keep
+  personal targets distinct from official deadlines; handle schedule changes and
+  overlapping commitments without silently changing bookings.
+- [ ] Add exam practice mode with timed sessions in disposable folders, saved
+  results and a review of recurring mistakes. Use permitted practice material,
+  keep personal project files intact and support interruption/restart; distinguish
+  practice results from official exam outcomes.
+- [ ] Add integration diagnostics covering editor heartbeats, executable paths,
+  backend connectivity and stale data. Reuse integration setup checks, show
+  actionable fixes and provide a reviewable sanitized report excluding credentials,
+  personal paths and private account/project data; do not send it automatically.
+- [ ] Add data export and backup for notes, time records and preferences, with
+  safe restore when changing machines. Exclude credentials, validate imports,
+  preview conflicts and preserve existing data on cancellation or failure;
+  document backup contents and format compatibility.
 - [ ] Integrate the actual Intra goodies shop and wallets; establish available
   integration capabilities before committing to delivery.
 - [ ] Design a separate TUI currency, earning quests/activities and a shop for
