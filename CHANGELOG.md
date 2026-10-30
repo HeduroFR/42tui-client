@@ -2,14 +2,22 @@
 
 ## Unreleased
 
+## 0.6.2
+
+### ✨ New features
+
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
 
-### Fixed
+### 🐛 Fixes
 
 - Give danger buttons the same raised appearance as primary buttons, in red.
 
 - Hide expired correction slots from the calendar while keeping ongoing slots visible.
+
+### 📦 Update
+
+- Run `42tui update` for a standard installation; use your existing method for pinned or development installations.
 
 ## 0.6.1
 
