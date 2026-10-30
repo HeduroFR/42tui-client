@@ -197,6 +197,23 @@ Custom native definitions use `runtime = "native"`, optional
 `{python}` (the private environment's interpreter). Commands run without a shell,
 from the project copy. Docker remains the default for existing definitions.
 
+For **ft_printf** and **libft**, additional **Supra printf tester** and
+**Supra libft tester** actions build the pinned nda-cunh testers in Linux amd64
+containers on Linux and macOS. ARM machines need Docker CPU emulation; the engine
+and mount checks stop with diagnostics when it is unavailable. No Vala, Meson,
+NASM or tester dependencies are installed on the host. Both use the same pinned
+Debian base and GCC/glibc environment, with separate source-specific images and
+shared Docker layers. Their runtime has networking disabled, a read-only root
+filesystem and a writable disposable project copy plus temporary storage.
+
+These testers currently report **unverified** completion: read the full transcript,
+including failures, missing functions and forbidden-function checks. They do not
+replace Francinette or establish official project correctness or superior memory
+coverage. To include printf bonus tests, override `supra-printf` in your user catalog
+with the same fields and append `"--bonus"` to its `command`. Runtime Makefiles
+must work with GCC/cc; compiler-specific dependencies are not installed automatically.
+See [runtime details and validation](docs/tester-runtimes.md).
+
 For Francinette on Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an
 existing rootless user service; it does not install system packages, start system

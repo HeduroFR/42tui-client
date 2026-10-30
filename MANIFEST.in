@@ -1,4 +1,5 @@
 global-exclude *
 include pyproject.toml README.md MANIFEST.in setup.py CHANGELOG.md
 recursive-include src/ft_tui *.py *.json *.toml
+recursive-include src/ft_tui/tester_images *.Dockerfile
 global-exclude __pycache__ *.py[cod] .env .env.* *.sqlite3 *.sqlite3-*

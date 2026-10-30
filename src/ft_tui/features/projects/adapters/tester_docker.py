@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
@@ -287,6 +288,14 @@ class TesterDocker:
 
     @contextmanager
     def _build_context(self, tester: Tester, terminal):
+        if tester.recipe:
+            if tester.recipe != "supra":
+                raise TesterError("Unknown bundled tester recipe.")
+            with tempfile.TemporaryDirectory(prefix="42tui-image-") as directory:
+                recipe = files("ft_tui").joinpath("tester_images", tester.recipe + ".Dockerfile")
+                Path(directory, "Dockerfile").write_bytes(recipe.read_bytes())
+                yield directory
+            return
         repository = tester.repository.rstrip("/")
         if repository.endswith(".git"):
             source = f"{repository}#{tester.ref}"
@@ -319,6 +328,8 @@ class TesterDocker:
         if self.installed(tester):
             return
         architecture = self.architecture(tester)
+        if tester.recipe:
+            terminal.write("These testers use Linux amd64; ARM hosts require CPU emulation.")
         context = PurePosixPath(tester.context)
         if context.is_absolute() or ".." in context.parts:
             raise TesterError("Docker build context must be inside the tester repository.")
@@ -329,7 +340,9 @@ class TesterDocker:
             try:
                 terminal.write("Building the tester image…")
                 self._run(terminal, [docker, "build", "--progress", "plain", "--platform", f"linux/{architecture}",
-                                    "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1", source],
+                                    "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1",
+                                    *(["--build-arg", "TESTER_REPOSITORY=" + tester.repository,
+                                       "--build-arg", "TESTER_REF=" + tester.ref] if tester.recipe else []), source],
                                     env={"DOCKER_BUILDKIT": "1"})
                 if not self.installed(tester, image=staging):
                     raise TesterError("The tester image could not be verified. Retry installation.")
@@ -386,7 +399,7 @@ class TesterDocker:
         source = '"source=' + str(path).replace('"', '""') + '"'
         args = [docker, "run", "--rm", "--interactive", "--tty", "--name", container,
                 "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
-                "--workdir", "/project", *user, tester.image_for(architecture), *tester.command]
+                "--workdir", "/project", *user, *self._runtime_arguments(tester), tester.image_for(architecture), *tester.command]
         try:
             terminal.write("Running the tester…")
             self._run(terminal, args)
@@ -398,6 +411,13 @@ class TesterDocker:
             return error.returncode
         finally:
             self._cleanup([docker, "rm", "--force", container])
+
+    @staticmethod
+    def _runtime_arguments(tester):
+        if not tester.recipe:
+            return []
+        return ["--network", "none", "--read-only", "--tmpfs", "/tmp:rw,nosuid,nodev,size=256m",
+                "--cap-drop", "ALL", "--security-opt", "no-new-privileges=true", "--pids-limit", "512"]
 
     def _user_arguments(self, docker):
         result = self._capture([docker, "info", "--format", "{{json .SecurityOptions}}"])
@@ -431,7 +451,7 @@ class TesterDocker:
                 terminal.write("Checking container execution and local folder access…")
                 self._run(terminal, [docker, "run", "--rm", "--name", container,
                                     "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
-                                    *user, "--entrypoint", "/bin/sh", tester.image_for(architecture), "-c", script])
+                                    *user, *self._runtime_arguments(tester), "--entrypoint", "/bin/sh", tester.image_for(architecture), "-c", script])
                 output = folder / "output"
                 if output.read_text() != value:
                     raise TesterError("Docker did not mount the local project folder correctly.")

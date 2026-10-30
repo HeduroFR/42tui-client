@@ -1265,5 +1265,6 @@
   "Git is required for native tester setup.": "Se requiere Git para preparar el tester nativo.",
   "Native tester copies cannot contain links outside the copy.": "Las copias de testers nativos no pueden contener enlaces fuera de la copia.",
   "Native tester context must stay inside the repository.": "El contexto del tester nativo debe permanecer dentro del repositorio.",
-  "Preparing the tester…": "Preparando el tester…"
+  "Preparing the tester…": "Preparando el tester…",
+  "These testers use Linux amd64; ARM hosts require CPU emulation.": "Estos testers usan Linux amd64; los equipos ARM necesitan emulación de CPU."
 }

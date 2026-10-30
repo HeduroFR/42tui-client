@@ -16,6 +16,23 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Add definition-driven bundled Docker recipes and pinned Supra
+  printf/libft definitions for Linux/macOS. Include recipe bytes in image identity,
+  package the multi-stage Debian recipe and verify it in release archives. Keep
+  legacy/custom Docker contexts unchanged. Select Linux amd64 consistently and
+  retain existing OS/engine/emulation/mount checks. Install through Meson without
+  upstream user pip installation or runtime auto-update. Restrict Supra runs with
+  disabled networking, read-only root, temporary storage, dropped capabilities,
+  no privilege escalation and a process limit. Keep results unverified; no claim
+  of superior accuracy/memory coverage. Add real fixture/container PR checks and
+  resource/parser/build/UI regressions. Local Docker daemon was unavailable and
+  Desktop could not start; no successful local live build is claimed. Validation
+  results: tester scope 98 passed (101.587 seconds), release-tooling 96,
+  adapter 70, architecture 9 and locale 2 passed; clean tracked-file wheel/sdist,
+  recipe-resource presence and installer hashes/syntax passed. Real container CI
+  and Mac/ARM emulation remain pending. Minor impact within planned 0.6.0;
+  PR #47 on `feat/tester-workspace-0.6.0`. No version bump/publication/deployment.
+
 - 2026-10-30: Add preparation/build/run stages and a source-hash-guarded
   Francinette summary reader, counting suites and norm/function checks. Disable
   upstream auto-update for the verified source; unknown source/missing summaries

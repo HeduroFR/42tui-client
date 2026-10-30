@@ -52,3 +52,39 @@ not a successful run. School-managed Linux still needs its own permission/runtim
 check; a hosted Linux runner does not establish that policy. For container/UI
 coverage, use `python tests/manual/tester_smoke.py NEW_DISPOSABLE_DIRECTORY` with
 an accessible engine. No personal projects/accounts are used by these checks.
+
+## Supra printf/libft containers
+
+The bundled definitions use `recipe = "supra"`, the pinned Debian bookworm-slim
+base digest, and exact source SHAs from nda-cunh/printf_tester and libft_tester.
+They share one multi-stage recipe and cached toolchain layers; each final image
+contains one tester and the GCC C-project build/runtime dependencies. Vala,
+Meson, Ninja, NASM and Git are build-only. Debian package updates are resolved
+when building an image; this is a common Linux ABI/toolchain, not a bit-reproducible
+package archive. Image identity includes the recipe bytes and source revision.
+
+Both definitions select Linux amd64 on every supported host. On Apple Silicon or
+Linux ARM, Docker must provide amd64 emulation. Existing host/engine detection,
+architecture inspection and writable-mount/execution probes remain mandatory.
+Windows is outside the current client support matrix. No emulator, system package,
+Docker context or daemon permission is silently changed by these definitions.
+
+Install directly through Meson, avoiding upstream install.sh's user-level pip
+fallback. Install binaries without a `.git` sibling so background `git pull` and
+self-rebuild cannot run. Execution disables networking, drops capabilities, denies
+privilege elevation and makes the root filesystem read-only; only the disposable
+project mount and bounded `/tmp` are writable. This limits host exposure, but is
+not evidence that one tester finds more bugs or has stronger memory checks.
+
+The sources lack a validated machine-readable summary integration here. Keep
+results unverified even if the process exits zero. Missing functions and forbidden
+function checks must remain visible in the full log. Francinette stays available;
+Supra is an additional choice. No upstream code is vendored in the Python package.
+
+`python tests/manual/supra_tester_smoke.py ft_printf` (or `libft`) builds and runs
+the actual pinned tester against an incomplete synthetic C fixture, checks the
+expected diagnostics and unchanged original files, and reports image size. PR CI
+runs both Linux amd64 cases and retains logs. These checks do not establish all
+passing/failing cases, memory-check equivalence, or Mac/ARM emulation support.
+Local Docker Desktop could not start in this session; live container validation
+must be established through CI and later Mac/ARM runs before release claims.

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Supra testers for ft_printf and libft using pinned Linux amd64 containers
+  on Linux/macOS, with the same GCC/glibc environment and no host tester-tool
+  installation. ARM hosts require Docker CPU emulation. Runs preserve project
+  files, disable network access and keep full diagnostics; completion remains
+  unverified until a trustworthy result reader is available.
+
 - Show the current tester preparation/build/run stage. Read Francinette's verified
   summary so failed suites and norm checks remain failures even when it exits zero.
   Counts describe suites and checks; detailed test cases remain in the log.

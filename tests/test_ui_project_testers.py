@@ -74,7 +74,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.status.return_value = DockerStatus(state, "test detail")
                 await self.select(widget, projects["libft"], pilot)
                 buttons = list(widget.query(Button))
-                self.assertEqual(len([b for b in buttons if b.display]), 1)
+                self.assertEqual({b.tester.id for b in buttons if b.display}, {"francinette", "supra-libft"})
                 self.assertEqual(str(buttons[0].label), "Run Francinette")
                 self.assertFalse(buttons[0].disabled)
 

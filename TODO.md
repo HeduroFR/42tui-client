@@ -199,12 +199,15 @@ version or authorize publication.
   the working folder. Native runs require explicit confirmation explaining that
   a private directory or virtual environment does not sandbox executed code.
 
-Current implementation: pinned Francinette (Docker) and ft_ps_tester for push_swap
+Current implementation: Francinette plus pinned Supra printf/libft Docker recipes,
+and ft_ps_tester for push_swap
 (native Python environment with definition-driven build/run commands). The native
 adapter has synthetic PTY/result/cancellation tests. Full Linux/macOS platform
 validation and headless-runtime lifecycle/resource measurements remain pending.
 The verified Francinette summary reader and dedicated stage indicators are now
 implemented. See [runtime assessment and repeatable platform checks](docs/tester-runtimes.md).
+Supra definitions select Linux amd64 consistently on supported Linux/macOS hosts;
+real build/run and ARM emulation validation remain required.
 Local Francinette confirmed failures despite exit zero; native push_swap default
 also exits zero despite printed failures, so its results remain unverified.
 - [ ] Prove the complete flow with Francinette and one contrasting tester

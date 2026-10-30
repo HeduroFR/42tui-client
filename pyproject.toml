@@ -33,7 +33,7 @@ where = ["src"]
 include = ["ft_tui", "ft_tui.*"]
 
 [tool.setuptools.package-data]
-ft_tui = ["locales/*.json", "testers.toml"]
+ft_tui = ["locales/*.json", "testers.toml", "tester_images/*.Dockerfile"]
 "ft_tui.features.cluster_map" = ["layout.json"]
 
 [tool.ruff]

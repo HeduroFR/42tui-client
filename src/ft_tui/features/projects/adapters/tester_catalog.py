@@ -32,10 +32,13 @@ class Tester:
     result_file: str | None = None
     runtime: str = "docker"
     prepare: tuple[tuple[str, ...], ...] = ()
+    recipe: str | None = None
 
     @property
     def image(self) -> str:
         identity = json.dumps((self.repository, self.ref, self.context)).encode()
+        if self.recipe:
+            identity += files("ft_tui").joinpath("tester_images", self.recipe + ".Dockerfile").read_bytes()
         digest = hashlib.sha256(identity).hexdigest()[:16]
         return f"42tui/{self.id}:{self.ref[:12]}-{digest}"
 
@@ -66,7 +69,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         raise ValueError("Expected [[testers]] entries")
     result: dict[str, Tester | None] = {}
     fields = {"id", "name", "projects", "platforms", "repository", "ref", "context", "command", "enabled",
-              "architectures", "result_file", "runtime", "prepare"}
+              "architectures", "result_file", "runtime", "prepare", "recipe"}
     for entry in document["testers"]:
         if not isinstance(entry, dict) or set(entry) - fields:
             raise ValueError("Unknown tester field")
@@ -94,6 +97,9 @@ def _entries(content: str) -> dict[str, Tester | None]:
         runtime = entry.get("runtime", "docker")
         if runtime not in {"docker", "native"}:
             raise ValueError(f"{identifier}: runtime must be docker or native")
+        recipe = entry.get("recipe")
+        if "recipe" in entry and (recipe != "supra" or runtime != "docker"):
+            raise ValueError(f"{identifier}: recipe must name a bundled Docker recipe")
         prepare = entry.get("prepare", [])
         if (not isinstance(prepare, list) or any(not isinstance(command, list) or not command
                 or any(not isinstance(arg, str) or not arg or "\x00" in arg for arg in command) for command in prepare)):
@@ -105,6 +111,8 @@ def _entries(content: str) -> dict[str, Tester | None]:
                 or any(not isinstance(item, str) or item not in {"amd64", "arm64"} for item in architectures)
                 or len(set(architectures)) != len(architectures)):
             raise ValueError(f"{identifier}: architectures must list amd64 and/or arm64 without duplicates")
+        if recipe and (architectures != ["amd64"] or entry["context"] != "."):
+            raise ValueError(f"{identifier}: Supra recipes require amd64 and the repository root")
         if not re.fullmatch(r"[0-9a-fA-F]{40}", entry["ref"]):
             raise ValueError(f"{identifier}: ref must be a full Git commit SHA")
         url = urlparse(entry["repository"])
@@ -124,7 +132,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         result[identifier] = Tester(
             identifier, entry["name"], tuple(project_slug(slug) for slug in entry["projects"]),
             tuple(entry["platforms"]), entry["repository"], entry["ref"].lower(),
-            entry["context"], tuple(entry["command"]), tuple(architectures), result_file, runtime, tuple(tuple(command) for command in prepare),
+            entry["context"], tuple(entry["command"]), tuple(architectures), result_file, runtime, tuple(tuple(command) for command in prepare), recipe,
         )
     return result
 

@@ -46,20 +46,23 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
     def test_explicit_slugs_platforms_and_no_born2beroot(self):
         for slug in ("libft", "ft_printf", "get_next_line"):
             for platform in ("linux", "darwin"):
-                self.assertEqual(self.catalog.for_project(slug, platform), (self.tester,))
-                self.assertEqual(self.catalog.for_project("42cursus-" + slug, platform), (self.tester,))
+                entries = self.catalog.for_project(slug, platform)
+                self.assertIn(self.tester, entries)
+                self.assertEqual(len(entries), 1 if slug == "get_next_line" else 2)
+                self.assertEqual(self.catalog.for_project("42cursus-" + slug, platform), entries)
         self.assertFalse(self.catalog.for_project("born2beroot", "linux"))
         self.assertFalse(self.catalog.for_project("libft", "win32"))
 
     def test_add_replace_and_disable(self):
         catalog = self.write(self.entry())
-        self.assertEqual(len(catalog.for_project("libft", "linux")), 2)
-        self.assertEqual(len(catalog.for_project("libft", "darwin")), 1)
+        self.assertEqual(len(catalog.for_project("libft", "linux")), 3)
+        self.assertEqual(len(catalog.for_project("libft", "darwin")), 2)
         catalog = self.write(self.entry("francinette"))
         self.assertEqual(len(catalog.testers), len(self.catalog.testers))
         self.assertEqual(catalog.testers[0].name, "Custom tester")
-        self.assertFalse(catalog.for_project("ft_printf", "linux"))
-        self.assertFalse(self.write('[[testers]]\nid="francinette"\nenabled=false').for_project("libft", "linux"))
+        self.assertEqual([t.id for t in catalog.for_project("ft_printf", "linux")], ["supra-printf"])
+        disabled = self.write('[[testers]]\nid="francinette"\nenabled=false')
+        self.assertEqual([t.id for t in disabled.for_project("libft", "linux")], ["supra-libft"])
 
     def test_invalid_override_is_atomic(self):
         invalid = ["bad = [", "testers = 1", self.entry() + self.entry(),
@@ -99,6 +102,27 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         for extra in ('runtime="shell"', 'prepare=[[]]', 'runtime="native"\nprepare=["make"]', 'prepare=[["make"]]'):
             self.assertTrue(self.write(self.entry() + extra).error)
         self.assertEqual(self.catalog.for_project('push_swap', 'darwin')[0].runtime, 'native')
+
+    def test_bundled_recipe_is_explicit_and_image_identity_tracks_its_bytes(self):
+        catalog = self.write(self.entry() + 'recipe="supra"\n')
+        self.assertFalse(catalog.error)
+        tester = catalog.testers[-1]
+        self.assertEqual(tester.recipe, "supra")
+        self.assertNotEqual(tester.image, replace(tester, recipe=None).image)
+        with patch("ft_tui.features.projects.adapters.tester_catalog.files") as resources:
+            resources.return_value.joinpath.return_value.read_bytes.return_value = b"changed recipe"
+            changed = tester.image
+        self.assertNotEqual(tester.image, changed)
+        for value in ('"../outside"', '"/tmp/file"', '"unknown"', 'false', '"supra"\nruntime="native"'):
+            with self.subTest(value=value):
+                self.assertTrue(self.write(self.entry() + f'recipe={value}\n').error)
+        self.assertTrue(self.write(self.entry() + 'recipe="supra"\narchitectures=["arm64"]\n').error)
+        self.assertTrue(self.write(self.entry().replace('context = "."', 'context = "nested"') + 'recipe="supra"\n').error)
+        for identifier in ("supra-printf", "supra-libft"):
+            bundled = next(t for t in self.catalog.testers if t.id == identifier)
+            self.assertEqual(bundled.architectures, ("amd64",))
+            self.assertEqual(bundled.runtime, "docker")
+            self.assertIsNone(bundled.result_file)
 
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):
@@ -233,6 +257,31 @@ class TesterDockerTests(unittest.TestCase):
         self.assertEqual(calls[0][:6], ["docker", "build", "--progress", "plain", "--platform", "linux/amd64"])
         self.assertEqual(calls[1][:3], ["docker", "image", "tag"])
         self.assertFalse(any("install.sh" in " ".join(args) for args in calls))
+
+    def test_bundled_recipe_build_uses_an_isolated_packaged_context_and_pinned_source(self):
+        tester = next(t for t in load_catalog(self.root / "absent").testers if t.id == "supra-printf")
+        terminal = Mock()
+        observed = []
+        def run(args, **kwargs):
+            if "build" in args:
+                context = Path(args[-1])
+                observed.append(context)
+                self.assertEqual([p.name for p in context.iterdir()], ["Dockerfile"])
+                self.assertIn("AS builder", (context / "Dockerfile").read_text())
+                self.assertIn("TESTER_REPOSITORY=" + tester.repository, args)
+                self.assertIn("TESTER_REF=" + tester.ref, args)
+        terminal.run.side_effect = run
+        with patch.object(self.service, "_require_ready", return_value="docker"), \
+                patch.object(self.service, "installed", side_effect=[False, True]), \
+                patch.object(self.service, "_cleanup"):
+            self.service.install(tester, terminal)
+        self.assertEqual(len(observed), 1)
+        self.assertFalse(observed[0].exists())
+        runtime = self.service._runtime_arguments(tester)
+        self.assertIn("--read-only", runtime)
+        self.assertIn("none", runtime)
+        self.assertIn("no-new-privileges=true", runtime)
+        self.assertEqual(self.service._runtime_arguments(self.tester), [])
 
     def test_network_build_failure_and_interrupt_never_publish_install(self):
         for failure_at in ("build", "tag"):
