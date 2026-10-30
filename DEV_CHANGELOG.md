@@ -1,15 +1,23 @@
 # Development changelog
 
 Latest release: **0.6.0** ([`v0.6.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.6.0)).
-Package version: **0.6.0**.
-Suggested next release: **0.7.0** (minor) for optional encrypted and session-only
-account storage, after security review, campus validation and release checks.
+Package version: **0.6.1** (release candidate).
+Suggested next release: **0.6.1** at the maintainer’s direction, for optional
+encrypted and session-only account storage and connection requirements. Security
+review, campus validation and release checks remain outstanding.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.6.0
+
+- 2026-10-30: Prepare package version 0.6.1 and release notes at the maintainer’s
+  direction. Release checks, security review and campus validation remain pending.
+
+- 2026-10-30: Add space between passphrase fields and center Continue and Cancel
+  side by side. Patch impact within the planned minor release; focused layout
+  and passphrase validation checks passed at 80×24 and 45×24.
 
 - 2026-10-30: Hide overlapping connection actions while the session-storage
   dropdown is open, keeping Quit or Cancel available and restoring the other

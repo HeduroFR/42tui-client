@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.color import Color
 from textual.widgets import Input
 from ft_tui.ui.modal import AppModal
@@ -497,9 +497,12 @@ class VaultPassphraseScreen(AppModal[str | None]):
     BINDINGS = [("escape", "cancel", "Cancel")]
 
     CSS = """
-    #vault-dialog { width: 70; height: auto; max-height: 90%; overflow-y: auto;
+    #vault-dialog { width: 70; max-width: 94%; height: auto; max-height: 90%; overflow-y: auto;
         padding: 1 2; border: round $primary; background: $surface; }
     #vault-dialog Static { height: auto; }
+    #vault-confirm { margin-top: 1; }
+    #vault-actions { height: 3; align-horizontal: center; }
+    #vault-continue { margin-right: 1; }
     """
 
     def __init__(self, existing: bool) -> None:
@@ -514,8 +517,9 @@ class VaultPassphraseScreen(AppModal[str | None]):
             if not self.existing:
                 yield Input(password=True, placeholder="Confirm passphrase", id="vault-confirm")
             yield Static("", id="vault-error")
-            yield Button("Continue", variant="primary", id="vault-continue")
-            yield Button("Cancel", id="vault-cancel")
+            with Horizontal(id="vault-actions"):
+                yield Button("Continue", variant="primary", id="vault-continue")
+                yield Button("Cancel", id="vault-cancel")
 
     def on_mount(self) -> None:
         for widget in self.query("*"):

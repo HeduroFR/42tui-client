@@ -56,6 +56,26 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_passphrase_inputs_and_actions_are_spaced_and_centered(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
+
+        for size in ((80, 24), (45, 24)):
+            app = App()
+            async with app.run_test(size=size) as pilot:
+                screen = VaultPassphraseScreen(False)
+                app.push_screen(screen)
+                await pilot.pause()
+                password = screen.query_one('#vault-passphrase')
+                confirmation = screen.query_one('#vault-confirm')
+                actions = screen.query_one('#vault-actions')
+                proceed = screen.query_one('#vault-continue')
+                cancel = screen.query_one('#vault-cancel')
+                self.assertGreater(confirmation.region.y, password.region.bottom)
+                self.assertEqual(proceed.region.y, cancel.region.y)
+                self.assertGreater(cancel.region.x, proceed.region.right)
+                self.assertLessEqual(abs((proceed.region.x - actions.content_region.x) - (actions.content_region.right - cancel.region.right)), 1)
+
     async def test_storage_dropdown_hides_connect_but_keeps_quit_visible(self):
         from textual.app import App
         from textual.widgets._select import SelectOverlay
