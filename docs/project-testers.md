@@ -26,8 +26,8 @@ The console interprets cursor redraws and colors on a 100-column terminal with
 scrollback; narrow windows can scroll horizontally. Process completion alone does
 not mean all tests passed. The workspace and saved log distinguish reported test
 failures, process failures, unreadable reports and unverified results, with the
-process exit code and available test counts. The printf and get_next_line forks
-provide structured summaries; libft and push_swap results remain unverified.
+process exit code and available test counts. The printf, get_next_line and push_swap forks provide structured summaries;
+libft results remain unverified.
 Full-screen terminal applications are not supported.
 
 Custom definitions in `~/.config/42tui/testers.toml` (or
@@ -51,7 +51,7 @@ to prevent stale results. The original project is unchanged. Reported success
 describes that tester's checks, not official project validation.
 
 For **push_swap**, choose **Run Push_swap tester**. This uses the pinned
-[ft_ps_tester](https://github.com/italoalmeida0/ft_ps_tester) (MIT) natively,
+[42tui-tester-push-swap](https://github.com/HeduroFR/42tui-tester-push-swap) (MIT) natively,
 without Docker. Git, Python, `make` and your project's compiler/libraries must be
 available already. Review and approve native execution before each run: it can
 access your computer; the private environment and disposable copy are not a
@@ -59,9 +59,9 @@ sandbox. External/absolute symlinks in the project copy are rejected. Setup
 fetches the pinned source and creates a temporary Python virtual environment
 without pip; `make` builds the disposable project, then the tester runs its full
 default suite. Setup needs network access on every run, and all temporary files
-are removed afterward. No system packages are installed. This tester currently
-has no validated structured report, so inspect its log rather than interpreting
-an unverified result as a pass.
+are removed afterward. No system packages are installed. Its report counts the basic suite as one check
+and each performance run separately. Missing or timed-out memory checks leave
+the result unverified; see the log for details.
 
 Custom native definitions use `runtime = "native"`, optional
 `prepare = [["make"]]`, and the normal `command` list. Arguments can reference

@@ -110,7 +110,10 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         self.assertEqual(catalog.testers[-1].prepare, (('{python}', '-V'),))
         for extra in ('runtime="shell"', 'prepare=[[]]', 'runtime="native"\nprepare=["make"]', 'prepare=[["make"]]'):
             self.assertTrue(self.write(self.entry() + extra).error)
-        self.assertEqual(self.catalog.for_project('push_swap', 'darwin')[0].runtime, 'native')
+        push_swap = self.catalog.for_project('push_swap', 'darwin')[0]
+        self.assertEqual(push_swap.runtime, 'native')
+        self.assertEqual(push_swap.result_file, '.42tui-push-swap-result.json')
+        self.assertEqual(push_swap.command[-2:], ('--report', '{project}/.42tui-push-swap-result.json'))
 
     def test_bundled_recipe_is_explicit_and_image_identity_tracks_its_bytes(self):
         catalog = self.write(self.entry() + 'recipe="supra"\n')

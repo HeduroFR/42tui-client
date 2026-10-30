@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Show structured push_swap test results from the maintained tester fork; missing
+  or timed-out memory checks remain unverified.
+
+### Fixed
+
+- Give danger buttons the same raised appearance as primary buttons, in red.
+
+- Hide expired correction slots from the calendar while keeping ongoing slots visible.
+
 ## 0.6.1
 
 ### ✨ New features

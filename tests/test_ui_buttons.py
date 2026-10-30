@@ -84,8 +84,8 @@ class SharedButtonTests(unittest.IsolatedAsyncioTestCase):
             await pilot.hover('#plain')
             await pilot.pause()
             from textual.color import Color
-            self.assertEqual(danger.styles.background, Color.parse(app.get_css_variables()['error-muted']))
-            self.assertEqual(danger.styles.color, Color.parse(app.get_css_variables()['foreground']))
+            self.assertEqual(danger.styles.background, Color.parse(app.get_css_variables()['error']))
+            self.assertNotEqual(danger.styles.border_top[1], danger.styles.border_bottom[1])
             self.assertEqual(danger.variant, 'danger')
             danger.variant = 'primary'
             self.assertFalse(danger.has_class('-danger'))
@@ -263,7 +263,7 @@ class SharedButtonTests(unittest.IsolatedAsyncioTestCase):
                 from textual.color import Color
                 for selector, palette in (('#cancel', 'foreground'), ('#connect', 'primary'),
                                           ('#success', 'success'), ('#warning', 'warning'),
-                                          ('#error', 'error-muted'), ('#danger', 'error-muted')):
+                                          ('#error', 'error'), ('#danger', 'error')):
                     button = app.query_one(selector)
                     button.focus()
                     await pilot.hover(button)
