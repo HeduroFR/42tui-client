@@ -143,9 +143,9 @@ are not retained.
 ## Project testers
 
 Configure your local project folder, then open **Testers** in Projects (or press
-`t`). 42TUI offers testers for libft, ft_printf, get_next_line and push_swap.
-They run against disposable project copies; Docker is used for the first three,
-while push_swap runs natively after confirmation.
+`t`). 42TUI offers testers for libft, ft_printf, get_next_line, push_swap,
+Python modules 00–10 and 05/06 bis, and A-Maze-ing. They run against disposable
+project copies; push_swap runs natively after confirmation, and the others use Docker.
 
 See the [tester guide](docs/project-testers.md) for setup, logs, results and custom
 testers. Thank you to the projects listed in our [acknowledgements](ACKNOWLEDGMENTS.md).

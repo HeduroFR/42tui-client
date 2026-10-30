@@ -42,7 +42,9 @@ write a UTF-8 JSON report at that path under `/project` during each run:
 All counts are required nonnegative integers, must add up to `total`, and must
 include at least one executed test. Only a valid report with no failures/errors
 and process exit code zero yields **Tests passed**. An absent, invalid, empty or
-all-skipped report cannot confirm passing tests. Reports are limited to 64 KiB;
+all-skipped report cannot confirm passing tests. An explicit `"incomplete": true`
+allows an all-skipped report to be displayed as unverified; a report with skipped
+checks also remains unverified. Reports are limited to 64 KiB;
 symbolic links and nonregular files are rejected. Use a dedicated report path,
 not a source file: an inherited report is removed from the disposable copy before execution
 to prevent stale results. The original project is unchanged. Reported success
@@ -101,3 +103,18 @@ compiler installation are unnecessary. Custom tester clone URLs without a `.git`
 suffix retain support through an existing Git installation; use an HTTPS `.git`
 clone URL to build those without host Git.
 
+
+## Python modules and A-Maze-ing
+
+Germinette is available for Python modules 00–10, modules 05 bis and 06 bis,
+and A-Maze-ing. Choose the tester in the selected project's Testers section.
+The first run builds a shared pinned Linux image; removing it from any of these
+projects removes it for all of them. Docker must be available. Runs use a
+disposable project copy and disable networking.
+
+The bis checkers provide reported counts for the checks they execute; a skipped
+check leaves the run incomplete. The other Germinette checkers report recorded
+failures but do not reliably account for every outcome, so their reports remain
+incomplete even if no failure is recorded: read their logs. These checks cannot
+replace peer evaluation. Germinette targets particular subject versions and may
+not match a newer subject or every valid solution. Bis checkers do not run mypy.

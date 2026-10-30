@@ -14,7 +14,8 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 
-RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh"), "gnl": ("gnl.Dockerfile", "gnl.sh")}
+RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh"), "gnl": ("gnl.Dockerfile", "gnl.sh"),
+                "germinette": ("germinette.Dockerfile",)}
 
 
 def project_slug(slug: str) -> str:
@@ -39,13 +40,17 @@ class Tester:
     interactive_input: bool = True
 
     @property
+    def image_repository(self) -> str:
+        return "germinette" if self.recipe == "germinette" else self.id
+
+    @property
     def image(self) -> str:
         identity = json.dumps((self.repository, self.ref, self.context)).encode()
         if self.recipe:
             for name in RECIPE_FILES[self.recipe]:
                 identity += files("ft_tui").joinpath("tester_images", name).read_bytes()
         digest = hashlib.sha256(identity).hexdigest()[:16]
-        return f"42tui/{self.id}:{self.ref[:12]}-{digest}"
+        return f"42tui/{self.image_repository}:{self.ref[:12]}-{digest}"
 
     def image_for(self, architecture: str) -> str:
         # Keep existing amd64 installations; native images need separate tags.

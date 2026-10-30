@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Offer Germinette for Python modules 00–10, 05 bis, 06 bis and A-Maze-ing
+  through a shared Docker image. Bis testers show reported checks; the other
+  modules report recorded failures but remain unverified when none are recorded. A report with
+  skipped checks is no longer displayed as a confirmed pass.
+
 - Preserve tester output and terminal formatting when reopening the workspace during a run.
 
 - Add project acknowledgements and shorten the README tester section, with a

@@ -45,7 +45,7 @@ accessible engine. No personal projects/accounts are used by these checks.
 ## Supra printf/libft containers
 
 The bundled definitions use `recipe = "supra"`, the pinned Debian bookworm-slim
-base digest, and exact source SHAs from HeduroFR/printf_tester (the maintained
+base digest, and exact source SHAs from HeduroFR/42tui-tester-printf (the maintained
 portability fork) and nda-cunh/libft_tester.
 They share one multi-stage recipe and cached toolchain layers; each final image
 contains one tester and the GCC C-project build/runtime dependencies. Vala,

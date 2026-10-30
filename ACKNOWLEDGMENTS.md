@@ -8,11 +8,14 @@ help make 42TUI possible.
 - [Supra libft tester](https://github.com/nda-cunh/libft_tester) by nda-cunh,
   used for libft.
 - [Supra printf tester](https://github.com/nda-cunh/printf_tester) by nda-cunh,
-  used for ft_printf through the [42TUI fork](https://github.com/HeduroFR/printf_tester).
+  used for ft_printf through the [42TUI fork](https://github.com/HeduroFR/42tui-tester-printf).
 - [gnlTester](https://github.com/Tripouille/gnlTester) by Tripouille, used for
-  get_next_line through the [42TUI fork](https://github.com/HeduroFR/gnlTester).
+  get_next_line through the [42TUI fork](https://github.com/HeduroFR/42tui-tester-gnl).
 - [ft_ps_tester](https://github.com/italoalmeida0/ft_ps_tester) by italoalmeida0,
   used for push_swap.
+
+- [Germinette](https://github.com/ExceptedPrism3/germinette) by ExceptedPrism3,
+  used for Python modules and A-Maze-ing through the [42TUI fork](https://github.com/HeduroFR/42tui-tester-python).
 
 ## Client libraries
 

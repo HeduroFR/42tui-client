@@ -132,11 +132,35 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
             self.assertEqual(bundled.architectures, ("amd64", "arm64") if identifier == "supra-printf" else ("amd64",))
             self.assertEqual(bundled.runtime, "docker")
             if identifier == "supra-printf":
-                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/printf_tester.git")
+                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/42tui-tester-printf.git")
                 self.assertEqual(bundled.result_file, ".42tui-printf-result.json")
                 self.assertIn("--report", bundled.command)
             else:
                 self.assertIsNone(bundled.result_file)
+
+    def test_germinette_projects_share_image_and_select_explicit_checks(self):
+        projects = [(f"python-module-{number:02}", f"python_module_{number:02}")
+                    for number in range(11)]
+        projects += [("python-module-05-bis", "python_module_05_bis"),
+                     ("python-module-06-bis", "python_module_06_bis"),
+                     ("a-maze-ing", "a_maze_ing")]
+        testers = []
+        for slug, module in projects:
+            with self.subTest(slug=slug):
+                entries = self.catalog.for_project(slug, "linux")
+                self.assertEqual(len(entries), 1)
+                tester = entries[0]
+                testers.append(tester)
+                self.assertEqual(tester.command[0], module)
+                self.assertEqual(tester.recipe, "germinette")
+                self.assertEqual(tester.architectures, ("amd64", "arm64"))
+                self.assertEqual(tester.result_file, ".42tui-germinette-result.json")
+                self.assertIn("--report", tester.command)
+                self.assertFalse(tester.interactive_input)
+        self.assertEqual(len({tester.image for tester in testers}), 1)
+        self.assertEqual(len({tester.image_for("arm64") for tester in testers}), 1)
+        self.assertEqual({tester.image_repository for tester in testers}, {"germinette"})
+        self.assertFalse(self.catalog.for_project("python-module-05-bis-extra", "linux"))
 
     def test_interactive_input_catalog_option(self):
         printf = next(t for t in self.catalog.testers if t.id == "supra-printf")
@@ -448,6 +472,18 @@ class TesterDockerTests(unittest.TestCase):
                 self.assertEqual(result.status, "unreadable")
                 self.assertIsNone(result.summary)
 
+    def test_incomplete_reports_never_confirm_a_pass(self):
+        report = dict(version=1, total=1, passed=0, failed=0, skipped=1, errors=0, incomplete=True)
+        result = self.synthetic_result(json.dumps(report))
+        self.assertEqual(result.status, "unknown")
+        self.assertTrue(result.summary.incomplete)
+        report.update(total=2, failed=1)
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "failed")
+        report.update(incomplete="yes")
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "unreadable")
+        report = dict(version=1, total=2, passed=1, failed=0, skipped=1, errors=0)
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "unknown")
+
     def test_results_must_be_fresh_regular_bounded_files_inside_the_copy(self):
         report = json.dumps(dict(version=1, total=1, passed=1, failed=0, skipped=0, errors=0))
         self.assertEqual(self.synthetic_result(inherited=report).status, "unreadable")
@@ -561,6 +597,21 @@ class TesterRemovalTests(unittest.TestCase):
         self.assertEqual(set(commands[1][5:]), set(self.tags[:3]))
         self.assertFalse(any("prune" in command or "--force" in command for command in commands))
         self.assertIsNone(self.service._connection.get())
+
+    def test_germinette_removal_uses_shared_repository_not_project_id(self):
+        catalog = load_catalog(self.root / "absent")
+        first = catalog.for_project("python-module-00", "linux")[0]
+        other = catalog.for_project("python-module-05-bis", "linux")[0]
+        self.assertEqual(first.image, other.image)
+        self.tags = [first.image, "42tui/unrelated:latest"]
+        self.containers = [{"ID": "000000000001", "Names": "42tui-test-" + "a" * 32,
+                            "Image": first.image, "State": "exited"}]
+        terminal = Mock()
+        self.service.remove(other, terminal)
+        commands = [call.args[0] for call in terminal.run.call_args_list]
+        self.assertIn("000000000001", commands[0])
+        self.assertEqual(commands[1][-1], first.image)
+        self.assertNotIn("42tui/unrelated:latest", commands[1])
 
     def test_inspection_errors_never_start_removal(self):
         for failed_call in (1, 2):

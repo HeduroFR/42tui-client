@@ -223,7 +223,7 @@ class TesterDocker:
         return result.returncode == 0 and result.stdout.strip() == f"linux/{architecture}"
 
     def _image_tags(self, docker: str, tester: Tester) -> tuple[str, ...]:
-        repository = f"42tui/{tester.id}:"
+        repository = f"42tui/{tester.image_repository}:"
         result = self._capture([docker, "image", "ls", "--filter", f"reference={repository}*",
                                 "--format", "{{.Repository}}:{{.Tag}}"])
         if result.returncode:
@@ -256,7 +256,7 @@ class TesterDocker:
                 for line in result.stdout.splitlines():
                     container = json.loads(line)
                     if (re.fullmatch(r"42tui-(?:test|probe)-[0-9a-f]{32}", container["Names"])
-                            and container["Image"].startswith(f"42tui/{tester.id}:")
+                            and container["Image"].startswith(f"42tui/{tester.image_repository}:")
                             and container["State"] in {"created", "exited", "dead"}
                             and re.fullmatch(r"[0-9a-f]{12,64}", container["ID"])):
                         containers.append(container["ID"])

@@ -16,6 +16,21 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Add pinned Germinette Docker integration for Python modules 00–10,
+  05/06 bis and A-Maze-ing, sharing one image across project definitions; update
+  GNL/printf fork URLs and preserve unverified status for incomplete reports.
+  Minor impact within recommended 0.6.0; PR #47. Checks: 105 tester regressions,
+  74 focused catalog/runtime tests, 96 release-tooling checks, scope ownership,
+  synthetic client Docker runs for both bis modules, module 00 and A-Maze-ing on
+  macOS/arm64, original project preservation, workflow YAML parsing, and wheel/
+  sdist checks from a clean source snapshot passed. CI now includes Germinette
+  smoke runs on amd64 and arm64; those hosted jobs have not yet run. Pin Python fork commit
+  2b7657a52dce3882dc23bc6a7d401d2b1a04c97c, whose legacy reports record failures
+  but explicitly mark outcome accounting incomplete; upstream legacy checkers do
+  not reliably record all outcomes. Real student projects, hosted amd64/arm64 CI and school Linux
+  validation remain open. Untracked duplicate files in this checkout appeared in
+  a direct local package build; build release artifacts from a clean checkout.
+
 - 2026-10-30: Update SHA-pinned checkout, Python setup and artifact actions in
   CI, tester and release workflows to Node 24 versions. Internal CI maintenance;
   no separate release required. Verified upstream tag SHAs and Node runtimes,
