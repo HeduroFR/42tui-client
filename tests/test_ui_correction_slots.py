@@ -374,10 +374,22 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 if cal.day_count == 1:
                     self.assertTrue(app.query_one('#slots-day-next').display)
 
+    async def test_revisiting_recent_week_reuses_read_until_refresh(self):
+        app = Harness()
+        app.provider.get_correction_slots = Mock(wraps=app.provider.get_correction_slots)
+        async with app.run_test(size=(110, 40)) as pilot:
+            await pilot.pause()
+            workspace = app.query_one(CorrectionSlotsWorkspace)
+            calls = app.provider.get_correction_slots.call_count
+            await workspace.reload(refresh=False)
+            self.assertEqual(app.provider.get_correction_slots.call_count, calls)
+            await workspace.reload()
+            self.assertEqual(app.provider.get_correction_slots.call_count, calls + 1)
+
     async def test_read_scope_denied_explains_reconnect(self):
         from types import SimpleNamespace
         class Denied(RuntimeError):
-            response = SimpleNamespace(json=lambda: {'error': 'slot_permission_denied'})
+            response = SimpleNamespace(status_code=403, headers={}, json=lambda: {'error': 'slot_permission_denied'})
         app = Harness()
         def denied(*args):
             raise Denied()

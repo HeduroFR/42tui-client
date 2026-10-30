@@ -1,5 +1,7 @@
 """MainLayout UI composition and behavior."""
 
+from ft_tui.features.agenda.views import AgendaWorkspace, UpcomingEvaluations
+
 from ft_tui.ui.components import (
     Button,
     ComposeResult,
@@ -124,6 +126,7 @@ class MainLayoutMixin:
                                 variant="primary",
                                 disabled=True,
                             )
+                    yield UpcomingEvaluations(id="dashboard-upcoming")
                     with Vertical(id="dashboard-progress-card"):
                         with Horizontal(id="dashboard-progress-topline"):
                             yield Static("YOUR 42 JOURNEY", classes="dashboard-kicker")
@@ -192,6 +195,8 @@ class MainLayoutMixin:
                                             yield Button("Refresh status", id="registration-refresh", disabled=True)
                                         yield Button("Open project on Intra", id="registration-intra-link")
                                     yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
+                                    yield Button("Available evaluation slots", id="show-project-slots", disabled=True)
+                                    yield Button("Set project as finished", id="finish-project-intra", disabled=True)
                                     yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):
                                     yield Static("Workspace", classes="panel-title")
@@ -219,6 +224,10 @@ class MainLayoutMixin:
                             yield ListView(id="project-notes-list", initial_index=None)
                             yield Static("No notes saved for this project.", id="project-notes-empty")
                         yield Static("o Editor · e Configure · d Details · t Testers · F4 Refresh Git", id="project-details-help")
+            with TabPane("Agenda", icon="\uf073", id="agenda"):
+                yield AgendaWorkspace()
+            with TabPane("My evaluations", icon="\uf073", id="my-evaluations"):
+                yield AgendaWorkspace(evaluations_only=True)
             with TabPane("Correction Slots", icon="\uf073", id="correction-slots"):
                 yield CorrectionSlotsWorkspace()
             with TabPane("Friends", icon="\uf0c0", id="friends"):

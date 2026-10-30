@@ -1341,5 +1341,19 @@
   "The saved session is incomplete. It has not been changed.": "La session enregistrée est incomplète. Elle n’a pas été modifiée.",
   "Migration could not be completed. Check both the keyring and saved session before retrying.": "La migration a échoué. Vérifiez le trousseau et la session enregistrée avant de réessayer.",
   "Passphrase": "Phrase secrète",
-  "Confirm passphrase": "Confirmer la phrase secrète"
+  "Confirm passphrase": "Confirmer la phrase secrète",
+  "Agenda": "Agenda",
+  "My evaluations": "Mes évaluations",
+  "My availability": "Mes disponibilités",
+  "Available evaluation slots": "Créneaux d’évaluation disponibles",
+  "Set project as finished": "Définir le projet comme terminé",
+  "Weekly calendar": "Calendrier hebdomadaire",
+  "Campus event": "Événement du campus",
+  "I evaluate": "J’évalue",
+  "I am evaluated": "Je suis évalué",
+  "Loading agenda…": "Chargement de l’agenda…",
+  "Unavailable or stale": "Indisponible ou périmé",
+  "Up to date": "À jour",
+  "No items in this view.": "Aucun élément dans cette vue.",
+  "End time unavailable": "Heure de fin indisponible"
 }

@@ -13,6 +13,31 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Add a phased loading and caching performance investigation plan covering measurements, isolation, release validation and a client-wide waiting-path audit. Documentation only; no release required. Plan review pending; no performance or deployment claims.
+
+- 2026-10-30: Implement read-only agenda list/week views, role filters, evaluation
+  history by week, project availability, dashboard upcoming evaluations, and the
+  Intra project-finish handoff. Reuse bounded account-scoped reads for agenda
+  sources and correction weeks, invalidating availability after writes. Add
+  French/Spanish labels and align the shared-UI ownership fixture with the
+  previously implemented theme preview. Minor impact toward 0.7.0. Backend deployment, exact-pair
+  compatibility, live Intra permission/payload verification and release CI remain
+  required; native booking/finishing remain deferred. Focused agenda, account
+  boundary and narrow-terminal tests passed. Final checks: corrections scope
+  58/58, project layout 22/22, architecture boundaries 9/9 and canonical imports
+  3/3; regression scope ownership is complete. Optional full client run interrupted
+  and not verified. Requires backend `b22a830` or its reviewed successor. The
+  accumulated features warrant preparing minor 0.7.0 after the preceding release
+  baseline is resolved; they are not ready for publication.
+
+- 2026-10-30: Record the Intra redirect as the interim project finish flow for
+  0.7.0. Documentation only; no release required. Roadmap diff checked;
+  implementation and validation remain pending.
+
+- 2026-10-30: Add Flatpak editor launch support to the 0.7.0 roadmap, including
+  VS Code on campus workstations. Documentation only; no release required.
+  Roadmap diff reviewed; implementation and validation remain pending.
+
 - 2026-10-30: Update the 0.7.0 roadmap with completed local dashboard, project
   preview, Settings and community work and remaining integration and validation.
   Documentation only; no release required. Roadmap and diff reviewed; full CI

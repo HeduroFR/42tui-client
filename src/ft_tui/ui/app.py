@@ -554,6 +554,8 @@ class FortyTwoTuiApp(
             "projects-tab": "Projects",
             "friends": "Friends",
             "correction-slots": "Correction Slots",
+            "agenda": "Agenda",
+            "my-evaluations": "My evaluations",
             "clubs": "Clubs",
             "dev-log": "Dev Log / Notes",
             "cluster-map": "Cluster Map",
@@ -634,6 +636,9 @@ class FortyTwoTuiApp(
         if await self._handle_registration_button(event.button.id):
             return
         if await self._handle_friend_button(event.button.id):
+            return
+        if event.button.id in {"show-project-slots", "finish-project-intra"}:
+            self.action_project_slots(finish=event.button.id == "finish-project-intra")
             return
         if event.button.id == "show-project-activity":
             self.action_project_activity()

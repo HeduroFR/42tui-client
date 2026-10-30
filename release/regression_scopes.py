@@ -59,7 +59,7 @@ SCOPES = {
         'test_current_location', 'test_ui_cluster_issue', 'test_ui_cluster_map',
         'test_ui_cluster_workstation',
     ),
-    'corrections': ('test_corrections_feature_service', 'test_slots_*', 'test_ui_correction_slots', 'test_ui_slots_calendar'),
+    'corrections': ('test_agenda', 'test_corrections_feature_service', 'test_slots_*', 'test_ui_correction_slots', 'test_ui_slots_calendar'),
     'widgets': (
         'test_fuzzy_search', 'test_ui_buttons', 'test_ui_modals',
         'test_ui_selects', 'test_ui_tab_navigation',

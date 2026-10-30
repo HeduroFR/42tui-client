@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Browse campus events and your evaluations in an agenda list or weekly calendar,
+  filter by evaluation role, and inspect details in local time. The dashboard
+  shows your next three evaluations over the coming seven days.
+- Browse available evaluation slots from project details, and open Intra to finish
+  a project or complete a booking. These views require the updated backend;
+  unavailable sources are shown explicitly and retained data is marked stale.
+- Revisit recently loaded correction weeks without repeating the same request;
+  refreshing and publishing changes still revalidate the data.
+
 - Place terminal image and icon selectors side by side when space allows.
 
 - Simplify Workspace and notification settings, and show the TDF installation note only when TDF is selected.

@@ -7,6 +7,7 @@ from ft_tui.ui.components import Button, Input, Select, Static
 from ft_tui.features.corrections.calendar import SlotsCalendar
 from ft_tui.features.corrections.model import Slot, earliest_start, interval, local_datetime, local_zone
 from ft_tui.i18n import translate
+from ft_tui.app.read_cache import account_scope, app_cache
 from .service import CorrectionsService, MutationFailure, StaleCorrectionsContext
 
 
@@ -273,7 +274,7 @@ class CorrectionSlotsWorkspace(Vertical):
         return (local_datetime(f'{self.week}T00:00', self.zone),
                 local_datetime(f'{self.week + timedelta(days=7)}T00:00', self.zone))
 
-    async def reload(self):
+    async def reload(self, *, refresh=True):
         if not self.connected() or self.loading:
             return
         self.epoch += 1; epoch = self.epoch; context = self.scope()
@@ -282,9 +283,16 @@ class CorrectionSlotsWorkspace(Vertical):
         provider = self.app.provider
         try:
             begin, end = self.window()
-            snapshot = await self.service().snapshot(
-                begin, end, account_id=context[1], provider=provider,
-                current=lambda: self.valid(epoch, context))
+            key = (account_scope(self.app), 'correction-week', begin.isoformat(), end.isoformat())
+            cached = app_cache(self.app).peek(key)
+            if cached:
+                self.query_one(SlotsCalendar).set_slots(cached['slots'])
+            async def load():
+                return await self.service().snapshot(
+                    begin, end, account_id=context[1], provider=provider,
+                    current=lambda: self.valid(epoch, context))
+            snapshot = await app_cache(self.app).read(key, load, refresh=refresh, ttl=30,
+                                                    current=lambda: self.valid(epoch, context))
             if not self.valid(epoch, context):
                 return
             if snapshot['account_id'] != str(context[1]):
@@ -332,6 +340,7 @@ class CorrectionSlotsWorkspace(Vertical):
         context = self.scope(); epoch = self.epoch; provider = self.app.provider
         self.busy = True; self.trusted = False
         cal = self.query_one(SlotsCalendar)
+        app_cache(self.app).invalidate(lambda key: len(key) > 1 and key[1] == 'correction-week' and key[0] == account_scope(self.app))
         previous = cal.slots
         if delete:
             removed = {identity for target in targets for identity in target.ids}
@@ -469,7 +478,7 @@ class CorrectionSlotsWorkspace(Vertical):
                 today = datetime.now(self.zone).date(); self.week = today - timedelta(days=today.weekday()); cal.set_day(today.weekday())
             else:
                 self.week += timedelta(days=-7 if key == 'slots-prev' else 7)
-            cal.set_week(self.week); cal.set_slots(()); self.update_heading(); await self.reload()
+            cal.set_week(self.week); cal.set_slots(()); self.update_heading(); await self.reload(refresh=False)
             if key == 'slots-today':
                 cal.row = datetime.now(self.zone).hour * 4
                 cal.show_time(cal.row)

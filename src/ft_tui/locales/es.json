@@ -1324,5 +1324,19 @@
   "The saved session is incomplete. It has not been changed.": "La sesión guardada está incompleta. No se ha modificado.",
   "Migration could not be completed. Check both the keyring and saved session before retrying.": "No se pudo completar la migración. Comprueba el llavero y la sesión guardada antes de reintentarlo.",
   "Passphrase": "Frase de contraseña",
-  "Confirm passphrase": "Confirmar frase de contraseña"
+  "Confirm passphrase": "Confirmar frase de contraseña",
+  "Agenda": "Agenda",
+  "My evaluations": "Mis evaluaciones",
+  "My availability": "Mi disponibilidad",
+  "Available evaluation slots": "Horarios de evaluación disponibles",
+  "Set project as finished": "Marcar el proyecto como terminado",
+  "Weekly calendar": "Calendario semanal",
+  "Campus event": "Evento del campus",
+  "I evaluate": "Evalúo",
+  "I am evaluated": "Me evalúan",
+  "Loading agenda…": "Cargando agenda…",
+  "Unavailable or stale": "No disponible o desactualizado",
+  "Up to date": "Actualizado",
+  "No items in this view.": "No hay elementos en esta vista.",
+  "End time unavailable": "Hora de fin no disponible"
 }

@@ -381,14 +381,22 @@ interface branch and still require review and CI before merging.
 - [ ] Review project details and the View project action beyond the 0.5.0 Git work.
   Implemented locally: move the friend project preview action below its list and
   remove duplicate preview facts, including the solo-project member count.
+- [ ] Provide a Set project as finished action that opens the project's Intra
+  `/mine` page, where the user can review and confirm the irreversible finish.
+  Implemented locally: the action opens the existing `/mine` URL; browser failure
+  is reported. Live campus verification and release validation remain pending.
 - [ ] Book a correction/evaluation slot for an eligible project from its details:
   show available times, review the selected slot and confirm the booking. Reuse
   existing project/evaluation context; handle unavailable slots and uncertain
   booking results by refreshing before retrying. Existing Correction Slots
   availability editing does not cover booking an evaluation for one's project.
+  Implemented locally: read available project slots and open Intra to book.
+  Native booking remains blocked on a verified write contract.
 - [ ] Show upcoming evaluations on the dashboard, both as evaluator and evaluated
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
+  Implemented locally: next-three preview and role-filtered evaluation list/week
+  views, shared short-lived reads and periodic refresh. Live verification pending.
 - [ ] Display Intra events for the selected campus in an agenda list and weekly
   calendar, with a detail view and a link to the event on Intra. Validate source
   coverage and account visibility, use explicit local times and distinguish
@@ -398,6 +406,9 @@ interface branch and still require review and CI before merging.
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
   changes/cancellations consistently across the agenda and dashboard.
+  Implemented locally: campus event source, role/event filters, list/week views
+  and detail links. Availability remains in Correction Slots; live permissions,
+  event links and schedule-change behavior still require campus validation.
 - [ ] Rework the full Settings interface: review category grouping, navigation,
   labels and layout, including simplifying Curriculum and Appearance. Preserve
   existing preferences, account/curriculum scope and validation; make save state
@@ -414,6 +425,11 @@ interface branch and still require review and CI before merging.
   without duplicate time or disruptive errors. Preserve local tracking without
   reading file contents or retaining file paths. Validate fresh installation,
   upgrade/removal and time attribution on Linux/macOS for each supported editor.
+- [ ] Fix Open in Editor when the configured editor is installed through Flatpak
+  and its executable is not on PATH, including VS Code on campus workstations.
+  Detect and launch the installed editor appropriately, preserve existing native
+  installations, and provide actionable feedback when the editor is unavailable.
+  Validate both Flatpak and PATH-based launches with the intended project folder.
 - [x] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
 - [x] Add a Discord button in Settings opening the project's Discord invite, plus

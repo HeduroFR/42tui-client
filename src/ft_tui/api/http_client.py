@@ -15,6 +15,12 @@ from ft_tui.features.projects.subjects.models import SubjectPendingError
 
 
 class HttpProjectProvider:
+    def get_agenda(self, begin, end, kind, target=None):
+        params = {'begin_at': begin.isoformat(), 'end_at': end.isoformat(), 'kind': kind}
+        if target is not None:
+            params['target'] = str(target)
+        return self.api.request('GET', '/v1/me/agenda', params=params)
+
     def get_correction_slots(self, begin, end):
         from ft_tui.features.corrections.types import slot_snapshot
         return slot_snapshot(self.api.request('GET', '/v1/me/slots', params={
