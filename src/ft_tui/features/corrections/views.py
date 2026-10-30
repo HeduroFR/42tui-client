@@ -110,8 +110,9 @@ class SlotPicker(ModalScreen):
     '''
     BINDINGS = [('escape', 'cancel', 'Cancel')]
 
-    def __init__(self, slots, zone):
+    def __init__(self, slots, zone, *, action_label='Edit'):
         super().__init__(); self.slots = slots; self.zone = zone
+        self.action_label = action_label
 
     def compose(self):
         with Vertical():
@@ -120,7 +121,7 @@ class SlotPicker(ModalScreen):
                           for i, s in enumerate(self.slots)], value=0, allow_blank=False,
                          localize_options=False, id='slot-picker-choice')
             with Horizontal():
-                yield Button('Edit', id='slot-picker-edit', variant='primary')
+                yield Button(self.action_label, id='slot-picker-edit', variant='primary')
                 yield Button('Cancel', id='slot-picker-cancel')
 
     def action_cancel(self):

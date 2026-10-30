@@ -13,6 +13,8 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-31: Gate project slot reads on the connected user’s current project state and selected campus; unfinished projects show an Intra handoff instead of unrelated availability. Reuse the read-only correction timeline, hide redundant filters, show time ranges, and bound the project modal at narrow/wide sizes. Patch impact within 0.7.0; 61 client correction/agenda tests, 9 architecture checks, 530 backend tests and backend type-checking passed; 38 environment-dependent backend checks skipped. Backend deployment, exact-pair compatibility and live Intra comparison remain pending; textual-calendar was evaluated but not added because its documented widgets select dates/times rather than lay out events.
+
 - 2026-10-30: Add a phased loading and caching performance investigation plan covering measurements, isolation, release validation and a client-wide waiting-path audit. Documentation only; no release required. Plan review pending; no performance or deployment claims.
 
 - 2026-10-30: Implement read-only agenda list/week views, role filters, evaluation

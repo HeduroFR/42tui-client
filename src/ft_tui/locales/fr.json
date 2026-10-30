@@ -1355,5 +1355,11 @@
   "Unavailable or stale": "Indisponible ou périmé",
   "Up to date": "À jour",
   "No items in this view.": "Aucun élément dans cette vue.",
-  "End time unavailable": "Heure de fin indisponible"
+  "End time unavailable": "Heure de fin indisponible",
+  "Evaluation slots": "Créneaux d’évaluation",
+  "List view": "Vue liste",
+  "Continue on Intra": "Continuer sur Intra",
+  "View details": "Voir les détails",
+  "Set the project as finished on Intra before looking for evaluation slots.": "Définissez le projet comme terminé sur Intra avant de rechercher un créneau d’évaluation.",
+  "Confirm these times and book on Intra.": "Confirmez ces horaires et réservez sur Intra."
 }

@@ -1,6 +1,7 @@
 """Validated, account-scoped agenda snapshots."""
 from datetime import datetime
 from urllib.parse import urlparse
+from ft_tui.features.corrections.model import Slot
 
 def snapshot(value, account_id, kind):
     if not isinstance(value, dict) or value.get('account_id') != str(account_id) or not isinstance(value.get('items'), list) or len(value['items']) > 3000:
@@ -20,6 +21,10 @@ def snapshot(value, account_id, kind):
             end = datetime.fromisoformat(row['end_at'])
             if end.tzinfo is None or end <= begin:
                 raise ValueError('Invalid agenda interval')
+        if kind == 'available':
+            if row.get('end_at') is None:
+                raise ValueError('Missing slot end')
+            Slot((str(row['id']),), begin, end)
         if row.get('url') is not None:
             url = urlparse(row['url'])
             if url.scheme != 'https' or url.netloc not in {'profile.intra.42.fr', 'projects.intra.42.fr'} or url.query or url.fragment:

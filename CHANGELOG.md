@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show evaluation slots only after the project is waiting for correction, and scope them to the selected campus. Use the correction timeline in a bounded project dialog, with clear time ranges and an Intra handoff.
+
 - Browse campus events and your evaluations in an agenda list or weekly calendar,
   filter by evaluation role, and inspect details in local time. The dashboard
   shows your next three evaluations over the coming seven days.

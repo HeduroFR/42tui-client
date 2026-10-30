@@ -208,7 +208,7 @@ class ProjectDetailsMixin(SubjectMixin):
                     self.notify(translate('Could not open the project page.', self.language), severity='error')
             self.run_worker(open_intra())
         elif project.official_project_id:
-            self.push_screen(ProjectSlotsScreen(project.official_project_id, url))
+            self.push_screen(ProjectSlotsScreen(project.official_project_id, url, project.name))
 
     def action_project_activity(self) -> None:
         from ft_tui.features.projects.views.activity import open_project_activity

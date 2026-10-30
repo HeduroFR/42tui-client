@@ -15,10 +15,12 @@ from ft_tui.features.projects.subjects.models import SubjectPendingError
 
 
 class HttpProjectProvider:
-    def get_agenda(self, begin, end, kind, target=None):
+    def get_agenda(self, begin, end, kind, target=None, campus_id=None):
         params = {'begin_at': begin.isoformat(), 'end_at': end.isoformat(), 'kind': kind}
         if target is not None:
             params['target'] = str(target)
+        if campus_id is not None:
+            params['campus_id'] = str(campus_id)
         return self.api.request('GET', '/v1/me/agenda', params=params)
 
     def get_correction_slots(self, begin, end):
