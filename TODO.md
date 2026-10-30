@@ -350,15 +350,19 @@ Status: **planned; implementation and release validation pending**.
 
 ## 0.7.0 — Dashboard and interface cleanup
 
-Status: **scope agreed; implementation and release validation pending**.
+Status: **implementation in progress; review, integration and release validation pending**.
 
 Priority: evaluations and agenda, dashboard, Settings, loading and caching, then
-editor time tracking.
+editor time tracking. The completed client items below are on the local 0.7.0
+interface branch and still require review and CI before merging.
 
 - [ ] Rework the student-profile card: keep portrait, login, wallet and correction
   points, remove the workstation duplicated in Cluster Radar, and consider campus,
   curriculum and level where reliable data is available. Avoid repeating project
   completion counts; handle missing or stale values and narrow terminals.
+  Implemented locally: workstation moved to Cluster Radar; grade, level and
+  primary campus added. The card layout needs further review; coalition score
+  and rank are not connected to the backend snapshot yet.
 - [ ] Let the activity card switch between coding time and campus workstation log
   time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
   worker endpoint for the connected user's own Intra `locations_stats.json`,
@@ -374,8 +378,9 @@ editor time tracking.
   Active, Available and Locked; provide keyboard access to the same information.
 - [x] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
-- [ ] Review project details and the View project action before deciding what
-  interface changes are needed beyond the 0.5.0 Git work.
+- [ ] Review project details and the View project action beyond the 0.5.0 Git work.
+  Implemented locally: move the friend project preview action below its list and
+  remove duplicate preview facts, including the solo-project member count.
 - [ ] Book a correction/evaluation slot for an eligible project from its details:
   show available times, review the selected slot and confirm the booking. Reuse
   existing project/evaluation context; handle unavailable slots and uncertain
@@ -398,6 +403,9 @@ editor time tracking.
   existing preferences, account/curriculum scope and validation; make save state
   and feedback clear. Validate keyboard access, small-terminal layouts and
   French/Spanish coverage. Keep the later Discord RPC toggle within this structure.
+  Implemented locally: reorganized categories and responsive layout, immediate theme
+  preview, account session-storage controls and simplified help text. Complete
+  visual, keyboard, localization and storage security validation before closing.
 - [ ] Stabilize time-tracking extensions and their installation for Vim, Neovim,
   VS Code and Zed. Review each existing integration, provide reproducible install,
   update and uninstall instructions, and make executable-path setup and a working
@@ -410,7 +418,8 @@ editor time tracking.
   one-time reminder to star the project, remembered across app restarts.
 - [x] Add a Discord button in Settings opening the project's Discord invite, plus
   a one-time reminder to join the community, remembered across app restarts.
-  Confirm the official invite URL before implementation.
+  The project redirect is `https://tui.42wip.in/discord`; confirm it remains valid
+  when preparing the release.
 - [ ] Rework information loading and caching across projects, friends and the
   dashboard, including project/evaluation details and friend profiles. Measure
   startup, navigation and refresh delays before and after the rework; investigate

@@ -13,6 +13,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Update the 0.7.0 roadmap with completed local dashboard, project
+  preview, Settings and community work and remaining integration and validation.
+  Documentation only; no release required. Roadmap and diff reviewed; full CI
+  and release validation remain pending.
+
 - 2026-10-30: Align terminal image and icon selectors with a responsive
   narrow-terminal layout. Patch impact; focused terminal Settings checks run.
   Full CI and release validation remain pending.
