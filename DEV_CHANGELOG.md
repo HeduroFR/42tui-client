@@ -22,7 +22,8 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 - 2026-10-30: Prepare GPL-3.0-only client licensing, including the canonical
   license text, package metadata, README and source distribution. The maintainer
-  confirmed permission for the identified contributor; the maintainer subsequently cleared the licensing blocker. No publication authorized. Minor impact
+  confirmed permission for the identified contributor and subsequently cleared
+  the licensing blocker. Minor impact
   within the planned 0.6.0 release.
   A clean snapshot produced a wheel and sdist; verified the GPL text in both,
   the package license classifier, package checks and whitespace. Runtime tests
