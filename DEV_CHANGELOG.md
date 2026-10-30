@@ -12,6 +12,16 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Serialize pairing with credential refresh and reject an approved
+  pairing if its installation key changed; restore the selected keyring after
+  a failed session-only attempt. Put the shared session lock beside the vault
+  and sync vault directories before deleting migrated keyring credentials.
+  Patch impact within 0.6.1. The accounts scope passed 123 tests with one skip;
+  three social-provider tests and scope ownership checks passed. Added stale-token,
+  key-change, storage-selection, cross-process lock and migration sync-failure
+  checks. Cross-host network filesystem locking and campus hardware remain
+  unverified; independent security review and candidate CI remain release blockers.
+
 - 2026-10-30: Update the prelaunch update-process fixture for the credential-store
   constructor argument after 0.6.1 PR CI exposed its outdated mock. Test-only;
   no release impact. Full candidate CI must pass on the updated commit.

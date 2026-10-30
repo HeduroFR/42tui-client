@@ -6,6 +6,8 @@
 
 ### ✨ New features
 
+- Protect remembered sessions against stale pairing writes and retain keyring credentials if vault migration cannot be durably saved. Close older 42TUI versions before using the same session on another machine.
+
 - Space passphrase fields and place the dialog actions together for easier account setup.
 
 - Hide overlapping connection actions while the session-storage dropdown is open, while keeping Quit or Cancel available.

@@ -169,6 +169,7 @@ class AccountConnectionScreen(AppModal[str | None]):
                 await self._select_store(SessionCredentialStore())
                 await self._start_pairing()
             else:
+                await self._restore_previous_store()
                 await self._start_pairing()
         elif event.button.id == "account-disconnect":
             await self._disconnect()

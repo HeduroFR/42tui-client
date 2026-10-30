@@ -163,6 +163,12 @@ class SessionVault:
                 os.link(temp, self.path)
                 os.unlink(temp)
             temp = None
+            for directory in (self.path.parent, self.path.parent.parent):
+                descriptor = os.open(directory, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
+                try:
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
             self._existing = True
         except (OSError, ValueError, TypeError) as error:
             raise SecureStoreError('Could not save session securely') from error

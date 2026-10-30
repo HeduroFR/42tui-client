@@ -22,3 +22,11 @@ A copied vault allows offline passphrase guessing; shared campus home directorie
 may make it accessible from other machines. Encryption protects saved credentials,
 not an unlocked application or a compromised workstation. It does not encrypt
 project data, and Python cannot guarantee secure erasure of secrets from memory.
+
+The session lock is stored alongside the vault so instances sharing the same data
+directory use the same lock file. On network home directories, the filesystem and
+mount must support cross-host advisory file locking. If that is not verified,
+run only one 42TUI instance at a time across machines. Older 42TUI versions use a
+different lock location; close them before using this version on another machine.
+If the filesystem cannot durably sync the vault directory, migration reports a
+failure and retains the keyring credentials.

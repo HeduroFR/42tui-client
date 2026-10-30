@@ -37,6 +37,66 @@ class FakeHTTP:
 
 
 class OAuthClientTests(unittest.TestCase):
+    def test_pairing_reloads_newer_credentials_before_saving_installation_key(self):
+        store = MemoryStore()
+        handle = 'h' * 43
+        http = FakeHTTP([FakeResponse({'pairing_handle': handle, 'authorization_url': f'https://api.example/oauth/42/start?pairing={handle}', 'expires_at': 'later'})])
+        client = self.make_client('https://api.example', store, http_client=http, browser_open=lambda _: False)
+        key = client._new_private_key_pem()
+        self.set_credentials(client, DeviceCredentials('old', 'old-refresh', '2030-01-01T00:00:00Z', key))
+        store.save({'access_token': 'new', 'refresh_token': 'new-refresh', 'expires_at': '2030-01-01T00:00:00Z', 'private_key_pem': key})
+        client.create_pairing()
+        self.assertEqual(store.load()['refresh_token'], 'new-refresh')
+
+    def test_pairing_rejects_credentials_if_installation_key_changed(self):
+        store = MemoryStore()
+        handle = 'h' * 43
+        http = FakeHTTP([
+            FakeResponse({'pairing_handle': handle, 'authorization_url': f'https://api.example/oauth/42/start?pairing={handle}', 'expires_at': 'later'}),
+            FakeResponse({'status': 'approved', 'credentials': {'access_token': 'a', 'refresh_token': 'r', 'expires_at': 'later'}}),
+        ])
+        client = self.make_client('https://api.example', store, http_client=http, browser_open=lambda _: False)
+        client.create_pairing()
+        replacement = {'access_token': 'other', 'refresh_token': 'other', 'expires_at': 'later', 'private_key_pem': client._new_private_key_pem()}
+        store.save(replacement)
+        with self.assertRaises(OAuthClientError):
+            client.poll_pairing(handle)
+        self.assertEqual(store.load(), replacement)
+
+    def test_default_lock_location_is_shared_with_vault_not_runtime_directory(self):
+        from ft_tui.api.oauth_client import _default_refresh_lock_directory
+        from ft_tui.infrastructure.security.session_vault import session_vault_path
+        with patch.dict('os.environ', {'XDG_DATA_HOME': '/tmp/shared-data', 'XDG_RUNTIME_DIR': '/tmp/host-a'}):
+            first = _default_refresh_lock_directory()
+            with patch.dict('os.environ', {'XDG_RUNTIME_DIR': '/tmp/host-b'}):
+                self.assertEqual(_default_refresh_lock_directory(), first)
+                self.assertEqual(first, session_vault_path().parent)
+
+    def test_shared_data_lock_blocks_a_process_with_a_different_runtime_directory(self):
+        import os
+        import sys
+        from ft_tui.api.oauth_client import _default_refresh_lock_directory, _interprocess_refresh_lock
+
+        with TemporaryDirectory() as directory, patch.dict('os.environ', {'XDG_DATA_HOME': directory, 'XDG_RUNTIME_DIR': directory + '/host-a'}):
+            path = _default_refresh_lock_directory() / 'session.lock'
+            env = dict(os.environ, XDG_RUNTIME_DIR=directory + '/host-b')
+            script = ('from ft_tui.api.oauth_client import _default_refresh_lock_directory, _interprocess_refresh_lock\n'
+                      'print("ready", flush=True)\n'
+                      'with _interprocess_refresh_lock(_default_refresh_lock_directory() / "session.lock"):\n'
+                      ' print("acquired", flush=True)\n')
+            with _interprocess_refresh_lock(path):
+                process = subprocess.Popen([sys.executable, '-c', script], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                try:
+                    self.assertEqual(process.stdout.readline().strip(), 'ready')
+                    with self.assertRaises(subprocess.TimeoutExpired):
+                        process.wait(timeout=0.3)
+                finally:
+                    if process.poll() is not None and process.returncode != 0:
+                        self.fail(process.stderr.read())
+            stdout, stderr = process.communicate(timeout=5)
+            self.assertEqual(process.returncode, 0, stderr)
+            self.assertEqual(stdout.strip(), 'acquired')
+
     def test_pairing_adds_validated_theme_to_browser_and_manual_url(self):
         from urllib.parse import parse_qs, urlsplit
         url = "https://api.example/oauth/42/start?pairing=" + "h" * 43

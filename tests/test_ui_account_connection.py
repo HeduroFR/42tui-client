@@ -56,6 +56,33 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_keyring_selection_restores_store_after_session_pairing_failure(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        class FailingClient(FakeOAuthClient):
+            def create_pairing(self, **kwargs):
+                self.pairing_calls += 1
+                raise RuntimeError('synthetic failure')
+
+        client = FailingClient()
+        original = object()
+        client.store, client._credentials = original, None
+        app = App()
+        async with app.run_test(size=(100, 35)) as pilot:
+            screen = AccountConnectionScreen(client)
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one('#account-storage').value = 'session'
+            await pilot.click('#account-connect')
+            self.assertIsInstance(client.store, SessionCredentialStore)
+            await pilot.pause(0.4)
+            screen.query_one('#account-storage').value = 'keyring'
+            await pilot.click('#account-connect')
+            self.assertEqual(client.pairing_calls, 2)
+            self.assertIs(client.store, original)
+
     async def test_passphrase_inputs_and_actions_are_spaced_and_centered(self):
         from textual.app import App
         from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
@@ -261,6 +288,39 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsInstance(client.store, SessionVault)
                     discard_locked_vault(path)
                     self.assertFalse(path.exists())
+
+    async def test_keyring_migration_keeps_original_when_directory_sync_fails(self):
+        import os
+        import stat
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.api.oauth_client import OAuthClient
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import CredentialStore
+        from test_keychain import FakeKeyring
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'credentials' / 'vault'
+            old = CredentialStore(keyring_backend=FakeKeyring())
+            credentials = {'access_token': 'a', 'refresh_token': 'r', 'expires_at': '2030-01-01T00:00:00Z', 'private_key_pem': 'key'}
+            old.save(credentials)
+            client = OAuthClient('https://example.org', credential_store=old, lock_directory=root / 'locks')
+            original_fsync = os.fsync
+            def fail_directory_sync(fd):
+                if stat.S_ISDIR(os.fstat(fd).st_mode):
+                    raise OSError('simulated directory sync failure')
+                return original_fsync(fd)
+            app = App()
+            with patch('ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=path), patch('ft_tui.infrastructure.security.session_vault.os.fsync', side_effect=fail_directory_sync):
+                async with app.run_test(size=(120, 45)) as pilot:
+                    screen = AccountConnectionScreen(client, connected=True)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._migrate_vault('a long test passphrase')
+                    self.assertEqual(old.load(), credentials)
+                    self.assertIs(client.store, old)
+                    self.assertIn('could not be completed', str(screen.query_one('#account-connection-status').render()))
 
     async def test_vault_creation_and_unlock_reuse_saved_credentials(self):
         from unittest.mock import patch
