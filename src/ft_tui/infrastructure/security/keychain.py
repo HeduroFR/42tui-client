@@ -14,6 +14,22 @@ class CredentialStoreProtocol(Protocol):
     def delete(self) -> None: ...
 
 
+class SessionCredentialStore:
+    """Keep credentials in this process only, without using an OS keyring."""
+
+    def __init__(self) -> None:
+        self._credentials: dict[str, Any] | None = None
+
+    def load(self) -> dict[str, Any] | None:
+        return self._credentials.copy() if self._credentials is not None else None
+
+    def save(self, credentials: dict[str, Any]) -> None:
+        self._credentials = credentials.copy()
+
+    def delete(self) -> None:
+        self._credentials = None
+
+
 # Accepted OS vaults: macOS Keychain, Windows Credential Manager, and Linux Secret
 # Service (including libsecret) or KDE Wallet. File/plaintext and third-party
 # keyring plugins fail closed until explicitly reviewed and added here.

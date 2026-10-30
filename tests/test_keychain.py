@@ -2,7 +2,23 @@ import unittest
 from types import ModuleType
 from unittest.mock import patch
 
-from ft_tui.infrastructure.security.keychain import CredentialStore, SecureStoreError
+from ft_tui.infrastructure.security.keychain import CredentialStore, SecureStoreError, SessionCredentialStore
+
+
+class SessionCredentialStoreTests(unittest.TestCase):
+    def test_credentials_are_isolated_and_discarded(self):
+        first = SessionCredentialStore()
+        second = SessionCredentialStore()
+        credentials = {"access_token": "token"}
+        first.save(credentials)
+        credentials["access_token"] = "changed"
+        loaded = first.load()
+        self.assertEqual(loaded, {"access_token": "token"})
+        loaded["access_token"] = "changed again"
+        self.assertEqual(first.load(), {"access_token": "token"})
+        self.assertIsNone(second.load())
+        first.delete()
+        self.assertIsNone(first.load())
 from ft_tui.api.oauth_client import DeviceCredentials
 
 
