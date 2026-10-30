@@ -2,18 +2,18 @@
 
 ## Unreleased
 
+## 0.6.0
+
+### ✨ New features
+
 - License the client under GNU GPL version 3.0.
 
 - Use the maintained Supra libft fork to show structured test results; its Docker image rebuilds on first use.
-
-- Avoid a cluster-map error when a workstation view closes while its grid is being removed.
 
 - Offer Germinette for Python modules 00–10, 05 bis, 06 bis and A-Maze-ing
   through a shared Docker image. Bis testers show reported checks; the other
   modules report recorded failures but remain unverified when none are recorded. A report with
   skipped checks is no longer displayed as a confirmed pass.
-
-- Preserve tester output and terminal formatting when reopening the workspace during a run.
 
 - Add project acknowledgements and shorten the README tester section, with a
   separate guide for setup and results.
@@ -43,11 +43,8 @@
 - Remove bundled Francinette in favor of Supra printf/libft and native push_swap.
   Keep custom catalog entries
   and previously downloaded Docker images untouched.
-- Add a one-character left inset to tester console output.
 
-- Clean and force-rebuild Supra project copies inside Linux before testing, so
-  existing macOS/other-architecture objects and archives cannot be reused as an
-  up-to-date build. Original source folders and compiled outputs remain intact.
+- Add a one-character left inset to tester console output.
 
 - Add Supra testers for ft_printf and libft using pinned Linux containers
   on Linux/macOS, with a Debian GCC/glibc environment and no host tester-tool
@@ -67,7 +64,6 @@
   the workspace and saved log, with French/Spanish translations. Custom testers
   can provide a fresh JSON summary through `result_file`; results are never inferred
   from a successful exit alone.
-- Avoid a workspace refresh error when replacing a finished tester run.
 
 - Recover new or empty project folders from the development remote when Vogsphere
   is unreachable, with a warning that Vogsphere history remains unverified.
@@ -79,9 +75,6 @@
 - Separate tester Run and removal controls with a visible gap and use the shared
   square danger button for removal.
 
-- Keep tester status messages and multiline commands aligned at the left edge
-  of the console instead of drifting diagonally across the output.
-
 - Keep tester setup and execution inside 42TUI, with live output, line input,
   cancellation, elapsed time, rerunning and saved logs. Close and reopen the
   tester workspace while a run continues on its original project.
@@ -92,6 +85,25 @@
 - Run Docker testers against a disposable project copy, excluding Git metadata,
   so tester builds and cleanup preserve your working folder. Generated files in
   the copy are discarded after the run; diagnostics remain in the tester log.
+
+### 🐛 Fixes
+
+- Avoid a cluster-map error when a workstation view closes while its grid is being removed.
+
+- Preserve tester output and terminal formatting when reopening the workspace during a run.
+
+- Clean and force-rebuild Supra project copies inside Linux before testing, so
+  existing macOS/other-architecture objects and archives cannot be reused as an
+  up-to-date build. Original source folders and compiled outputs remain intact.
+
+- Avoid a workspace refresh error when replacing a finished tester run.
+
+- Keep tester status messages and multiline commands aligned at the left edge
+  of the console instead of drifting diagonally across the output.
+
+### 📦 Update
+
+- Run `42tui update` for a standard installation; pinned or development installations should update using their existing installation method.
 
 ## 0.5.2
 

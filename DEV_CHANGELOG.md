@@ -1,7 +1,7 @@
 # Development changelog
 
 Latest release: **0.5.2** ([`v0.5.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.2)).
-Package version: **0.5.2**.
+Package version: **0.6.0** (release candidate).
 Suggested next release: **0.6.0** (minor), for the implemented tester workspace,
 project copy protection and structured result reporting; not publication-ready.
 Remaining tester runtime validation targets 0.6.0; unfinished Git design
@@ -16,10 +16,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Prepare the 0.6.0 package version and release notes. The maintainer
+  cleared the licensing blocker. Minor release preparation; publication, exact
+  candidate validation and backend deployment/compatibility verification remain pending.
+
 - 2026-10-30: Prepare GPL-3.0-only client licensing, including the canonical
   license text, package metadata, README and source distribution. The maintainer
-  confirmed permission for the identified contributor; third-party licensing
-  review remains a release blocker. No publication authorized. Minor impact
+  confirmed permission for the identified contributor; the maintainer subsequently cleared the licensing blocker. No publication authorized. Minor impact
   within the planned 0.6.0 release.
   A clean snapshot produced a wheel and sdist; verified the GPL text in both,
   the package license classifier, package checks and whitespace. Runtime tests
