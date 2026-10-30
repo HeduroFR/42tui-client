@@ -4,11 +4,13 @@ name = "Supra libft tester"
 projects = ["libft"]
 platforms = ["linux", "darwin"]
 architectures = ["amd64"]
-repository = "https://github.com/nda-cunh/libft_tester.git"
-ref = "fa0062fe805ff55179ad4bfd5ccd8d19d3c330fd"
+repository = "https://github.com/HeduroFR/42tui-tester-libft.git"
+ref = "e0639aa78f12ccce013f6a884749fab8d9f8c659"
 context = "."
 recipe = "supra"
-command = ["/opt/tester/bin/libft_tester"]
+command = ["timeout", "--signal=TERM", "--kill-after=5s", "600s", "/opt/tester/bin/libft_tester", "--report", "/project/.42tui-libft-result.json"]
+result_file = ".42tui-libft-result.json"
+interactive_input = false
 
 [[testers]]
 id = "supra-printf"

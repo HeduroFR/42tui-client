@@ -52,7 +52,8 @@ with TemporaryDirectory(prefix="42tui-supra-") as directory:
         assert result.status == "failed" and result.exit_code == 1, result
         assert result.summary.passed == 503 and result.summary.failed == 1 and result.summary.errors == 0, result
     else:
-        assert result.status == "unknown" and result.exit_code == 0, result
+        assert result.status == "failed" and result.exit_code == 1, result
+        assert result.summary.passed > 0 and result.summary.failed > 0, result
     image = service.image(tester)
     size = subprocess.check_output([service.docker(), "image", "inspect", image, "--format", "{{.Size}}"], text=True).strip()
     print(json.dumps({"tester": identifier, "exit_code": result.exit_code, "status": result.status,

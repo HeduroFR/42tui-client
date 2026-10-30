@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- License the client under GNU GPL version 3.0.
+
+- Use the maintained Supra libft fork to show structured test results; its Docker image rebuilds on first use.
+
 - Avoid a cluster-map error when a workstation view closes while its grid is being removed.
 
 - Offer Germinette for Python modules 00–10, 05 bis, 06 bis and A-Maze-ing

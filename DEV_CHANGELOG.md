@@ -16,6 +16,22 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Prepare GPL-3.0-only client licensing, including the canonical
+  license text, package metadata, README and source distribution. The maintainer
+  confirmed permission for the identified contributor; third-party licensing
+  review remains a release blocker. No publication authorized. Minor impact
+  within the planned 0.6.0 release.
+  A clean snapshot produced a wheel and sdist; verified the GPL text in both,
+  the package license classifier, package checks and whitespace. Runtime tests
+  were not run for this licensing-only change.
+
+- 2026-10-30: Pin the published Supra libft fork and consume its structured
+  report in the tester workspace. Minor impact within recommended 0.6.0;
+  PR #47 branch, uncommitted. Checks: 99 tester and UI tests passed; the
+  pinned amd64 image ran through the client on Docker emulation, reported
+  failures for an incomplete fixture and preserved its source. A complete
+  libft and native amd64 execution remain unverified.
+
 - 2026-10-30: Include the planned 0.6.1 encrypted remembered-session roadmap
   from `docs/encrypted-session-roadmap` in PR #47. This is planning only; no
   credentials, authentication behavior, backend contract or release version

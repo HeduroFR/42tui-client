@@ -95,7 +95,7 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         catalog = self.write(self.entry() + 'result_file = "reports/result.json"\n')
         self.assertFalse(catalog.error)
         self.assertEqual(catalog.testers[-1].result_file, "reports/result.json")
-        self.assertIsNone(self.tester.result_file)
+        self.assertEqual(self.tester.result_file, ".42tui-libft-result.json")
         for value in ('"/outside.json"', '"../outside.json"', '"."', '""', 'false', '".git/result.json"'):
             with self.subTest(value=value):
                 catalog = self.write(self.entry() + f'result_file = {value}\n')
@@ -136,7 +136,9 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                 self.assertEqual(bundled.result_file, ".42tui-printf-result.json")
                 self.assertIn("--report", bundled.command)
             else:
-                self.assertIsNone(bundled.result_file)
+                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/42tui-tester-libft.git")
+                self.assertEqual(bundled.result_file, ".42tui-libft-result.json")
+                self.assertIn("--report", bundled.command)
 
     def test_germinette_projects_share_image_and_select_explicit_checks(self):
         projects = [(f"python-module-{number:02}", f"python_module_{number:02}")
