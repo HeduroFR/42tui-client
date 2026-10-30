@@ -11,6 +11,18 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Hide overlapping connection actions while the session-storage
+  dropdown is open, keeping Quit or Cancel available and restoring the other
+  actions after selection or Escape. Patch impact within the planned minor
+  release; focused account and shared-selector tests passed, including quitting
+  while the dropdown is open.
+
+- 2026-10-30: Replace separate disconnected-state storage buttons with a
+  selector and one Connect action, hide the unavailable Disconnect action,
+  and align the controls in a narrower dialog with option-specific guidance.
+  Patch impact within the planned minor release; six focused session, layout
+  and translation tests passed. Campus validation remains pending.
+
 - 2026-10-30: Require account connection after completed onboarding and after
   disconnect, with Quit TUI available and successful pairing returning to the
   app. Existing unlocked sessions continue normally. Minor impact in pre-1.0;

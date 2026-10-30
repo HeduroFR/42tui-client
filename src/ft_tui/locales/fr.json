@@ -1,4 +1,10 @@
 {
+  "Save your session in the system keyring.": "Enregistrez votre session dans le trousseau système.",
+  "Connect again when you restart 42TUI.": "Reconnectez-vous au redémarrage de 42TUI.",
+  "Unlock your saved session with a passphrase.": "Déverrouillez votre session avec une phrase secrète.",
+  "Session storage": "Stockage de la session",
+  "OS keyring": "Trousseau du système",
+  "This session only": "Cette session uniquement",
   "This device is disconnected. Connect an account to continue.": "Cet appareil est déconnecté. Connectez un compte pour continuer.",
   "Remember with a passphrase": "Mémoriser avec une phrase secrète",
   "Unlock your saved session": "Déverrouiller votre session enregistrée",

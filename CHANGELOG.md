@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Hide overlapping connection actions while the session-storage dropdown is open, while keeping Quit or Cancel available.
+
+- Choose account session storage from a compact connection dialog with guidance for the selected option.
+
 - Require an account connection after setup and after disconnecting; reconnect or quit from the connection screen.
 
 - Space and stack the account connection and session reconnect actions so their buttons are easier to distinguish and use.

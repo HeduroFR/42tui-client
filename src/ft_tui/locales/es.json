@@ -1,4 +1,10 @@
 {
+  "Save your session in the system keyring.": "Guarda tu sesión en el llavero del sistema.",
+  "Connect again when you restart 42TUI.": "Vuelve a conectarte al reiniciar 42TUI.",
+  "Unlock your saved session with a passphrase.": "Desbloquea tu sesión guardada con una frase de contraseña.",
+  "Session storage": "Almacenamiento de sesión",
+  "OS keyring": "Llavero del sistema",
+  "This session only": "Solo esta sesión",
   "This device is disconnected. Connect an account to continue.": "Este dispositivo está desconectado. Conecta una cuenta para continuar.",
   "Remember with a passphrase": "Recordar con una frase de contraseña",
   "Unlock your saved session": "Desbloquear la sesión guardada",

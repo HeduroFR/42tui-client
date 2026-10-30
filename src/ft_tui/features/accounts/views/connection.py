@@ -10,6 +10,8 @@ from textual.color import Color
 from textual.widgets import Input
 from ft_tui.ui.modal import AppModal
 from ft_tui.ui.components import Button, Static
+from ft_tui.ui.select import Select
+from ft_tui.i18n import translate
 
 
 logger = logging.getLogger(__name__)
@@ -21,13 +23,16 @@ class AccountConnectionScreen(AppModal[str | None]):
     CSS = """
     AccountConnectionScreen {  background: $background 70%; }
     #account-connection-dialog {
-        width: 72; max-width: 94%; height: auto; max-height: 90%; padding: 1 2; overflow-y: auto;
+        width: 54; max-width: 94%; height: auto; max-height: 90%; padding: 1 2; overflow-y: auto;
         border: round $primary; background: $surface;
     }
     #account-connection-title { text-style: bold; }
     #account-connection-status { height: auto; min-height: 2; margin: 1 0; color: $text-muted; }
-    #account-connection-actions { height: auto; align-horizontal: center; }
-    #account-connection-actions Button { width: 100%; max-width: 42; margin-bottom: 1; }
+    #account-storage-label { color: $text-muted; margin-top: 1; }
+    #account-storage { width: 100%; margin: 0 0 1 0; }
+    #account-storage-help { height: auto; color: $text-muted; margin-bottom: 1; }
+    #account-connection-actions { height: auto; }
+    #account-connection-actions Button { width: 100%; margin-bottom: 1; }
     #account-manual-link { height: auto; margin-bottom: 1; }
     #account-authorization-url { height: auto; }
     """
@@ -72,18 +77,26 @@ class AccountConnectionScreen(AppModal[str | None]):
             )
             yield Static(initial, id="account-connection-status")
             if not self.connected and hasattr(self.oauth_client, "store"):
-                yield Static("Session-only credentials are lost on exit. A passphrase-protected session can be unlocked after restart.")
+                from ft_tui.infrastructure.security.session_vault import LockedSessionStore
+                language = getattr(self.app, "language", "en")
+                locked = isinstance(self.oauth_client.store, LockedSessionStore)
+                options = [] if locked else [("OS keyring", "keyring")]
+                options += [("This session only", "session"), ("Remember with a passphrase", "vault")]
+                yield Static("Session storage", id="account-storage-label")
+                yield Select(
+                    [(translate(label, language), value) for label, value in options],
+                    value="vault" if locked else "keyring",
+                    allow_blank=False, id="account-storage",
+                )
+                yield Static("", id="account-storage-help")
             with Vertical(id="account-manual-link"):
                 yield Static("If no browser opens, copy this link into an available browser (another device works too).")
                 yield Static("", id="account-authorization-url", markup=False)
                 yield Button("Copy login link", id="account-copy-link")
             with Vertical(id="account-connection-actions"):
-                yield Button("Connect / reconnect", variant="primary", id="account-connect")
+                yield Button("Connect 42 account" if not self.connected and hasattr(self.oauth_client, "store") else "Connect / reconnect", variant="primary", id="account-connect")
                 yield Button("Disconnect this device", id="account-disconnect", disabled=not self.connected)
                 if not self.connected and hasattr(self.oauth_client, "store"):
-                    yield Button("Connect for this session only", id="account-session-only")
-                    yield Button("Remember with a passphrase", id="account-vault")
-                    from ft_tui.infrastructure.security.session_vault import LockedSessionStore
                     if isinstance(self.oauth_client.store, LockedSessionStore):
                         yield Button("Discard saved session", variant="danger", id="account-vault-reset")
                 elif self.connected:
@@ -94,6 +107,11 @@ class AccountConnectionScreen(AppModal[str | None]):
 
     def on_mount(self) -> None:
         self.query_one("#account-manual-link").display = False
+        self.query_one("#account-disconnect").display = self.connected
+        if self.query("#account-storage"):
+            storage = self.query_one("#account-storage", Select)
+            self._update_storage_help(storage.value)
+            self.watch(storage, "expanded", self._storage_expanded)
         # Widgets are composed after the app's language-change broadcast. Apply
         # the selected locale once this modal enters the screen tree.
         for widget in self.query("*"):
@@ -112,6 +130,23 @@ class AccountConnectionScreen(AppModal[str | None]):
     async def on_unmount(self) -> None:
         await self._restore_previous_store()
 
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "account-storage":
+            self._update_storage_help(event.value)
+
+    def _storage_expanded(self, expanded: bool) -> None:
+        for button in self.query("#account-connection-actions Button"):
+            if button.id != "account-connection-cancel":
+                button.styles.visibility = "hidden" if expanded else "visible"
+
+    def _update_storage_help(self, value: object) -> None:
+        messages = {
+            "keyring": "Save your session in the system keyring.",
+            "session": "Connect again when you restart 42TUI.",
+            "vault": "Unlock your saved session with a passphrase.",
+        }
+        self.query_one("#account-storage-help", Static).update(messages.get(value, ""))
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "account-copy-link":
             if self._authorization_url:
@@ -124,18 +159,19 @@ class AccountConnectionScreen(AppModal[str | None]):
             else:
                 self.dismiss(None)
         elif event.button.id == "account-connect":
-            await self._start_pairing()
+            selection = self.query_one("#account-storage", Select).value if self.query("#account-storage") else "keyring"
+            if selection == "vault":
+                self._prompt_vault()
+            elif selection == "session":
+                if self.polling or self.poll_in_flight or self._starting_pairing or self._vault_busy:
+                    return
+                from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+                await self._select_store(SessionCredentialStore())
+                await self._start_pairing()
+            else:
+                await self._start_pairing()
         elif event.button.id == "account-disconnect":
             await self._disconnect()
-        elif event.button.id == "account-session-only":
-            if self.polling or self.poll_in_flight or self._starting_pairing or self._vault_busy:
-                return
-            from ft_tui.infrastructure.security.keychain import SessionCredentialStore
-
-            await self._select_store(SessionCredentialStore())
-            await self._start_pairing()
-        elif event.button.id == "account-vault":
-            self._prompt_vault()
         elif event.button.id == "account-vault-reset":
             if not self.polling and not self._vault_busy and not self._starting_pairing:
                 self._vault_busy = True

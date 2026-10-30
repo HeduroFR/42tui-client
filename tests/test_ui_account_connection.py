@@ -56,6 +56,71 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_storage_dropdown_hides_connect_but_keeps_quit_visible(self):
+        from textual.app import App
+        from textual.widgets._select import SelectOverlay
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.store = SessionCredentialStore()
+        client._credentials = None
+        app = App()
+        async with app.run_test(size=(80, 24)) as pilot:
+            screen = AccountConnectionScreen(client, required=True)
+            app.push_screen(screen)
+            await pilot.pause()
+            await pilot.click('#account-storage')
+            await pilot.pause()
+            overlay = screen.query_one(SelectOverlay)
+            connect = screen.query_one('#account-connect')
+            quit_button = screen.query_one('#account-connection-cancel')
+            self.assertEqual(connect.styles.visibility, 'hidden')
+            self.assertTrue(quit_button.visible)
+            self.assertFalse(quit_button.is_disabled)
+            await pilot.click(None, offset=(overlay.region.x + 5, overlay.region.y + 3))
+            await pilot.pause()
+            self.assertEqual(screen.query_one('#account-storage').value, 'vault')
+            self.assertEqual(connect.styles.visibility, 'visible')
+            self.assertEqual(client.pairing_calls, 0)
+            self.assertIs(app.screen, screen)
+            await pilot.click('#account-storage')
+            self.assertEqual(connect.styles.visibility, 'hidden')
+            await pilot.press('escape')
+            await pilot.pause()
+            self.assertEqual(connect.styles.visibility, 'visible')
+            from unittest.mock import patch
+            await pilot.click('#account-storage')
+            with patch.object(app, 'exit') as quit_app:
+                await pilot.click('#account-connection-cancel')
+                await pilot.pause()
+                quit_app.assert_called_once_with()
+
+    async def test_storage_selector_opens_passphrase_flow(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen, VaultPassphraseScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.store = SessionCredentialStore()
+        client._credentials = None
+        app = App()
+        with tempfile.TemporaryDirectory() as directory, patch(
+            'ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=Path(directory) / 'vault'
+        ):
+            async with app.run_test(size=(100, 35)) as pilot:
+                screen = AccountConnectionScreen(client)
+                app.push_screen(screen)
+                await pilot.pause()
+                self.assertFalse(screen.query_one('#account-disconnect').display)
+                screen.query_one('#account-storage').value = 'vault'
+                await pilot.pause()
+                self.assertIn('passphrase', str(screen.query_one('#account-storage-help').render()))
+                self.assertEqual(screen.query_one('#account-storage').region.x, screen.query_one('#account-connect').region.x)
+                await pilot.click('#account-connect')
+                self.assertIsInstance(app.screen, VaultPassphraseScreen)
+
     async def test_existing_installation_requires_connection_until_quit_or_pairing(self):
         from unittest.mock import patch
         from ft_tui.features.accounts.views.connection import AccountConnectionScreen
@@ -225,7 +290,8 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             screen = AccountConnectionScreen(client)
             app.push_screen(screen)
             await pilot.pause()
-            await pilot.click("#account-session-only")
+            screen.query_one("#account-storage").value = "session"
+            await pilot.click("#account-connect")
             await screen._poll_pairing()
             await pilot.pause()
             self.assertIsInstance(client.store, SessionCredentialStore)
@@ -245,7 +311,8 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             screen = AccountConnectionScreen(client)
             app.push_screen(screen)
             await pilot.pause()
-            await pilot.click("#account-session-only")
+            screen.query_one("#account-storage").value = "session"
+            await pilot.click("#account-connect")
             self.assertIsInstance(client.store, SessionCredentialStore)
             self.assertEqual(client.pairing_calls, 1)
             await pilot.click("#account-connection-cancel")
