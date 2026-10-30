@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Align terminal image and icon selectors with a responsive
+  narrow-terminal layout. Patch impact; focused terminal Settings checks run.
+  Full CI and release validation remain pending.
+
 - 2026-10-30: Remove Workspace and notification helper lines and display the TDF requirement
   only when its viewer is selected. Patch impact; focused Settings UI checks
   run. Full CI and release validation remain pending.

@@ -335,16 +335,19 @@ class SettingsMixin:
                             yield Static('Preview your dashboard username. Save settings to apply.', id='username-gradient-help', classes='field-help')
                         with Vertical(id="settings-terminal-card", classes="settings-section"):
                             yield Static("Terminal display", classes="section-kicker")
-                            yield Static('Images', classes='settings-label')
-                            yield Select([
-                                ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
-                                ('Colored blocks', 'halfcell'), ('Off', 'off'),
-                            ], value=self.image_mode, id='terminal-images')
-                            yield Static('Icons', classes='settings-label')
-                            yield Select([
-                                ('Automatic', 'auto'), ('Nerd Font', 'nerd'),
-                                ('Simple Unicode', 'unicode'), ('Text only', 'text'),
-                            ], value=self.icon_mode, id='terminal-icons')
+                            with Horizontal(id='settings-terminal-row'):
+                                with Vertical(id='settings-images-column'):
+                                    yield Static('Images', classes='settings-label')
+                                    yield Select([
+                                        ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
+                                        ('Colored blocks', 'halfcell'), ('Off', 'off'),
+                                    ], value=self.image_mode, id='terminal-images')
+                                with Vertical(id='settings-icons-column'):
+                                    yield Static('Icons', classes='settings-label')
+                                    yield Select([
+                                        ('Automatic', 'auto'), ('Nerd Font', 'nerd'),
+                                        ('Simple Unicode', 'unicode'), ('Text only', 'text'),
+                                    ], value=self.icon_mode, id='terminal-icons')
                         with Vertical(id="settings-sound-card", classes="settings-section"):
                             yield Static("Notifications", classes="section-kicker")
                             yield Static("Notification sound", classes="settings-label")

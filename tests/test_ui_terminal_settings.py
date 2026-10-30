@@ -166,6 +166,10 @@ class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.press('f5')
                     app.query_one(SettingsWorkspace).show_category(4)
                     await pilot.pause()
+                    images = app.query_one('#terminal-images', Select)
+                    icons = app.query_one('#terminal-icons', Select)
+                    self.assertEqual(images.region.y, icons.region.y)
+                    self.assertGreater(icons.region.x - images.region.right, 0)
                     button = app.query_one('#new-project-note', Button)
                     self.assertEqual(str(button.label), '\uf067')
                     app.query_one('#terminal-icons', Select).value = 'text'

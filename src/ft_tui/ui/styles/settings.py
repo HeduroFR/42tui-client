@@ -25,6 +25,11 @@ SETTINGS_CSS = r"""
     .settings-label { height: auto; margin-top: 1; color: $text; text-style: bold; }
     .field-help { height: auto; color: $text-muted; }
     #username-gradient-preview, #username-gradient-help { padding-left: 1; }
+    #settings-terminal-row { height: auto; }
+    #settings-images-column, #settings-icons-column { width: 1fr; height: auto; }
+    #settings-images-column { margin-right: 2; }
+    .narrow-storage #settings-terminal-row { layout: vertical; }
+    .narrow-storage #settings-images-column { margin-right: 0; }
     #settings-catalog-row { height: 3; }
     #cc-default-track { width: 1fr; }
     #settings-refresh-catalog { width: auto; min-width: 0; margin-left: 2; }
