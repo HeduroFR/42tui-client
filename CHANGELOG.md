@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show project facts once in the friend project preview, above the description.
+
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
 
