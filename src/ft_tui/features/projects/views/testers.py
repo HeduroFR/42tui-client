@@ -9,7 +9,7 @@ from functools import partial
 from typing import ClassVar
 
 from rich.markup import escape
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 
 from ft_tui.i18n import translate
 from ft_tui.features.projects.adapters.tester_catalog import Tester
@@ -101,9 +101,48 @@ class TesterAction(Button):
 class TesterRemoveButton(Button):
     def __init__(self, tester: Tester, language: str):
         tooltip = f"Remove {tester.name} images for all projects to free disk space. Reinstallation will be required."
-        super().__init__("×", square=True, variant="danger", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
+        super().__init__("Remove", icon="\uf1f8", icon_only=True, variant="danger", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
         self.tester = tester
         self.tooltip = translate(tooltip, language)
+
+
+class TesterLogButton(Button):
+    def __init__(self, log_path=None):
+        super().__init__("Open log", id="tester-log-open")
+        self.log_path = log_path
+
+
+class TesterResultCard(Vertical):
+    """Readable last-run summary; full process diagnostics stay in the transcript."""
+
+    def __init__(self, message, outcome, log_path, language):
+        status = outcome.status if isinstance(outcome, TesterRunResult) else "unknown"
+        tone = "success" if status == "passed" else "error" if status in ("failed", "process_failed", "unreadable") else "warning"
+        super().__init__(classes=f"tester-result-card result-{tone}")
+        self.message, self.outcome, self.log_path, self.language = message, outcome, log_path, language
+
+    def compose(self):
+        outcome = self.outcome
+        summary = outcome.summary if isinstance(outcome, TesterRunResult) else None
+        with Horizontal(classes="tester-result-heading"):
+            yield Static(self.message, markup=False, localize=False, classes="tester-result-title")
+            if summary:
+                yield Static(translate("{total} tests", self.language).format(total=summary.total),
+                             markup=False, localize=False, classes="tester-result-total")
+        if summary:
+            with Grid(classes="tester-result-counts"):
+                for key, label in (("passed", "Passed tests"), ("failed", "Failed tests"), ("errors", "Errors"), ("skipped", "Skipped")):
+                    yield Static(f"[b]{getattr(summary, key)}[/b]\n{escape(translate(label, self.language))}",
+                                 localize=False, classes=f"tester-count count-{key}")
+        if isinstance(outcome, TesterRunResult) and outcome.exit_code:
+            yield Static(translate("Process exit code: {code}", self.language).format(code=outcome.exit_code),
+                         markup=False, localize=False, classes="tester-result-detail")
+
+    def on_resize(self):
+        if counts := self.query(".tester-result-counts"):
+            narrow = self.size.width < 52
+            counts.first().styles.grid_size_columns = 2 if narrow else 4
+            counts.first().styles.height = 5 if narrow else 2
 
 
 class ProjectTesters(Vertical):
@@ -114,6 +153,29 @@ class ProjectTesters(Vertical):
     ProjectTesters .tester-action-row { height: 3; margin-top: 1; align-vertical: middle; }
     ProjectTesters .tester-action-row Button { height: 3; margin-top: 0; margin-bottom: 0; }
     ProjectTesters .tester-action-row TesterAction { margin-right: 2; }
+    ProjectTesters .tester-remove { width: auto; padding: 0 1; }
+    ProjectTesters .tester-result-card {
+        height: auto; margin-top: 1; padding: 1 2;
+        background: $surface; border-left: solid $warning;
+    }
+    ProjectTesters .tester-result-card.result-success { border-left: solid $success; }
+    ProjectTesters .tester-result-card.result-error { border-left: solid $error; }
+    ProjectTesters .tester-result-heading { height: auto; }
+    ProjectTesters .tester-result-title { width: 1fr; text-style: bold; }
+    ProjectTesters .result-success .tester-result-title { color: $success; }
+    ProjectTesters .result-error .tester-result-title { color: $error; }
+    ProjectTesters .tester-result-total { width: auto; margin-left: 2; color: $text-muted; }
+    ProjectTesters .tester-result-counts {
+        grid-size: 4; grid-columns: 1fr; grid-rows: 2; grid-gutter: 1 2; height: 2; margin-top: 1;
+    }
+    ProjectTesters .tester-count { height: 2; color: $text-muted; }
+    ProjectTesters .count-passed { color: $success; }
+    ProjectTesters .result-error .count-failed, ProjectTesters .result-error .count-errors { color: $error; }
+    ProjectTesters .tester-result-detail { color: $text-muted; margin-top: 1; }
+    ProjectTesters #tester-result-actions { height: auto; margin-top: 1; }
+    ProjectTesters #tester-result-actions Button { width: 1fr; height: auto; min-height: 3; margin-top: 0; padding: 0 1; }
+    ProjectTesters #tester-result-actions #tester-log-open { margin: 0 2 0 0; }
+    ProjectTesters #tester-status { color: $text-muted; }
     #tester-catalog-warning { color: $warning; }
     #tester-status-scroll { height: auto; max-height: 5; }
     """
@@ -123,6 +185,7 @@ class ProjectTesters(Vertical):
         self.project = None
         self._operating = False
         self._messages: dict[str, str] = {}
+        self._results = {}
         self._retry: set[str] = set()
         self._generation = 0
         self._setup_plan = None
@@ -134,7 +197,9 @@ class ProjectTesters(Vertical):
         with VerticalScroll(id="tester-status-scroll"):
             yield Static("Select a project to see testers.", id="tester-status")
         yield Vertical(id="tester-rows")
-        yield Button("Tester workspace", id="tester-workspace-open")
+        with Horizontal(id="tester-result-actions"):
+            yield TesterLogButton()
+            yield Button("View full output", id="tester-workspace-open")
 
     def on_mount(self):
         for button in self.query(Button):
@@ -183,6 +248,9 @@ class ProjectTesters(Vertical):
             button = self.query_one("#tester-workspace-open", Button)
             button.display = True
             button.disabled = False
+            log_button = self.query_one(TesterLogButton)
+            log_button.display, log_button.disabled = True, False
+            log_button.log_path = self._workspace.log_path
         self.query_one("#tester-status", Static).update(
             ("Checking Docker…" if any(tester.runtime == "docker" for tester in testers) else "Checking testers…") if testers else (
             "No tester is configured for this project on this platform." if project
@@ -214,7 +282,7 @@ class ProjectTesters(Vertical):
         self._docker_state = status.state
         messages = {
             "native": "Native testers are available. Execution requires your confirmation; Docker is not used.",
-            "ready": "Docker is ready. Container execution and folder access are checked before each run.",
+            "ready": "Docker ready",
             "incompatible": "A Linux Docker engine is required.",
             "missing": "Docker is not installed. Run the tester to set it up.",
             "stopped": "Docker is not responding. Run the tester to start or retry setup.",
@@ -231,7 +299,8 @@ class ProjectTesters(Vertical):
             message += "\n" + translate("Configure an existing local project folder to run tests.", self.app.language)
         status_widget = self.query_one("#tester-status", Static)
         status_widget.update(message)
-        status_widget.tooltip = escape(status.detail) if status.detail else None
+        status_widget.tooltip = escape(status.detail) if status.detail else translate(
+            "Container execution and folder access are checked before each run.", self.app.language) if status.state == "ready" else None
         rows = self.query_one("#tester-rows")
         for tester in testers:
             button = TesterAction(tester, "run", tester.id in self._retry)
@@ -245,7 +314,10 @@ class ProjectTesters(Vertical):
             if not self._inspection_current(generation):
                 return
             if tester.id in self._messages:
-                await rows.mount(Static(self._messages[tester.id]))
+                if tester.id in self._results:
+                    await rows.mount(TesterResultCard(*self._results[tester.id], self.app.language))
+                else:
+                    await rows.mount(Static(self._messages[tester.id]))
                 if not self._inspection_current(generation):
                     return
 
@@ -263,6 +335,10 @@ class ProjectTesters(Vertical):
         if event.button.id == "tester-workspace-open":
             if self._workspace and not self._workspace.is_current:
                 self.app.push_screen("tester-workspace")
+            return
+        if isinstance(event.button, TesterLogButton):
+            if event.button.log_path:
+                self.app._open_file_in_editor(event.button.log_path)
             return
         if event.button.disabled or self._operating or self.app.tester_docker.busy:
             return
@@ -322,6 +398,9 @@ class ProjectTesters(Vertical):
             await self.app.push_screen("tester-workspace")
             button = self.query_one("#tester-workspace-open", Button)
             button.display, button.disabled = True, False
+            log_button = self.query_one(TesterLogButton)
+            log_button.display, log_button.disabled = True, False
+            log_button.log_path = log_path
             with log_path.open("wb") as log:
                 terminal = workspace.session = WorkspaceSession(log, workspace.output.append, language=language)
 
@@ -398,5 +477,9 @@ class ProjectTesters(Vertical):
                 display_text = (text + "\n").replace("\r\n", "\n").replace("\n", "\r\n")
                 self._workspace.output.append(display_text.encode())
             self._messages[key] = escape(text)
+            card_message = translate(message, language)
+            if error_detail:
+                card_message += "\n" + translate(error_detail, language)
+            self._results[key] = (card_message, outcome, log_path)
             if self.is_mounted:
                 self.set_project(self.project)

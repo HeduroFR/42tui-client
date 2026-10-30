@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Use a trash icon for tester removal, with a readable Remove label in text mode.
+
+- Present tester results in a status card with readable counts that adapt to narrow
+  panels. Open the log in your preferred code editor, with “View full output”
+  alongside it on the right; successful
+  runs no longer show a raw log path or redundant exit code.
+
 - Use the maintained Supra printf fork with native arm64 Docker execution on Apple
   Silicon, per-test timeouts and validated JSON result counts. The new pinned image
   builds on first run. libft still uses amd64 emulation on ARM.

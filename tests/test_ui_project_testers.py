@@ -264,6 +264,53 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(run.call_args.args[1], str(root))
                 self.assertIn('unverified', widget._messages['supra-libft'])
 
+    async def test_result_card_counts_reflow_and_log_action(self):
+        from ft_tui.features.projects.views.testers import TesterResultCard, TesterLogButton
+        from ft_tui.features.projects.tester_results import TesterRunResult, TestSummary
+        from ft_tui.ui.components import Static
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            service.has_images.return_value = True
+            outcome = TesterRunResult(0, TestSummary(503, 503, 0, 0, 0))
+            log_path = root / "logs" / "run.log"
+            widget._workspace = Mock(log_path=log_path, is_current=False)
+            widget._messages["supra-libft"] = "Tests passed."
+            widget._results["supra-libft"] = ("Tests passed.", outcome, log_path)
+            await self.select(widget, projects["libft"], pilot)
+            app.action_project_testers()
+            await pilot.pause()
+            card = widget.query_one(TesterResultCard)
+            self.assertTrue(card.has_class("result-success"))
+            self.assertEqual(str(card.query_one(".tester-result-total", Static).render()), "503 tests")
+            self.assertNotIn(str(log_path), " ".join(str(w.render()) for w in card.query(Static)))
+            with patch.object(app, "_open_file_in_editor") as opened:
+                widget.query_one(TesterLogButton).press()
+                await pilot.pause()
+                await widget.workers.wait_for_complete()
+                opened.assert_called_once_with(log_path)
+            for width in (80, 200):
+                await pilot.resize_terminal(width, 65)
+                await pilot.pause()
+                counts = list(card.query(".tester-count"))
+                self.assertEqual(len(counts), 4)
+                self.assertEqual(counts[0].region.y == counts[2].region.y, card.size.width >= 52)
+                log_button = widget.query_one(TesterLogButton)
+                output_button = widget.query_one("#tester-workspace-open", Button)
+                self.assertEqual(log_button.region.y, output_button.region.y)
+                self.assertGreaterEqual(output_button.region.x - log_button.region.right, 2, (width, log_button.region, output_button.region, log_button.display, widget.query_one("#tester-result-actions").region))
+                self.assertTrue(widget.region.contains_region(output_button.region))
+                for count in counts:
+                    self.assertTrue(card.region.contains_region(count.region))
+                for left, right in zip(counts, counts[1:]):
+                    self.assertFalse(left.region.overlaps(right.region))
+            # A failed run retains its nonzero exit code and uses the error palette.
+            await card.remove()
+            failed = TesterResultCard("Tests failed.", TesterRunResult(1, TestSummary(10, 8, 1, 0, 1)), log_path, "fr")
+            await widget.query_one("#tester-rows").mount(failed)
+            await pilot.pause()
+            self.assertTrue(failed.has_class("result-error"))
+            self.assertIn("Réussis", str(failed.query_one(".count-passed", Static).render()))
+            self.assertTrue(failed.query(".tester-result-detail"))
+
     async def test_multiple_testers(self):
         from dataclasses import replace
         async with self.workspace() as (app, widget, _service, projects, pilot, _root):
@@ -282,6 +329,19 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             remove = widget.query_one(TesterRemoveButton)
             self.assertFalse(remove.disabled)
             self.assertTrue(remove.square)
+            app.icon_mode = "nerd"
+            remove.apply_language()
+            self.assertEqual(str(remove.label), "\uf1f8")
+            app.icon_mode = "unicode"
+            remove.apply_language()
+            self.assertEqual(str(remove.label), "🗑︎")
+            app.icon_mode = "text"
+            remove.apply_language()
+            self.assertEqual(str(remove.label), "Remove")
+            self.assertFalse(remove.square)
+            app.icon_mode = "nerd"
+            remove.apply_language()
+            await pilot.pause()
             self.assertEqual(remove.variant, "danger")
             run = widget.query_one(TesterAction)
             self.assertEqual(remove.region.y, run.region.y)
@@ -489,3 +549,37 @@ class TesterLogFolderTests(unittest.IsolatedAsyncioTestCase):
                     patch.object(app, 'notify') as notify:
                 await screen._open_log_folder()
                 self.assertIn('denied', notify.call_args.args[0])
+
+
+class TesterLogEditorTests(unittest.TestCase):
+    def test_file_uses_preferred_editor_and_preserves_path_arguments(self):
+        from contextlib import nullcontext
+        from ft_tui.features.projects.views.navigation import ProjectNavigationMixin
+        with TemporaryDirectory() as directory:
+            log_path = Path(directory) / "run 'with spaces'.log"
+            log_path.write_text("synthetic test output")
+            host = Mock()
+            host._open_path_in_editor = lambda name, path: ProjectNavigationMixin._open_path_in_editor(host, name, path)
+            host.suspend.return_value = nullcontext()
+            for editor, command in (("vscode", "code"), ("zed", "zed"), ("vim", "vim"), ("nvim", "nvim")):
+                host.favorite_editor = editor
+                with patch("ft_tui.features.projects.views.navigation.shutil.which", return_value=f"/bin/{command}"), \
+                     patch("ft_tui.features.projects.views.navigation.subprocess.Popen") as opened, \
+                     patch("ft_tui.features.projects.views.navigation.subprocess.run", return_value=Mock(returncode=0)) as ran:
+                    ProjectNavigationMixin._open_file_in_editor(host, log_path)
+                    launch = ran if editor in ("vim", "nvim") else opened
+                    launch.assert_called_once()
+                    args = launch.call_args.args[0]
+                    self.assertEqual(args[-1], str(log_path))
+                    self.assertEqual(launch.call_args.kwargs["cwd"], log_path.parent)
+                    self.assertEqual("--reuse-window" in args, editor == "vscode")
+                    launch.reset_mock()
+                    ProjectNavigationMixin._open_project_in_editor(host, "Synthetic", log_path.parent)
+                    self.assertEqual(launch.call_args.args[0][-1], "." if editor in ("vim", "nvim") else str(log_path.parent))
+                    self.assertEqual(launch.call_args.kwargs["cwd"], log_path.parent)
+            with patch("ft_tui.features.projects.views.navigation.shutil.which", return_value=None):
+                ProjectNavigationMixin._open_file_in_editor(host, log_path)
+                host.notify.assert_called_with("nvim was not found on PATH.", severity="error")
+            log_path.unlink()
+            ProjectNavigationMixin._open_file_in_editor(host, log_path)
+            host.notify.assert_called_with("The log file no longer exists.", severity="error")

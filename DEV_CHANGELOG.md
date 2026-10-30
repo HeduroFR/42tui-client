@@ -16,6 +16,41 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Use the shared localized trash icon for tester removal, retaining
+  square danger styling in icon modes and a readable Remove label in text mode.
+  Replace the shared trash Unicode fallback cross with a text-presentation bin.
+  Extend existing icon and tester removal regressions. Checks: 4 capability tests
+  and focused removal UI regression passed in nerd/Unicode/text modes; whitespace
+  passed. No live terminal font check claimed.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47. Patch UI polish within
+  recommended 0.6.0 minor; publication gates remain open.
+
+- 2026-10-30: Replace the project tester log-folder action with Open log using
+  the configured VS Code/Zed/Vim/Neovim editor. Reuse project editor launch and
+  terminal suspension behavior for files, preserving directory launches. Put
+  View full output to its right in a shared action row, targeting the current
+  workspace log. Add missing-file feedback, localized labels and regression
+  checks for editor argv, terminal handoff and responsive button placement.
+  Checks: 23 tester UI tests passed (102.672 seconds), 2 locale checks passed,
+  and file/directory argv regression passed for all four editors. Inspected a
+  headless rendered preview; editors were mocked rather than launched.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47.
+  Patch improvement within planned 0.6.0 minor; publication gates remain open.
+
+- 2026-10-30: Redesign the project tester panel with a themed result card,
+  status heading, total, responsive four/two-column counters, and a per-run
+  log-folder action instead of displaying the absolute path. Retain diagnostics
+  in the transcript and nonzero exit codes in the card. Shorten the ready state
+  with explanatory tooltip and use a compact full-output action. Add French and
+  Spanish labels without changing shared result-status translations. Add layout,
+  result-tone and correct-log-folder regression coverage. Checks: 21 existing UI
+  tests passed; new responsive/result/log-action regression passed at 80/200
+  columns, locale checks 2 passed, whitespace passed. Inspected a rendered
+  headless screenshot; no live WezTerm interaction claimed.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47. Patch UI improvement within
+  the accumulated 0.6.0 minor recommendation; release/license/runtime gates remain
+  open. No version bump, publication, deployment or backend change.
+
 - 2026-10-30: Connect bundled Supra printf to the maintained HeduroFR fork at
   f5c6484ab94efdfad0a65bbe8b88be93459c0d05. Prefer native arm64 Docker on
   Apple Silicon/ARM engines, retain amd64 on Intel, and pass a fresh JSON report
