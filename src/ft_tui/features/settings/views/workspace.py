@@ -159,6 +159,10 @@ class SettingsWorkspace(Vertical):
         except Exception:
             opened = False
         status.update('Opened in your browser.' if opened else 'Could not open a browser. Use the displayed link.')
+        timer = getattr(self, '_community_status_timer', None)
+        if timer is not None:
+            timer.stop()
+        self._community_status_timer = self.set_timer(5, lambda: status.update('') if status.is_mounted else None)
 
     @on(Select.Changed, '#favorite-theme')
     def theme_preview_changed(self, event):
@@ -227,10 +231,6 @@ class SettingsMixin:
                         with Vertical(id="settings-cursus-card", classes="settings-section"):
                             yield Static("Curriculum", classes="section-kicker")
                             yield Static("Default cursus", classes="settings-label")
-                            yield Static(
-                                "Choose the cursus used to filter your project list.",
-                                classes="field-help",
-                            )
                             saved_cursus_id = self._settings_operations().get("default_cursus_id")
                             saved_cursus_options = (
                                 [
@@ -254,10 +254,9 @@ class SettingsMixin:
                         with Vertical(id="settings-catalog-card", classes="settings-section"):
                             yield Static("Catalog", classes="section-kicker")
                             yield Static("Common Core fallback", classes="settings-label")
-                            yield Select([("Automatic evidence", "auto"), ("Old", "old"), ("New", "new")], value="auto", allow_blank=False, id="cc-default-track")
-                            yield Static("", id="cc-context-status")
-                            yield Button("Refresh catalog", id="settings-refresh-catalog")
-                            yield Static("Download the latest catalog, bypassing the local cache.", classes="field-help")
+                            with Horizontal(id="settings-catalog-row"):
+                                yield Select([("Automatic evidence", "auto"), ("Old", "old"), ("New", "new")], value="auto", allow_blank=False, id="cc-default-track")
+                                yield Button("Refresh catalog", id="settings-refresh-catalog")
                     with Vertical(id="settings-panel-workspace", classes="settings-panel"):
                         with Vertical(id="settings-workspace-card", classes="settings-section"):
                             yield Static("PROJECT WORKSPACE", classes="section-kicker")
@@ -290,8 +289,6 @@ class SettingsMixin:
                             yield Select([("Enabled", "true"), ("Disabled", "false")],
                                          value="false" if automatic_updates == "false" else "true",
                                          id="automatic-updates")
-                            yield Static("Install stable updates before opening 42TUI. Development installs are skipped.",
-                                         classes="field-help")
                     with Vertical(id="settings-panel-subjects", classes="settings-panel"):
                         with Vertical(
                             id="settings-subject-card", classes="settings-section"
@@ -305,11 +302,6 @@ class SettingsMixin:
                                 ],
                                 value=str(DEFAULT_SUBJECT_CHECK_INTERVAL),
                                 id="subject-check-interval",
-                            )
-                            yield Static(
-                                "Checks <project folder>/subject.pdf and downloads it when the "
-                                "configured provider supports subject files.",
-                                classes="field-help",
                             )
                             yield Static("Subject PDF viewer", classes="settings-label")
                             yield Select(
@@ -572,7 +564,6 @@ class SettingsMixin:
             selector.value = selected
             selector.disabled = not options
             self.query_one('#cc-default-track',Select).value = track if track in ('old','new') else 'auto'
-        self.query_one('#cc-context-status',Static).update('Settings apply to this account, cursus and campus.')
 
     def _campus_fallback_label(self):
         from ft_tui.i18n import translate

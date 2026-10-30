@@ -25,6 +25,11 @@ SETTINGS_CSS = r"""
     .settings-label { height: auto; margin-top: 1; color: $text; text-style: bold; }
     .field-help { height: auto; color: $text-muted; }
     #username-gradient-preview, #username-gradient-help { padding-left: 1; }
+    #settings-catalog-row { height: 3; }
+    #cc-default-track { width: 1fr; }
+    #settings-refresh-catalog { width: auto; min-width: 0; margin-left: 2; }
+    .narrow-storage #settings-catalog-row { height: 6; layout: vertical; }
+    .narrow-storage #settings-refresh-catalog { margin-left: 0; }
     #settings-storage-row { height: 3; }
     #settings-storage { width: 1fr; }
     #settings-storage-apply { width: auto; min-width: 0; margin-left: 2; }
@@ -38,7 +43,7 @@ SETTINGS_CSS = r"""
     .community-card Button { width: auto; min-width: 0; }
     .compact #community-links { layout: vertical; }
     .compact .community-card { margin-right: 0; }
-    #community-status { height: auto; color: $text-muted; }
+    #community-status { width: 1fr; height: auto; text-align: center; color: $text-muted; }
     #settings-actions { height: 3; padding: 0 1; background: $surface; }
     #save-settings { width: auto; min-width: 0; }
     #settings-status { width: 1fr; height: 3; content-align: left middle; color: $text-muted; }

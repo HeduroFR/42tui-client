@@ -427,6 +427,8 @@ class FortyTwoTuiApp(
         self.set_timer(18, lambda: self._show_community_reminder('discord'))
 
     def _show_community_reminder(self, name):
+        if not self.is_running or not self.screen_stack:
+            return
         if not self.account_connected or self._settings_operations().get('onboarding_completed') != 'true':
             return
         if len(self.screen_stack) > 1:

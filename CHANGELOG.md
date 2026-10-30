@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Place Refresh catalog beside the Common Core fallback selector in Settings.
+
+- Clear Community link feedback automatically after five seconds.
+
 - Find the GitHub and Discord links in clearer Community cards in Settings.
 
 - Open GitHub and Discord from Settings; see each community reminder once in a bottom-right card with a link button.

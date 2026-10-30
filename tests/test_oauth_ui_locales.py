@@ -48,7 +48,6 @@ ACCOUNT_COPY = (
     "Your projects sync from the centralized 42 API. The local catalog stays available offline.",
     "Your saved projects and activity stay on this device. Connect your 42 account to sync your real projects.",
     "Default cursus",
-    "Choose the cursus used to filter your project list.",
     "Loading cursus list…",
     "Cursus list unavailable. Connect your 42 account to load cursus options.",
     "No cursus memberships found.",

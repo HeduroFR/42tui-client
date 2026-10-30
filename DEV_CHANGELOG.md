@@ -13,6 +13,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Align catalog refresh with the fallback selector, stacking them
+  in narrow terminals, and remove catalog, cursus, automatic-update and subject
+  auto-check help text.
+  Patch impact;
+  focused Settings layout checks run.
+  Full CI and release validation remain pending.
+
+- 2026-10-30: Center Community browser feedback and clear it after five seconds, resetting the
+  timer for subsequent actions. Patch impact; focused Settings check run.
+  Full CI and release validation remain pending.
+
 - 2026-10-30: Redesign the Settings Community section with descriptive,
   responsive GitHub and Discord cards. Patch impact within 0.7.0; focused
   Settings checks run. Full CI and release validation remain pending.
