@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc libc6-dev make binutils libglib2.0-0 libbsd0 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /opt/tester /opt/tester
+COPY --chmod=755 supra.sh /opt/tester/supra.sh
 ARG TESTER_REPOSITORY
 ARG TESTER_REF
 LABEL org.opencontainers.image.source=$TESTER_REPOSITORY \
@@ -26,3 +27,5 @@ LABEL org.opencontainers.image.source=$TESTER_REPOSITORY \
 # Installed binaries have no .git sibling, so upstream background updates cannot run.
 ENV HOME=/tmp LANG=C.UTF-8 LC_ALL=C.UTF-8
 WORKDIR /project
+
+ENTRYPOINT ["/opt/tester/supra.sh"]

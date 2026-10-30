@@ -6,6 +6,8 @@ import csv
 import json
 import os
 import shlex
+import shutil
+from importlib.resources import files
 import subprocess
 import sys
 import unittest
@@ -147,6 +149,43 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                 self.assertTrue(self.write(self.entry() + f'architectures = {value}\n').error)
 
 
+@unittest.skipUnless(all(shutil.which(tool) for tool in ("sh", "make", "cc", "ar")), "C build tools required")
+class SupraRebuildTests(unittest.TestCase):
+    def test_foreign_up_to_date_outputs_rebuild_only_in_the_project_copy(self):
+        import time
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = root / "original"
+            original.mkdir()
+            (original / "stub.c").write_text("int answer(void) { return 42; }\n")
+            (original / "Makefile").write_text("all: lib.a\nlib.a: stub.o\n\tar rcs lib.a stub.o\nstub.o: stub.c\n\tcc -c stub.c -o stub.o\nfclean:\n\trm -f lib.a stub.o\n")
+            for name in ("stub.o", "lib.a"):
+                (original / name).write_bytes(b"foreign build output")
+                os.utime(original / name, (time.time() + 3600,) * 2)
+            before = {p.name: p.read_bytes() for p in original.iterdir()}
+            copy = root / "copy with spaces"
+            shutil.copytree(original, copy)
+            wrapper = str(files("ft_tui").joinpath("tester_images", "supra.sh"))
+            process = subprocess.run(["sh", wrapper, sys.executable, "-c", "import sys; print(repr(sys.argv[1:]))",
+                                      "argument with spaces", "$(touch nope)"], cwd=copy, capture_output=True, text=True, timeout=20)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            self.assertIn("argument with spaces", process.stdout)
+            self.assertFalse((copy / "nope").exists())
+            self.assertNotEqual((copy / "stub.o").read_bytes(), b"foreign build output")
+            self.assertIn("stub.o", subprocess.check_output(["ar", "t", "lib.a"], cwd=copy, text=True).splitlines())
+            self.assertEqual({p.name: p.read_bytes() for p in original.iterdir()}, before)
+
+    def test_failed_cleanup_stops_before_the_tester_starts(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Makefile").write_text("fclean:\n\tfalse\n")
+            wrapper = str(files("ft_tui").joinpath("tester_images", "supra.sh"))
+            process = subprocess.run(["sh", wrapper, sys.executable, "-c", "from pathlib import Path; Path('started').touch()"],
+                                     cwd=root, capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertFalse((root / "started").exists())
+
+
 class FrancinetteLauncherTests(unittest.TestCase):
     def test_summary_counts_suites_and_checks_without_trusting_exit_zero(self):
         script = load_catalog(Path("absent")).testers[0].command[2]
@@ -266,7 +305,7 @@ class TesterDockerTests(unittest.TestCase):
             if "build" in args:
                 context = Path(args[-1])
                 observed.append(context)
-                self.assertEqual([p.name for p in context.iterdir()], ["Dockerfile"])
+                self.assertEqual(sorted(p.name for p in context.iterdir()), ["Dockerfile", "supra.sh"])
                 self.assertIn("AS builder", (context / "Dockerfile").read_text())
                 self.assertIn("TESTER_REPOSITORY=" + tester.repository, args)
                 self.assertIn("TESTER_REF=" + tester.ref, args)

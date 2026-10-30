@@ -14,6 +14,9 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 
+RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh")}
+
+
 def project_slug(slug: str) -> str:
     return slug.lower().removeprefix("42cursus-")
 
@@ -38,7 +41,8 @@ class Tester:
     def image(self) -> str:
         identity = json.dumps((self.repository, self.ref, self.context)).encode()
         if self.recipe:
-            identity += files("ft_tui").joinpath("tester_images", self.recipe + ".Dockerfile").read_bytes()
+            for name in RECIPE_FILES[self.recipe]:
+                identity += files("ft_tui").joinpath("tester_images", name).read_bytes()
         digest = hashlib.sha256(identity).hexdigest()[:16]
         return f"42tui/{self.id}:{self.ref[:12]}-{digest}"
 

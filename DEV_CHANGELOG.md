@@ -16,6 +16,20 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Fix Supra container runs reusing up-to-date host objects/archives
+  (macOS Mach-O cannot link into Linux ELF shared libraries). Add an entrypoint
+  that runs fclean and a forced all build only inside the disposable mount, fails
+  before launching the tester when preparation fails, and preserves tester argv.
+  Include its packaged bytes in image identity to invalidate cached images.
+  Add real make/ar regressions and seed both live container fixtures with
+  future-dated foreign artifacts. Checks: adapter 72, architecture 9 and locale 2
+  passed; clean wheel/sdist including entrypoint and shell syntax passed. Real
+  Docker/macOS arm64 libft run rebuilt poisoned artifacts, completed and preserved
+  originals. printf rebuilt and linked successfully, then stalled during tests
+  under amd64 emulation; stopped the disposable container. No completed Mac printf
+  run or memory equivalence is claimed. Full tester scope: 100 passed (81.097 seconds). Patch impact
+  within the planned 0.6.0 minor; PR #47, no version bump or publication.
+
 - 2026-10-30: Add definition-driven bundled Docker recipes and pinned Supra
   printf/libft definitions for Linux/macOS. Include recipe bytes in image identity,
   package the multi-stage Debian recipe and verify it in release archives. Keep

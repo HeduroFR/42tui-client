@@ -22,7 +22,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 from ft_tui.config.settings import data_dir
-from ft_tui.features.projects.adapters.tester_catalog import Tester
+from ft_tui.features.projects.adapters.tester_catalog import RECIPE_FILES, Tester
 from ft_tui.features.projects.adapters.tester_reports import clear_report, read_report
 from ft_tui.features.projects.tester_results import TesterRunResult
 
@@ -292,8 +292,10 @@ class TesterDocker:
             if tester.recipe != "supra":
                 raise TesterError("Unknown bundled tester recipe.")
             with tempfile.TemporaryDirectory(prefix="42tui-image-") as directory:
-                recipe = files("ft_tui").joinpath("tester_images", tester.recipe + ".Dockerfile")
-                Path(directory, "Dockerfile").write_bytes(recipe.read_bytes())
+                for name in RECIPE_FILES[tester.recipe]:
+                    resource = files("ft_tui").joinpath("tester_images", name)
+                    target = "Dockerfile" if name.endswith(".Dockerfile") else name
+                    Path(directory, target).write_bytes(resource.read_bytes())
                 yield directory
             return
         repository = tester.repository.rstrip("/")

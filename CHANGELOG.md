@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Clean and force-rebuild Supra project copies inside Linux before testing, so
+  existing macOS/other-architecture objects and archives cannot be reused as an
+  up-to-date build. Original source folders and compiled outputs remain intact.
+
 - Add Supra testers for ft_printf and libft using pinned Linux amd64 containers
   on Linux/macOS, with the same GCC/glibc environment and no host tester-tool
   installation. ARM hosts require Docker CPU emulation. Runs preserve project

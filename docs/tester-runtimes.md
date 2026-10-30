@@ -69,6 +69,11 @@ architecture inspection and writable-mount/execution probes remain mandatory.
 Windows is outside the current client support matrix. No emulator, system package,
 Docker context or daemon permission is silently changed by these definitions.
 
+Before testing, the container entrypoint runs `make fclean` and `make -B all`
+in the disposable project mount. This prevents up-to-date host artifacts (including
+macOS Mach-O objects) from entering Linux shared libraries. A failed cleanup or
+build stops before the tester runs. Original objects/archives are never cleaned.
+
 Install directly through Meson, avoiding upstream install.sh's user-level pip
 fallback. Install binaries without a `.git` sibling so background `git pull` and
 self-rebuild cannot run. Execution disables networking, drops capabilities, denies
