@@ -16,6 +16,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Update SHA-pinned checkout, Python setup and artifact actions in
+  CI, tester and release workflows to Node 24 versions. Internal CI maintenance;
+  no separate release required. Verified upstream tag SHAs and Node runtimes,
+  parsed workflow YAML, and passed all 96 release-tooling tests and whitespace
+  checks. Hosted CI and release artifact transfer remain to be verified on the
+  pushed revision; existing 0.6.0 release gates remain open. PR #47.
+
 - 2026-10-30: Replay tester output from the transcript in bounded chunks so
   closing and reopening the workspace preserves output and terminal sequences.
   The focused reopen regression and all 25 tester UI tests passed.
