@@ -8,6 +8,8 @@ version = "0.5.2"
 description = "Offline-first terminal workspace for École 42 students"
 readme = "README.md"
 requires-python = ">=3.12"
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 (GPLv3)"]
 dependencies = [
     "textual[syntax]>=8.2,<9.0",
     "tree-sitter>=0.25,<0.26",

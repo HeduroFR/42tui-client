@@ -178,3 +178,8 @@ executable directory is on your `PATH`. If icons look wrong, select a Nerd Font
 in your terminal settings.
 
 For development setup, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+42TUI client is distributed under the [GNU General Public License v3.0](LICENSE).
+Third-party components and testers retain their own licenses.
