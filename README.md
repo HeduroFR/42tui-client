@@ -137,14 +137,16 @@ are not retained.
 
 ## Project testers
 
-Francinette is no longer bundled. `get_next_line` currently has no bundled tester.
+Francinette is no longer bundled. The Tripouille tester covers the mandatory
+`get_next_line` suite with a structured summary.
 Existing user catalog definitions remain user-controlled; remove a custom
 Francinette entry there if you added one. Previously downloaded images are not
 automatically deleted.
 
 Configure an existing local project folder, find **Testers** below Registration
 (or press `t` in Projects), then choose **Run Supra libft tester** or
-**Run Supra printf tester**. The same button handles setup and retries.
+**Run Supra printf tester**, or **Run Tripouille get_next_line tester**.
+The same button handles setup and retries.
 
 Tester builds and cleanup run against a temporary copy of the project, excluding
 Git metadata. Your original files stay in place; generated files in the copy are

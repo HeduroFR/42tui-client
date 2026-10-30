@@ -16,6 +16,20 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Add the pinned 42TUI Tripouille get_next_line fork, native amd64/arm64
+  Docker recipe and disposable mandatory-suite runner with Valgrind. Parse its
+  version-1 report through the existing result reader; skip upstream self-update.
+  Bonus suite is not included. Local native arm64 fork fixture checks: 222 passing,
+  74 intentional failing, 15 crashes and 17 timeouts recorded. Final pinned fork
+  integration ran through the client on Docker Desktop/macOS arm64: 222 passes,
+  222 intentional failures and 51 early-exit errors, with original files preserved.
+  71 catalog tests, focused project UI test and fork report contract checks passed;
+  clean wheel/sdist package checks and whitespace passed. The workflow defines
+  native amd64/arm64 checks but has not yet run; real school Linux and interactive
+  visual validation are pending. Clarify upstream licensing before distribution.
+  Minor impact within recommended 0.6.0; PR #47. No release, backend change or
+  deployment.
+
 - 2026-10-30: Center the tester removal icon by using an odd number of terminal
   cells for its square-style button. The width may differ from a physical square
   by up to one cell. Patch UI improvement within the planned 0.6.0 minor;

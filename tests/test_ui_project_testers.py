@@ -55,11 +55,11 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
         async with self.workspace() as (_app, widget, service, projects, pilot, root):
             for installed in (False, True):
                 service.installed.return_value = installed
-                for slug in ("libft", "ft_printf"):
+                for slug in ("libft", "ft_printf", "get_next_line"):
                     projects[slug].local_path = None
                     await self.select(widget, projects[slug], pilot)
                     button = widget.query_one(TesterAction)
-                    self.assertEqual(str(button.label), "Run Supra libft tester" if slug == "libft" else "Run Supra printf tester")
+                    self.assertEqual(str(button.label), {"libft": "Run Supra libft tester", "ft_printf": "Run Supra printf tester", "get_next_line": "Run Tripouille get_next_line tester"}[slug])
                     self.assertTrue(button.disabled)
                     projects[slug].local_path = str(root)
                     await self.select(widget, projects[slug], pilot)

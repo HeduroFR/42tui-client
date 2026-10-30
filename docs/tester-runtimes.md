@@ -6,7 +6,7 @@ after per-run consent and requires no Docker runtime. Its upstream default suite
 has no validated structured reader, so a successful exit remains unverified.
 
 Francinette is no longer bundled. Supra covers printf/libft and the native tester
-covers push_swap; get_next_line has no bundled tester. Custom catalog entries stay
+covers push_swap; the Tripouille fork covers get_next_line. Custom catalog entries stay
 user-controlled, and old Docker images are not automatically deleted.
 
 ## Headless macOS runtime assessment — 2026-10-30
@@ -94,3 +94,22 @@ The new pinned image builds automatically; old images are not reused. A custom
 
 Custom tester definitions can set `interactive_input = false` to hide the input field.
 It defaults to true for existing custom testers; the field is hidden after a run finishes.
+
+## get_next_line
+
+The bundled Tripouille tester uses the pinned 42TUI fork's mandatory suite in
+native Linux amd64 or arm64 Docker containers, with GCC, Clang and Valgrind.
+It runs in a disposable project copy and never invokes upstream's `git pull`.
+The fork writes a version-1 JSON report: functional checks count as passed or
+failed, leaks count as failures, and test crashes/timeouts count as errors.
+Upstream allocation-size checks remain visible in the log but are not counted.
+The suite expects `get_next_line.c`, `get_next_line_utils.c` and
+`get_next_line.h` at the project root. Bonus tests are not run by this integration.
+The report reflects this suite's
+checks; it does not prove complete correctness or memory safety.
+
+Run `python tests/manual/gnl_tester_smoke.py` from the client repository with a
+working Docker engine to exercise passing, failing and prematurely exiting synthetic
+projects through the real adapter; the originals are checked for changes. CI is
+configured for native amd64 and arm64 runners, but a workflow definition is not a
+successful run.

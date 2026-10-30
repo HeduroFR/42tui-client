@@ -14,7 +14,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 
-RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh")}
+RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh"), "gnl": ("gnl.Dockerfile", "gnl.sh")}
 
 
 def project_slug(slug: str) -> str:
@@ -103,7 +103,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         if runtime not in {"docker", "native"}:
             raise ValueError(f"{identifier}: runtime must be docker or native")
         recipe = entry.get("recipe")
-        if "recipe" in entry and (recipe != "supra" or runtime != "docker"):
+        if "recipe" in entry and (recipe not in RECIPE_FILES or runtime != "docker"):
             raise ValueError(f"{identifier}: recipe must name a bundled Docker recipe")
         prepare = entry.get("prepare", [])
         if (not isinstance(prepare, list) or any(not isinstance(command, list) or not command
@@ -117,7 +117,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
                 or len(set(architectures)) != len(architectures)):
             raise ValueError(f"{identifier}: architectures must list amd64 and/or arm64 without duplicates")
         if recipe and entry["context"] != ".":
-            raise ValueError(f"{identifier}: Supra recipes require the repository root")
+            raise ValueError(f"{identifier}: Bundled recipes require the repository root")
         if not re.fullmatch(r"[0-9a-fA-F]{40}", entry["ref"]):
             raise ValueError(f"{identifier}: ref must be a full Git commit SHA")
         url = urlparse(entry["repository"])

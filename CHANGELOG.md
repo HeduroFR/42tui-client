@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add Tripouille get_next_line mandatory testing in a Linux container, with
+  verified test counts from the maintained fork. Docker builds the image on
+  first use; project files remain untouched.
+
 - Center the tester removal icon within its button.
 
 - Hide tester input for non-interactive runs and after completion; custom testers can configure it.
@@ -18,7 +22,7 @@
   builds on first run. libft still uses amd64 emulation on ARM.
 
 - Remove bundled Francinette in favor of Supra printf/libft and native push_swap.
-  There is currently no bundled get_next_line tester. Keep custom catalog entries
+  Keep custom catalog entries
   and previously downloaded Docker images untouched.
 - Add a one-character left inset to tester console output.
 

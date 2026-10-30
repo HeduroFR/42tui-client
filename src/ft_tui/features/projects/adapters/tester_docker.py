@@ -289,7 +289,7 @@ class TesterDocker:
     @contextmanager
     def _build_context(self, tester: Tester, terminal):
         if tester.recipe:
-            if tester.recipe != "supra":
+            if tester.recipe not in RECIPE_FILES:
                 raise TesterError("Unknown bundled tester recipe.")
             with tempfile.TemporaryDirectory(prefix="42tui-image-") as directory:
                 for name in RECIPE_FILES[tester.recipe]:

@@ -5,7 +5,7 @@ import sys
 import tarfile
 import zipfile
 
-RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh')
+RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh', 'tester_images/gnl.Dockerfile', 'tester_images/gnl.sh')
 
 
 def check_archive(path: Path) -> str:

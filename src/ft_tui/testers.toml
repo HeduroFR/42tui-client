@@ -25,6 +25,20 @@ result_file = ".42tui-printf-result.json"
 interactive_input = false
 
 [[testers]]
+id = "tripouille-gnl"
+name = "Tripouille get_next_line tester"
+projects = ["get_next_line"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/gnlTester.git"
+ref = "00966acf582fb4531ffb3c808bd34b6e0987a46d"
+context = "."
+recipe = "gnl"
+command = ["/opt/gnl.sh"]
+result_file = ".42tui-gnl-result.json"
+interactive_input = false
+
+[[testers]]
 id = "ft-ps-tester"
 name = "Push_swap tester"
 projects = ["push_swap"]
