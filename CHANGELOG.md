@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Show project facts once in the friend project preview, above the description.
+- Show project facts once in the friend project preview, omitting the redundant member count for solo projects.
 
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
