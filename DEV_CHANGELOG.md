@@ -13,7 +13,7 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 ## Changes since 0.6.0
 
 - 2026-10-30: Remove the danger-button item from the 0.7.0 roadmap and clarify
-  agreed priorities, dashboard details and the proposed log-time worker endpoint.
+  agreed priorities, dashboard details and the observed log-time response format.
   Documentation only; no release required. Roadmap diff checked; endpoint
   feasibility and 0.6.2 release validation remain pending.
 

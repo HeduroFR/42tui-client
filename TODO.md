@@ -362,10 +362,14 @@ editor time tracking.
 - [ ] Let the activity card switch between coding time and campus workstation log
   time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
   worker endpoint for the connected user's own Intra `locations_stats.json`,
-  including response coverage, permissions and account isolation. Define local-day
-  boundaries, sessions crossing midnight and ongoing sessions; distinguish missing
-  or stale data from zero time. Assess API compatibility and deploy the required
-  backend before a dependent client release.
+  The user reports that an authenticated account can request other users' data;
+  restrict the dashboard endpoint to the connected user's own login and verify
+  permissions and account isolation. An observed response maps dates to
+  `HH:MM:SS` daily durations; validate both fields and sum days for weekly totals.
+  Verify date coverage, timezone and whether today's total includes ongoing
+  sessions. Distinguish reported zero from missing, unavailable or stale data.
+  Assess API compatibility and deploy the required backend before a dependent
+  client release.
 - [ ] Show project names for each progress-bar status on hover, including Done,
   Active, Available and Locked; provide keyboard access to the same information.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
