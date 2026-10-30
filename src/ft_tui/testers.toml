@@ -1,36 +1,250 @@
 [[testers]]
-id = "francinette"
-name = "Francinette"
-projects = ["libft", "ft_printf", "get_next_line"]
+id = "supra-libft"
+name = "Supra libft tester"
+projects = ["libft"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64"]
+repository = "https://github.com/HeduroFR/42tui-tester-libft.git"
+ref = "e0639aa78f12ccce013f6a884749fab8d9f8c659"
+context = "."
+recipe = "supra"
+command = ["timeout", "--signal=TERM", "--kill-after=5s", "600s", "/opt/tester/bin/libft_tester", "--report", "/project/.42tui-libft-result.json"]
+result_file = ".42tui-libft-result.json"
+interactive_input = false
+
+[[testers]]
+id = "supra-printf"
+name = "Supra printf tester"
+projects = ["ft_printf"]
 platforms = ["linux", "darwin"]
 architectures = ["amd64", "arm64"]
-repository = "https://github.com/WaRtr0/francinette-image.git"
-ref = "6b2fcb8e8e587f1ba2969e6fc1fc535847a4cc07"
+repository = "https://github.com/HeduroFR/42tui-tester-printf.git"
+ref = "f5c6484ab94efdfad0a65bbe8b88be93459c0d05"
 context = "."
-# Francinette writes logs and caches beside main.py. A private writable copy
-# lets standard Linux Docker run with the host UID as well as rootless Docker.
-# Ubuntu 22.04 pairs Clang 14 (DWARF 5 by default) with Valgrind 3.18,
-# which cannot read that debug info. Private compiler wrappers select DWARF 4
-# when -g is requested, retaining Valgrind checks and explicit compiler options.
-command = ["python3", "-c", '''
-import os, runpy, shlex, shutil, sys, tempfile
-from pathlib import Path
+recipe = "supra"
+command = ["timeout", "--signal=TERM", "--kill-after=5s", "600s", "/opt/tester/bin/printf_tester", "--report", "/project/.42tui-printf-result.json"]
+result_file = ".42tui-printf-result.json"
+interactive_input = false
 
-with tempfile.TemporaryDirectory(prefix="francinette-") as directory:
-    root = Path(directory) / "francinette"
-    shutil.copytree("/francinette", root)
-    binaries = Path(directory) / "bin"
-    binaries.mkdir()
-    for name in ("clang", "clang++"):
-        compiler = shutil.which(name)
-        if compiler:
-            wrapper = binaries / name
-            wrapper.write_text(
-                "#!/bin/sh\nexec " + shlex.quote(compiler)
-                + ' -fdebug-default-version=4 "$@"\n', encoding="utf-8"
-            )
-            wrapper.chmod(0o755)
-    os.environ["PATH"] = str(binaries) + os.pathsep + os.environ.get("PATH", "")
-    sys.path.insert(0, str(root))
-    runpy.run_path(str(root / "main.py"), run_name="__main__")
-''']
+[[testers]]
+id = "tripouille-gnl"
+name = "Tripouille get_next_line tester"
+projects = ["get_next_line"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-gnl.git"
+ref = "00966acf582fb4531ffb3c808bd34b6e0987a46d"
+context = "."
+recipe = "gnl"
+command = ["/opt/gnl.sh"]
+result_file = ".42tui-gnl-result.json"
+interactive_input = false
+
+[[testers]]
+id = "ft-ps-tester"
+name = "Push_swap tester"
+projects = ["push_swap"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+runtime = "native"
+repository = "https://github.com/italoalmeida0/ft_ps_tester.git"
+ref = "49cf9c702812ec3fc1f9d5a1d34bb8d87c073214"
+context = "."
+prepare = [["make"]]
+command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap"]
+
+[[testers]]
+id = "germinette-00"
+name = "Germinette python_module_00"
+projects = ["python-module-00"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_00", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-01"
+name = "Germinette python_module_01"
+projects = ["python-module-01"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_01", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-02"
+name = "Germinette python_module_02"
+projects = ["python-module-02"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_02", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-03"
+name = "Germinette python_module_03"
+projects = ["python-module-03"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_03", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-04"
+name = "Germinette python_module_04"
+projects = ["python-module-04"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_04", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-05"
+name = "Germinette python_module_05"
+projects = ["python-module-05"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_05", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-06"
+name = "Germinette python_module_06"
+projects = ["python-module-06"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_06", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-07"
+name = "Germinette python_module_07"
+projects = ["python-module-07"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_07", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-08"
+name = "Germinette python_module_08"
+projects = ["python-module-08"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_08", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-09"
+name = "Germinette python_module_09"
+projects = ["python-module-09"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_09", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-10"
+name = "Germinette python_module_10"
+projects = ["python-module-10"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_10", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-05-bis"
+name = "Germinette python_module_05_bis"
+projects = ["python-module-05-bis"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_05_bis", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-06-bis"
+name = "Germinette python_module_06_bis"
+projects = ["python-module-06-bis"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["python_module_06_bis", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false
+
+[[testers]]
+id = "germinette-maze"
+name = "Germinette a_maze_ing"
+projects = ["a-maze-ing"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+repository = "https://github.com/HeduroFR/42tui-tester-python.git"
+ref = "8e2458a018c5a789219b2e33f58bcb788a56f672"
+context = "."
+recipe = "germinette"
+command = ["a_maze_ing", "--report", "/project/.42tui-germinette-result.json"]
+result_file = ".42tui-germinette-result.json"
+interactive_input = false

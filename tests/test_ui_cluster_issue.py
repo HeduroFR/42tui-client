@@ -103,6 +103,15 @@ class IssueUiTests(unittest.IsolatedAsyncioTestCase):
             app.account_generation+=1;modal._check_context();await pilot.pause()
             self.assertNotIsInstance(app.screen,ClusterIssueModal)
 
+    async def test_closing_workstation_after_grid_removal_is_safe(self):
+        app=MapHarness();app.provider=Provider()
+        async with app.run_test(size=(70,28)) as pilot:
+            ws=app.query_one(ClusterMapWorkspace);await ws.reload();await pilot.pause()
+            ws.open_seat(ClusterMapGrid.SeatSelected('1A1'));await pilot.pause()
+            await ws.query_one(ClusterMapGrid).remove()
+            await ws.modal.dismiss(None);await pilot.pause()
+            self.assertIsNone(ws.modal)
+
     async def test_mismatched_account_keeps_browser_fallback_and_never_writes(self):
         app=MapHarness();app.provider=Provider();app.provider.can_submit=False
         async with app.run_test(size=(60,24)) as pilot:

@@ -73,7 +73,7 @@ def icon_mode(app):
 # Keep the existing glyph API, including dynamic bell/DND buttons, in one place.
 ICON_FALLBACKS = {
     '\uf015': '⌂', '\uf07b': '▤', '\uf067': '+', '\uf0c0': '○',
-    '\uf0f4': '♧', '\uf044': '✎', '\uf1f8': '×', '\uf0c7': '↓',
+    '\uf0f4': '♧', '\uf044': '✎', '\uf1f8': '🗑︎', '\uf0c7': '↓',
     '\uf108': '▣', '\uf013': '⚙', '\uf204': '○', '\uf205': '●',
     '\uf058': '✓', '\uf555': '₳',
     '\uf021': '↻', '\uf1f6': '◇', '\uf0f3': '◆',

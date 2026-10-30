@@ -88,3 +88,56 @@ print('PARENT_DONE', flush=True)
 
     def test_ctrl_c_interrupts_child_and_restores_terminal(self):
         self.run_in_terminal(interrupt=True)
+
+
+class WorkspaceSessionTests(unittest.TestCase):
+    def test_private_pty_captures_input_output_and_failure(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        log, output = io.BytesIO(), []
+        session = WorkspaceSession(log, output.append)
+        session.input.put(b'hello\n')
+        session.run([sys.executable, '-c', 'print(input(), flush=True)'])
+        self.assertIn(b'hello', log.getvalue())
+        self.assertEqual(b''.join(output), log.getvalue())
+        with self.assertRaises(subprocess.CalledProcessError):
+            session.run([sys.executable, '-c', 'raise SystemExit(7)'])
+
+    def test_cancel_reaps_process_group(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: session.cancel() if b'READY' in data else None)
+        started = time.monotonic()
+        with self.assertRaises(KeyboardInterrupt):
+            session.run([sys.executable, '-c', 'import time; print("READY",flush=True); time.sleep(30)'])
+        self.assertLess(time.monotonic() - started, 5)
+
+    def test_cancel_does_not_disable_finally_cleanup_commands(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: None)
+        session.cancel()
+        with self.assertRaises(KeyboardInterrupt):
+            session.run([sys.executable, '-c', 'raise SystemExit(99)'])
+        session.run([sys.executable, '-c', 'print("cleanup")'])
+
+    def test_multiline_app_messages_and_real_pty_output_start_at_column_zero(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_console import TesterConsole
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        console = TesterConsole()
+        session = WorkspaceSession(io.BytesIO(), lambda data: console.feed(data.decode()))
+        session.write("Preparing tests\nSecond status\r\nThird status")
+        session.run([sys.executable, '-c', 'print("child one")\nprint("child two")'])
+        lines = console.render().plain.splitlines()
+        for expected in ('Preparing tests', 'Second status', 'Third status', 'child one', 'child two'):
+            self.assertIn(expected, [line.rstrip() for line in lines])
+
+    def test_exited_tester_does_not_wait_for_background_children_holding_the_pty(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: None)
+        started = time.monotonic()
+        session.run([sys.executable, '-c',
+                     'import subprocess,sys; subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); print("done")'])
+        self.assertLess(time.monotonic() - started, 5)

@@ -17,11 +17,14 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 from ft_tui.config.settings import data_dir
-from ft_tui.features.projects.adapters.tester_catalog import Tester
+from ft_tui.features.projects.adapters.tester_catalog import RECIPE_FILES, Tester
+from ft_tui.features.projects.adapters.tester_reports import clear_report, read_report
+from ft_tui.features.projects.tester_results import TesterRunResult
 
 ENGINE_DOCS = "https://docs.docker.com/engine/install/"
 MAC_DOCS = "https://docs.docker.com/desktop/setup/install/mac-install/"
@@ -220,7 +223,7 @@ class TesterDocker:
         return result.returncode == 0 and result.stdout.strip() == f"linux/{architecture}"
 
     def _image_tags(self, docker: str, tester: Tester) -> tuple[str, ...]:
-        repository = f"42tui/{tester.id}:"
+        repository = f"42tui/{tester.image_repository}:"
         result = self._capture([docker, "image", "ls", "--filter", f"reference={repository}*",
                                 "--format", "{{.Repository}}:{{.Tag}}"])
         if result.returncode:
@@ -253,7 +256,7 @@ class TesterDocker:
                 for line in result.stdout.splitlines():
                     container = json.loads(line)
                     if (re.fullmatch(r"42tui-(?:test|probe)-[0-9a-f]{32}", container["Names"])
-                            and container["Image"].startswith(f"42tui/{tester.id}:")
+                            and container["Image"].startswith(f"42tui/{tester.image_repository}:")
                             and container["State"] in {"created", "exited", "dead"}
                             and re.fullmatch(r"[0-9a-f]{12,64}", container["ID"])):
                         containers.append(container["ID"])
@@ -285,6 +288,16 @@ class TesterDocker:
 
     @contextmanager
     def _build_context(self, tester: Tester, terminal):
+        if tester.recipe:
+            if tester.recipe not in RECIPE_FILES:
+                raise TesterError("Unknown bundled tester recipe.")
+            with tempfile.TemporaryDirectory(prefix="42tui-image-") as directory:
+                for name in RECIPE_FILES[tester.recipe]:
+                    resource = files("ft_tui").joinpath("tester_images", name)
+                    target = "Dockerfile" if name.endswith(".Dockerfile") else name
+                    Path(directory, target).write_bytes(resource.read_bytes())
+                yield directory
+            return
         repository = tester.repository.rstrip("/")
         if repository.endswith(".git"):
             source = f"{repository}#{tester.ref}"
@@ -317,6 +330,8 @@ class TesterDocker:
         if self.installed(tester):
             return
         architecture = self.architecture(tester)
+        if tester.recipe:
+            terminal.write(f"Building the tester for Linux {architecture}.")
         context = PurePosixPath(tester.context)
         if context.is_absolute() or ".." in context.parts:
             raise TesterError("Docker build context must be inside the tester repository.")
@@ -326,8 +341,10 @@ class TesterDocker:
             staging = f"42tui/build:{uuid.uuid4().hex}"
             try:
                 terminal.write("Building the tester image…")
-                self._run(terminal, [docker, "build", "--platform", f"linux/{architecture}",
-                                    "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1", source],
+                self._run(terminal, [docker, "build", "--progress", "plain", "--platform", f"linux/{architecture}",
+                                    "--tag", staging, "--build-arg", "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1",
+                                    *(["--build-arg", "TESTER_REPOSITORY=" + tester.repository,
+                                       "--build-arg", "TESTER_REF=" + tester.ref] if tester.recipe else []), source],
                                     env={"DOCKER_BUILDKIT": "1"})
                 if not self.installed(tester, image=staging):
                     raise TesterError("The tester image could not be verified. Retry installation.")
@@ -338,13 +355,13 @@ class TesterDocker:
             finally:
                 self._cleanup([docker, "image", "rm", staging])
 
-    def run(self, tester: Tester, project_path: str | None, terminal) -> None:
+    def run(self, tester: Tester, project_path: str | None, terminal) -> TesterRunResult:
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
         with self.connection():
-            self._run_tester(tester, project_path, terminal)
+            return self._run_tester(tester, project_path, terminal)
 
-    def _run_tester(self, tester: Tester, project_path: str, terminal) -> None:
+    def _run_tester(self, tester: Tester, project_path: str, terminal) -> TesterRunResult:
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
         path = Path(project_path).expanduser().resolve()
@@ -353,6 +370,29 @@ class TesterDocker:
             raise TesterError("This tester is unavailable on this platform.")
         if not self.installed(tester):
             raise TesterError("The tester image is missing. Install it and retry.")
+        # Never let tester builds or cleanup write into the user's checkout.
+        with tempfile.TemporaryDirectory(prefix="42tui-project-") as directory:
+            copy = Path(directory) / path.name
+            terminal.write("Preparing a disposable project copy…")
+            shutil.copytree(path, copy, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+            report_ready = True
+            if tester.result_file:
+                try:
+                    clear_report(copy, tester.result_file)
+                except (OSError, ValueError):
+                    report_ready = False
+            exit_code = self._run_project_copy(tester, copy, docker, terminal)
+            summary = None
+            if tester.result_file:
+                try:
+                    if not report_ready:
+                        return TesterRunResult(exit_code, unreadable=True)
+                    summary = read_report(copy, tester.result_file)
+                except (ValueError, TypeError, KeyError, OSError, RecursionError):
+                    return TesterRunResult(exit_code, unreadable=True)
+            return TesterRunResult(exit_code, summary)
+
+    def _run_project_copy(self, tester: Tester, path: Path, docker: str, terminal) -> int:
         architecture = self.architecture(tester)
         user = self._user_arguments(docker)
         self._preflight(docker, tester, path, user, terminal)
@@ -361,12 +401,26 @@ class TesterDocker:
         source = '"source=' + str(path).replace('"', '""') + '"'
         args = [docker, "run", "--rm", "--interactive", "--tty", "--name", container,
                 "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
-                "--workdir", "/project", *user, tester.image_for(architecture), *tester.command]
+                "--workdir", "/project", *user, *self._runtime_arguments(tester), tester.image_for(architecture), *tester.command]
         try:
             terminal.write("Running the tester…")
             self._run(terminal, args)
+            return 0
+        except subprocess.CalledProcessError as error:
+            # Docker reserves these codes for engine/command launch failures.
+            if error.returncode in {125, 126, 127} or error.returncode < 0:
+                raise
+            return error.returncode
         finally:
             self._cleanup([docker, "rm", "--force", container])
+
+    @staticmethod
+    def _runtime_arguments(tester):
+        if not tester.recipe:
+            return []
+        # The testers dlopen shared libraries built in their temporary directory.
+        return ["--network", "none", "--read-only", "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=256m",
+                "--cap-drop", "ALL", "--security-opt", "no-new-privileges=true", "--pids-limit", "512"]
 
     def _user_arguments(self, docker):
         result = self._capture([docker, "info", "--format", "{{json .SecurityOptions}}"])
@@ -400,7 +454,7 @@ class TesterDocker:
                 terminal.write("Checking container execution and local folder access…")
                 self._run(terminal, [docker, "run", "--rm", "--name", container,
                                     "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
-                                    *user, "--entrypoint", "/bin/sh", tester.image_for(architecture), "-c", script])
+                                    *user, *self._runtime_arguments(tester), "--entrypoint", "/bin/sh", tester.image_for(architecture), "-c", script])
                 output = folder / "output"
                 if output.read_text() != value:
                     raise TesterError("Docker did not mount the local project folder correctly.")
@@ -470,7 +524,7 @@ class TesterDocker:
         return None
 
     def prepare_and_run(self, tester: Tester, project_path: str | None, terminal,
-                        *, plan: DockerInstallation | None = None) -> None:
+                        *, plan: DockerInstallation | None = None) -> TesterRunResult:
         """Set up user-owned dependencies, then install and run on one Docker connection."""
         if not project_path or not Path(project_path).expanduser().is_dir():
             raise TesterError("Configure an existing local project folder to run tests.")
@@ -524,7 +578,7 @@ class TesterDocker:
             raise TesterError(message + ("\n" + status.detail if status.detail else ""))
         with self.connection():
             self._install(tester, terminal)
-            self._run_tester(tester, project_path, terminal)
+            return self._run_tester(tester, project_path, terminal)
 
     def installation(self) -> DockerInstallation | None:
         if self.host.system != "darwin" or self.host.architecture not in {"amd64", "arm64"}:

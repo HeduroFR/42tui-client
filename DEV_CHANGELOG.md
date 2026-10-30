@@ -2,9 +2,13 @@
 
 Latest release: **0.5.2** ([`v0.5.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.5.2)).
 Package version: **0.5.2**.
-Suggested next release: **none**. No unreleased product changes.
-The tester workspace rework remains planned for 0.6.0; unfinished Git design
+Suggested next release: **0.6.0** (minor), for the implemented tester workspace,
+project copy protection and structured result reporting; not publication-ready.
+Remaining tester runtime validation targets 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
+The implemented tester workspace and copy protection warrant preparing 0.6.0
+(minor) beyond the published 0.5.2 artifact.
+Remaining runtime/platform and release gates prevent publication readiness.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
@@ -12,8 +16,364 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
-The following roadmap documentation landed after the release candidate; it
-requires no package release and remains pending implementation.
+- 2026-10-30: Prepare GPL-3.0-only client licensing, including the canonical
+  license text, package metadata, README and source distribution. The maintainer
+  confirmed permission for the identified contributor; third-party licensing
+  review remains a release blocker. No publication authorized. Minor impact
+  within the planned 0.6.0 release.
+  A clean snapshot produced a wheel and sdist; verified the GPL text in both,
+  the package license classifier, package checks and whitespace. Runtime tests
+  were not run for this licensing-only change.
+
+- 2026-10-30: Pin the published Supra libft fork and consume its structured
+  report in the tester workspace. Minor impact within recommended 0.6.0;
+  PR #47 branch, uncommitted. Checks: 99 tester and UI tests passed; the
+  pinned amd64 image ran through the client on Docker emulation, reported
+  failures for an incomplete fixture and preserved its source. A complete
+  libft and native amd64 execution remain unverified.
+
+- 2026-10-30: Include the planned 0.6.1 encrypted remembered-session roadmap
+  from `docs/encrypted-session-roadmap` in PR #47. This is planning only; no
+  credentials, authentication behavior, backend contract or release version
+  changes. Checked roadmap placement and whitespace; implementation, security
+  review and campus-platform validation remain pending. No release required.
+
+- 2026-10-30: Guard the cluster workstation close callback when its grid was
+  removed during teardown, fixing the `NoMatches` failure in PR #47 CI.
+  Patch fix within planned 0.6.0; the targeted grid-removal and account-change
+  regressions passed locally. Full hosted cluster regression must pass again.
+
+- 2026-10-30: Add pinned Germinette Docker integration for Python modules 00–10,
+  05/06 bis and A-Maze-ing, sharing one image across project definitions; update
+  GNL/printf fork URLs and preserve unverified status for incomplete reports.
+  Minor impact within recommended 0.6.0; PR #47. Checks: 105 tester regressions,
+  74 focused catalog/runtime tests, 96 release-tooling checks, scope ownership,
+  synthetic client Docker runs for both bis modules, module 00 and A-Maze-ing on
+  macOS/arm64, original project preservation, workflow YAML parsing, and wheel/
+  sdist checks from a clean source snapshot passed. CI now includes Germinette
+  smoke runs on amd64 and arm64; those hosted jobs have not yet run. Pin Python fork commit
+  8e2458a018c5a789219b2e33f58bcb788a56f672, whose legacy reports record failures
+  but explicitly mark outcome accounting incomplete; upstream legacy checkers do
+  not reliably record all outcomes. Real student projects, hosted amd64/arm64 CI and school Linux
+  validation remain open. Untracked duplicate files in this checkout appeared in
+  a direct local package build; build release artifacts from a clean checkout.
+
+- 2026-10-30: Update SHA-pinned checkout, Python setup and artifact actions in
+  CI, tester and release workflows to Node 24 versions. Internal CI maintenance;
+  no separate release required. Verified upstream tag SHAs and Node runtimes,
+  parsed workflow YAML, and passed all 96 release-tooling tests and whitespace
+  checks. Hosted CI and release artifact transfer remain to be verified on the
+  pushed revision; existing 0.6.0 release gates remain open. PR #47.
+
+- 2026-10-30: Replay tester output from the transcript in bounded chunks so
+  closing and reopening the workspace preserves output and terminal sequences.
+  The focused reopen regression and all 25 tester UI tests passed.
+  Patch fix within the planned 0.6.0 minor; PR #47, release gates remain open.
+
+- 2026-10-30: Remove the client `docs/superpowers` planning directory, ignore
+  future files at that path, and replace its obsolete TODO link with the tester
+  runtime assessment. Internal documentation cleanup; no release required.
+  Verified ignore matching, the replacement link and whitespace; no tests run.
+  Existing 0.6.0 release gates remain unchanged. PR #47.
+
+- 2026-10-30: Add acknowledgements for bundled testers, direct libraries and
+  principal tools; move detailed tester instructions into a linked guide and
+  shorten the README. Documentation only; no separate release required.
+  Checks: documentation diff, local relative-link targets and whitespace passed;
+  runtime tests skipped for this documentation-only change. Uncommitted on
+  feat/tester-workspace-0.6.0, PR #47;
+  accumulated tester features still warrant preparing 0.6.0 (minor), subject
+  to runtime/platform and release gates.
+
+- 2026-10-30: Add a prominent README warning explaining the primary 42 Angoulême
+  focus and possible bugs or unavailable features on other campuses. Documentation
+  only; no separate release required. Reviewed the warning and changelog wording;
+  task diff/whitespace passed. Runtime tests skipped for this text-only change.
+  Uncommitted on feat/tester-workspace-0.6.0; PR #47. Accumulated tester features
+  still warrant preparing 0.6.0 (minor); runtime/platform and release gates remain.
+
+- 2026-10-30: Add the pinned 42TUI Tripouille get_next_line fork, native amd64/arm64
+  Docker recipe and disposable mandatory-suite runner with Valgrind. Parse its
+  version-1 report through the existing result reader; skip upstream self-update.
+  Bonus suite is not included. Local native arm64 fork fixture checks: 222 passing,
+  74 intentional failing, 15 crashes and 17 timeouts recorded. Final pinned fork
+  integration ran through the client on Docker Desktop/macOS arm64: 222 passes,
+  222 intentional failures and 51 early-exit errors, with original files preserved.
+  71 catalog tests, focused project UI test and fork report contract checks passed;
+  clean wheel/sdist package checks and whitespace passed. The workflow defines
+  native amd64/arm64 checks but has not yet run; real school Linux and interactive
+  visual validation are pending. Clarify upstream licensing before distribution.
+  Minor impact within recommended 0.6.0; PR #47. No release, backend change or
+  deployment.
+
+- 2026-10-30: Center the tester removal icon by using an odd number of terminal
+  cells for its square-style button. The width may differ from a physical square
+  by up to one cell. Patch UI improvement within the planned 0.6.0 minor;
+  focused removal UI test and whitespace check passed. No live terminal font
+  check, release or deployment. PR #47.
+
+- 2026-10-30: Hide input for the non-interactive printf tester and after any run;
+  add a validated `interactive_input` catalog option defaulting to true for
+  compatibility with custom testers. Hide input for setup/removal operations.
+  Patch UI improvement within the planned 0.6.0 minor. Checks: 70 catalog
+  tests, focused catalog and workspace visibility tests passed; whitespace passed.
+  No live terminal check, release or deployment. PR #47.
+
+- 2026-10-30: Use the shared localized trash icon for tester removal, retaining
+  square danger styling in icon modes and a readable Remove label in text mode.
+  Replace the shared trash Unicode fallback cross with a text-presentation bin.
+  Extend existing icon and tester removal regressions. Checks: 4 capability tests
+  and focused removal UI regression passed in nerd/Unicode/text modes; whitespace
+  passed. No live terminal font check claimed.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47. Patch UI polish within
+  recommended 0.6.0 minor; publication gates remain open.
+
+- 2026-10-30: Replace the project tester log-folder action with Open log using
+  the configured VS Code/Zed/Vim/Neovim editor. Reuse project editor launch and
+  terminal suspension behavior for files, preserving directory launches. Put
+  View full output to its right in a shared action row, targeting the current
+  workspace log. Add missing-file feedback, localized labels and regression
+  checks for editor argv, terminal handoff and responsive button placement.
+  Checks: 23 tester UI tests passed (102.672 seconds), 2 locale checks passed,
+  and file/directory argv regression passed for all four editors. Inspected a
+  headless rendered preview; editors were mocked rather than launched.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47.
+  Patch improvement within planned 0.6.0 minor; publication gates remain open.
+
+- 2026-10-30: Redesign the project tester panel with a themed result card,
+  status heading, total, responsive four/two-column counters, and a per-run
+  log-folder action instead of displaying the absolute path. Retain diagnostics
+  in the transcript and nonzero exit codes in the card. Shorten the ready state
+  with explanatory tooltip and use a compact full-output action. Add French and
+  Spanish labels without changing shared result-status translations. Add layout,
+  result-tone and correct-log-folder regression coverage. Checks: 21 existing UI
+  tests passed; new responsive/result/log-action regression passed at 80/200
+  columns, locale checks 2 passed, whitespace passed. Inspected a rendered
+  headless screenshot; no live WezTerm interaction claimed.
+  Uncommitted on feat/tester-workspace-0.6.0, PR #47. Patch UI improvement within
+  the accumulated 0.6.0 minor recommendation; release/license/runtime gates remain
+  open. No version bump, publication, deployment or backend change.
+
+- 2026-10-30: Connect bundled Supra printf to the maintained HeduroFR fork at
+  f5c6484ab94efdfad0a65bbe8b88be93459c0d05. Prefer native arm64 Docker on
+  Apple Silicon/ARM engines, retain amd64 on Intel, and pass a fresh JSON report
+  to the existing validated result reader. Keep libft on amd64. Configure the
+  fork watchdog, update architecture validation and catalog/manual regressions,
+  and document the local development launcher. Checks: tester scope 98 passed (88.665 seconds),
+  70 adapter and 9 architecture tests passed;
+  real macOS Apple Silicon Docker run through the production adapter completed
+  all 503 comparisons with one expected forbidden-vprintf failure, parsed the
+  report and preserved the poisoned original fixture. No interactive WezTerm
+  visual validation or new CI run claimed. Changes remain uncommitted on
+  feat/tester-workspace-0.6.0 (PR #47). Patch fix within the accumulated 0.6.0
+  minor; release/runtime and redistribution-license gates remain open. No bump,
+  publication, backend change or deployment.
+
+- 2026-10-30: Remove the bundled Francinette definition/launcher and its retired
+  manual smoke harness; retain Supra printf/libft and native push_swap. Update
+  catalog/UI regressions and active documentation/roadmap, preserving custom user
+  definitions and old images. Add a one-cell RichLog left inset without changing
+  PTY columns, emulator text or saved transcripts. get_next_line now has no bundled
+  tester. Checks: tester scope 98 passed (74.751 seconds), adapter 70,
+  architecture 9 and locale 2 passed; scope assignments cover 957 tests. Clean
+  wheel/sdist validation confirms only the three remaining tester definitions;
+  whitespace passed. Minor release remains 0.6.0 preparation, with runtime/release
+  gates open. PR #47; no version bump, publication or deployment.
+
+- 2026-10-30: Fix Supra container runs reusing up-to-date host objects/archives
+  (macOS Mach-O cannot link into Linux ELF shared libraries). Add an entrypoint
+  that runs fclean and a forced all build only inside the disposable mount, fails
+  before launching the tester when preparation fails, and preserves tester argv.
+  Include its packaged bytes in image identity to invalidate cached images.
+  Add real make/ar regressions and seed both live container fixtures with
+  future-dated foreign artifacts. Checks: adapter 72, architecture 9 and locale 2
+  passed; clean wheel/sdist including entrypoint and shell syntax passed. Real
+  Docker/macOS arm64 libft run rebuilt poisoned artifacts, completed and preserved
+  originals. printf rebuilt and linked successfully, then stalled during tests
+  under amd64 emulation; stopped the disposable container. No completed Mac printf
+  run or memory equivalence is claimed. Full tester scope: 100 passed (81.097 seconds). Patch impact
+  within the planned 0.6.0 minor; PR #47, no version bump or publication.
+
+- 2026-10-30: Add definition-driven bundled Docker recipes and pinned Supra
+  printf/libft definitions for Linux/macOS. Include recipe bytes in image identity,
+  package the multi-stage Debian recipe and verify it in release archives. Keep
+  legacy/custom Docker contexts unchanged. Select Linux amd64 consistently and
+  retain existing OS/engine/emulation/mount checks. Install through Meson without
+  upstream user pip installation or runtime auto-update. Restrict Supra runs with
+  disabled networking, read-only root, temporary storage, dropped capabilities,
+  no privilege escalation and a process limit. Keep results unverified; no claim
+  of superior accuracy/memory coverage. Add real fixture/container PR checks and
+  resource/parser/build/UI regressions. Local Docker daemon was unavailable and
+  Desktop could not start; no successful local live build is claimed. Validation
+  results: tester scope 98 passed (101.587 seconds), release-tooling 96,
+  adapter 70, architecture 9 and locale 2 passed; clean tracked-file wheel/sdist,
+  recipe-resource presence and installer hashes/syntax passed. Real container CI
+  and Mac/ARM emulation remain pending. Initial CI built both images but exposed
+  noexec temporary mounts preventing dlopen of generated libraries; explicitly
+  permit execution only in the bounded temporary mount, retaining the other
+  restrictions. Extend real checks to an ARM runner with a pinned QEMU helper.
+  Minor impact within planned 0.6.0;
+  PR #47 on `feat/tester-workspace-0.6.0`. No version bump/publication/deployment.
+
+- 2026-10-30: Add preparation/build/run stages and a source-hash-guarded
+  Francinette summary reader, counting suites and norm/function checks. Disable
+  upstream auto-update for the verified source; unknown source/missing summaries
+  remain unreadable. Live Docker/macOS arm64 fixture reported exit 0 with 6 checks,
+  3 passed, 2 failed and 1 skipped, preserving the original project. Add summary
+  parser regressions, stage translations and realistic UI session mocks. Add an
+  opt-in full native C-fixture/default-suite smoke check and Ubuntu/Intel/Apple
+  Silicon workflow, plus a sourced Colima/runtime assessment. Upstream push_swap
+  default exits 0 despite printed failures; retain unverified status and do not
+  claim memory coverage when leaks times out. Checks: installation-updates 83,
+  architecture 9 and locale 2 passed; clean tracked-file wheel/sdist and installer
+  hashes/syntax passed. Tester scope 96 passed (110.214 seconds); scope ownership covers all
+  955 discovered tests without overlap. Full default native C build/suite smoke passed its failure/unverified-result
+  assertions on macOS arm64, preserving the source. Upstream memory checks timed
+  out and cannot establish memory safety. Backend protections are being prepared separately;
+  production storage encryption, deployment evidence, hosted platform/Colima
+  measurements and integrated release gates remain open. Minor impact: prepare
+  0.6.0, not publication-ready; version unchanged. Branch
+  `feat/tester-workspace-0.6.0`; PR #47. No publication/deployment.
+
+- 2026-10-30: Add definition-driven native testers, preparation commands and
+  source/project/Python placeholders. Bundle ft_ps_tester at commit 49cf9c7 for
+  push_swap, using Git, a temporary venv without pip and disposable project
+  copies. Require consent for initial/repeated native execution, reject external
+  project symlinks, skip Docker inspection/setup, and reuse global locking,
+  PTY cancellation, logs and structured report validation. Stop background
+  children holding the PTY after the tester exits; add a real-process regression.
+  Retain unverified status for upstream testers without a validated report reader. Refresh roadmap
+  status and document prerequisites/network/permissions. Minor impact for 0.6.0;
+  branch `feat/tester-workspace-0.6.0`, uncommitted. Checks: native adapter tests
+  exercise setup/results/cancellation/error paths with real Git/venv/PTY commands;
+  architecture 9 and locale 2 passed, plus 16 native-message translation assertions.
+  Wheel/sdist, installer hashes/syntax and whitespace passed. Initial tester scope
+  94 passed; a subsequent run exposed a 300-ms test-start assumption, replaced
+  with an event wait. Final tester scope: 95 passed (84.331 seconds). Live macOS arm64 pinned
+  upstream basic suite correctly rejected an intentionally incorrect Python
+  executable fixture (exit 1, 61 failures), preserving the original project.
+  Upstream leaks checks timed out and nevertheless printed a memory PASS; do not
+  count that as memory validation. Initial live run was cancelled after a PTY held
+  by descendants; the completed rerun used the cleanup fix. Full default push_swap
+  suite, real C-project build, Linux/Intel platform matrix, Francinette summaries
+  and final release gates remain open. No backend/API change, version bump or publication.
+
+- 2026-10-29: Add portable tester outcomes and opt-in TOML `result_file` JSON
+  summaries, read before disposable-copy cleanup. Distinguish test failures,
+  process failures, unreadable reports and unverified results; require consistent
+  counts and a successful process before confirming passing tests. Reject stale,
+  linked, nonregular, oversized, invalid and all-skipped reports. Display exit
+  codes/counts in the workspace and transcript with French/Spanish coverage;
+  document the contract and keep Francinette explicitly unverified without a
+  validated reader. Fix a teardown-timer crash exposed by repeated result runs.
+  Checks: tester scope 90 passed (synthetic real-PTY subprocesses and headless UI),
+  architecture 9 and locale 2 passed; scope ownership covers all 949 discovered
+  tests without overlap; whitespace/diff reviewed and added-line/new-file security
+  scan found no matches. Full-suite and packaging checks not run. Minor impact for
+  planned 0.6.0, worth preparing against the published 0.5.2 baseline but not ready to publish. Branch
+  `feat/tester-workspace-0.6.0`; PR #47. Independent review found no blocking
+  security or logic issues; focused tester, architecture and locale checks were
+  repeated successfully after synchronizing with the updated PR branch. Real
+  Docker/Francinette Linux/macOS result validation, contrasting/native testers,
+  exact-candidate CI/package/compatibility gates and separate backend security
+  work remain pending. No version bump, backend change or external write.
+
+Implemented tester changes and later roadmap documentation are retained below;
+planning-only entries do not imply completed features.
+
+- 2026-10-29: Consolidate the pending tester line-ending/button fixes, checkout
+  SSH modal, development-remote fallback and unnumbered group-Git roadmap for
+  the authorized branch commit/push. Checks previously run: Git suite 52 plus
+  partial-clone preservation regression, terminal 6, rendering 2, project-details
+  UI 22, architecture 9 and focused removal layout test passed. Final tracked
+  diff and whitespace reviewed; unrelated untracked duplicate files excluded.
+  No API/backend or version change; planned 0.6.0 remains subject to native and
+  release validation, with no separate release justified by this consolidation.
+
+- 2026-10-29: Add unnumbered future roadmap work for simpler group-project Git
+  collaboration: shared development setup, guided push/pull, synchronization
+  visibility and conflict guidance, reusing existing Git actions and preserving
+  local work and separate Vogsphere publication. Planning only; no release
+  required. Checks: unversioned placement, existing Git scope and whitespace
+  reviewed; runtime tests skipped. Same branch; uncommitted.
+
+- 2026-10-29: Allow checkout recovery to use a populated development remote
+  when Vogsphere inspection or cloning fails for remote-access reasons. Retain
+  Vogsphere configuration and explicit warnings; never remove a partial clone
+  or overwrite existing/unborn checkout files. Keep development failures and
+  unavailable sources blocking. Add disposable-repository regressions for new,
+  empty and unborn folders plus clone-time refusal. Patch impact within planned
+  0.6.0; no separate release warranted. Same branch, uncommitted. Checks: Git
+  suite 52 passed, additional partial-clone preservation regression passed;
+  whitespace reviewed. Live campus/Vogsphere access unverified.
+
+- 2026-10-29: Pass the existing ProjectSshPromptHandler into Save + Set Up
+  Checkout's background Git operation, covering its remote inspection/recovery
+  authentication. Close prompts and release the busy state on success, failure
+  and cancellation; suppress success reporting after cancelled authentication.
+  Reuse existing masked entry and operation-scoped secret handling. Patch impact
+  within planned 0.6.0; no separate release warranted. Same branch, uncommitted.
+  Checks: project-details UI and architecture regressions; no real SSH key used.
+
+- 2026-10-29: Use the shared AppButton square/danger behavior for tester removal;
+  remove its fixed width and give Run a two-column right margin. Preserve tooltip,
+  removal handling and equal row heights. Patch impact within planned 0.6.0;
+  no separate release warranted. Same branch, uncommitted. Checks: focused
+  removal UI regression and whitespace review; native tester runs not repeated.
+
+- 2026-10-29: Fix diagonal tester output introduced by feeding app-generated
+  bare line feeds into the terminal emulator. Convert synthetic status/command
+  and final-result lines to CRLF while leaving raw PTY output unchanged. Add a
+  real PTY-to-emulator regression with multiline commands and mixed newline forms.
+  Checks: terminal tests 6 passed, redraw/rendering tests 2 passed, whitespace
+  reviewed. Patch impact within planned 0.6.0; no separate release warranted.
+  Same `feat/tester-workspace-0.6.0` branch; uncommitted. Native Francinette run
+  and WezTerm visual inspection remain unverified.
+
+- 2026-10-29: Fix tester console redraws using pyte 0.8.x terminal emulation
+  matching the private 100×24 PTY, preserving ANSI colors, partial reads and
+  bounded scrollback. Request plain Docker build progress; replace Log location
+  with Open log folder using the existing explorer adapter and error feedback.
+  Align Run and removal controls on one fixed-height row. Add redraw/scrollback
+  regressions and alignment assertions. Patch impact within planned 0.6.0;
+  same `feat/tester-workspace-0.6.0` branch, uncommitted. Checks: tester scope
+  77 passed, log-folder action/error test passed, architecture 9 and locale 2
+  passed; wheel/sdist checks, installer hashes/syntax and whitespace passed.
+  WezTerm direct inspection was denied by the computer-use tool; native Docker
+  reproduction is unverified. No version bump or publication.
+
+- 2026-10-29: Add horizontal gaps between tester workspace action buttons and
+  a blank row between the input field and action row. Patch impact, included in
+  the planned 0.6.0 minor release; no separate release warranted. Branch:
+  `feat/tester-workspace-0.6.0`; uncommitted. Checks: headless layout at 80×24
+  and 140×65, plus diff/whitespace review. Native tester execution not repeated.
+
+- 2026-10-29: Continue tester work on `feat/tester-workspace-0.6.0`: replace
+  terminal suspension with a persistent in-app workspace and private PTY runner.
+  Capture live output and line input, cancellation with process-group cleanup,
+  elapsed time, follow-output control, rerun against the captured project and
+  automatic full transcripts. Keep recent display output bounded; preserve setup
+  approval, operation locking and disposable copies. Cancellation is consumed
+  before installer cleanup so finally commands can still run. Add French/Spanish
+  labels and terminal/UI regressions. Minor impact, intended release 0.6.0;
+  no version bump or publication. Checks: tester scope 75 passed; extended UI
+  rerun test passed, final PTY tests 5 passed; architecture checks 9 and locale
+  checks 2 passed. Final diff and scope ownership reviewed. Native Docker validation, full-screen terminal emulation, structured
+  result readers and lighter/multiple tester runtime definitions remain pending.
+  Work is uncommitted; 0.6.0 remains unready for publication.
+
+- 2026-10-29: Begin the 0.6.0 tester rework after roadmap PR #45 merged as
+  `13f966b` with all 21 CI checks passing. Run Docker testers and their mount
+  probes against a disposable project copy, excluding Git metadata and preserving
+  symlinks. Clean up the copy on success, process failure and interruption;
+  retain existing logs, Docker context/CPU/user mapping and container cleanup.
+  Patch impact, targeted for the planned 0.6.0 minor release. Branch:
+  `feat/tester-workspace-0.6.0`; uncommitted. Checks: tester scope 72 passed,
+  including destructive-write and interrupted-run preservation checks; architecture
+  checks 9 passed, locale checks 2 passed, French/Spanish copy-message assertions
+  and diff/whitespace review passed. Native Docker runs and disk-space behavior
+  remain unverified. Modular/native execution, in-TUI workspace, backend data
+  protection and final 0.6.0 release gates remain pending; no release ready.
 
 - 2026-10-29: Reconcile roadmap additions with current main for PR #45,
   preserving all pending 0.5.2 release work and future plans. Planning only;

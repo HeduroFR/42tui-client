@@ -156,22 +156,22 @@ Git push success never changes academic status by itself.
 
 ## 0.6.0 — Testers and update reliability
 
-Status: **reworked scope agreed; implementation and release validation pending**.
-Latest published stable release is 0.5.1. This roadmap does not bump the package
+Status: **workspace and result infrastructure implemented; tester/runtime expansion and release validation ongoing**.
+Latest published stable release is 0.5.2. This roadmap does not bump the package
 version or authorize publication.
 
 | Item | Integration status | 0.6.0 scope |
 | --- | --- | --- |
-| One-button Francinette setup/run on Linux and macOS | Published in 0.5.0 (PR #13, #38) | Main feature |
-| Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
+| Supra printf/libft container setup/run on Linux and macOS | Replaces bundled Francinette in 0.6.0 | Main feature |
+| Modular testers with lighter setup and an in-TUI workspace | Workspace/results implemented; native push_swap added, platform validation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
-| Backend storage, backup and connection encryption | Planned; implementation and deployment verification pending | Priority security work alongside 0.6.0 |
+| Backend storage, backup and connection encryption | Implementation and disposable validation prepared; production verification pending | Priority security work alongside 0.6.0 |
 | GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
 
 ### Agreed tester rework
 
-- [ ] Keep one Run action and extend the existing TOML catalog for multiple
+- [x] Keep one Run action and extend the existing TOML catalog for multiple
   project/module-specific testers, including Python modules and push_swap.
   Define pinned sources, supported platforms, prerequisites, preparation/run
   commands and execution method. Add result readers only where structured
@@ -182,33 +182,44 @@ version or authorize publication.
   mandatory for every tester. Evaluate a headless macOS runtime such as Colima,
   including installation prerequisites, lifecycle and resource use, before
   selecting it. Do not silently change environments or omit checks.
-- [ ] Validate a lighter Francinette setup against the pinned source on Linux
-  and macOS, including Intel/Apple Silicon support and memory-check tooling.
-  Do not assume native execution preserves all checks. Preserve unprivileged
-  setup, explicit prerequisite approval, retries and existing user configuration.
-- [ ] Add a dedicated Testers workspace showing preparation/build/run stages,
+- [ ] Validate the pinned Supra printf/libft Linux containers on Linux and
+  macOS, including Intel/Apple Silicon emulation and memory-check limitations.
+  Preserve unprivileged setup, explicit prerequisite approval, retries and user
+  configuration. Francinette is removed from the bundled catalog.
+- [x] Add a dedicated Testers workspace showing preparation/build/run stages,
   live scrollable output, cancellation, follow-output control and final results.
   Keep execution inside the TUI, including internal terminal emulation when
   required. Allow leaving and returning while a run continues; preserve the
   captured project and prevent concurrent conflicting operations.
-- [ ] Show duration, available test counts/failures, Run again and Save log.
+- [x] Show duration, available test counts/failures, Run again and saved logs.
   Preserve full logs and distinguish test failures, setup failures, cancellation
   and unreadable results. Do not equate a successful process exit with all tests
   passing; show percentages only when progress is measurable.
-- [ ] Use a disposable project copy by default so tester builds/cleanup preserve
-  the working folder. Make native execution permissions clear: a private directory
-  or virtual environment does not sandbox executed code.
-- [ ] Prove the complete flow with Francinette and one contrasting tester
+- [x] Use a disposable project copy by default so tester builds/cleanup preserve
+  the working folder. Native runs require explicit confirmation explaining that
+  a private directory or virtual environment does not sandbox executed code.
+
+Current implementation: pinned Supra printf/libft Docker recipes,
+and ft_ps_tester for push_swap
+(native Python environment with definition-driven build/run commands). The native
+adapter has synthetic PTY/result/cancellation tests. Full Linux/macOS platform
+validation and headless-runtime lifecycle/resource measurements remain pending.
+Dedicated stage indicators are implemented; bundled testers currently require
+reading logs for their test outcomes. See [runtime assessment and repeatable platform checks](docs/tester-runtimes.md).
+Supra definitions select Linux amd64 consistently on supported Linux/macOS hosts;
+real build/run and ARM emulation validation remain required.
+Native push_swap exits zero despite printed failures, so its results remain unverified.
+- [ ] Prove the complete flow with Supra and one contrasting tester
   (push_swap or a Python module tester), including setup/retry, cancellation,
   output capture, result handling and French/Spanish interface coverage.
 
 Existing tester implementation checks and remaining native-validation gates are
-recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
+documented in the [tester runtime assessment](docs/tester-runtimes.md).
 These checks do not validate the pending 0.6.0 rework.
 
 ### Priority backend data protection — target 0.6.0
 
-Status: **planned; no production encryption or recovery validation claimed**.
+Status: **backend implementation and disposable recovery checks prepared; production storage and deployment verification pending**.
 The backend owns implementation and operations; client/backend versions remain
 independent. Complete this work as soon as possible, before or alongside 0.6.0.
 
@@ -272,6 +283,55 @@ independent. Complete this work as soon as possible, before or alongside 0.6.0.
 
 Standalone binaries, a broader README redesign and the complete keyboard/keymap
 redesign are separate future work; they do not expand this release's scope.
+
+## 0.6.1 — Encrypted remembered sessions without the OS keyring
+
+Status: **planned; implementation and security/platform validation pending**.
+Target campus workstations where OS-keyring unlocking or password verification
+blocks account connection. This target does not bump the package version or
+authorize publication; confirm the release number against the final scope.
+
+- [ ] Offer **Remember me with a passphrase** as an explicit alternative to OS
+  keyring storage. Keep a session-only option that requires browser pairing again
+  after restart, and preserve existing keyring users. Never silently downgrade
+  credentials to plaintext storage.
+- [ ] Ask users to choose and confirm a strong, unique 42TUI passphrase, separate
+  from their 42 account password. Store the access/refresh tokens, expiry and
+  installation private key in an encrypted file in the existing app-data area.
+  Never save or transmit the passphrase or save the derived encryption key.
+- [ ] Reuse the existing cryptography dependency: derive an encryption key using
+  scrypt with a random salt and encrypt with AES-256-GCM and a fresh nonce for
+  every write. Version and authenticate the file metadata; bound file size and
+  validate derivation parameters before performing expensive work. Calibrate the
+  derivation cost on supported campus hardware before finalizing parameters.
+- [ ] Unlock once per app launch with masked input, keeping the derived key only
+  in process memory for automatic token-refresh saves. Cancellation keeps local
+  features available and the saved session untouched. Do not repeat browser
+  authorization unless the backend session has expired or been revoked.
+- [ ] Implement the existing credential-store interface; preserve shared refresh
+  locking and reload the latest credentials before rotating tokens across app
+  instances. Use restricted directory/file access, reject unsafe paths and write
+  atomically. Surface persistence failures without claiming the session was saved;
+  interrupted writes, wrong passphrases and corrupt files must not overwrite it.
+- [ ] Make keyring-to-file migration explicit. Verify the encrypted file before
+  removing the old entry; keep existing credentials usable on failure and require
+  unlock or fresh pairing when the source keyring is inaccessible.
+- [ ] Explain forgotten-passphrase recovery: explicitly discard the saved session
+  and pair again without deleting projects or other local data. Keep backend
+  revocation and local deletion distinct, including offline/failure cases; a local
+  reset alone must not be reported as revocation of the old backend session.
+- [ ] Document that copied vault files allow offline passphrase guessing, shared
+  campus home directories may expose the file on other desks, and encryption
+  protects saved credentials rather than an unlocked or compromised workstation.
+  Do not promise secure memory erasure or encryption of project data.
+- [ ] Validate round trips, wrong passphrases, tampering/truncation, malformed or
+  oversized metadata, permissions/unsafe paths, failed/interrupted writes,
+  multi-instance refresh, migration failure, disconnect/reset and session-only
+  behavior. Cover startup/connection keyboard access, cancellation, small terminals
+  and French/Spanish translations; verify campus Linux and macOS flows.
+- [ ] Preserve current OAuth/API contracts; no backend change is expected for
+  local encrypted storage. Complete focused account/storage/UI regressions,
+  security review and exact-candidate release gates before claiming support.
 
 ## 0.7.0 — Dashboard and interface cleanup
 
@@ -376,6 +436,14 @@ Status: **scope agreed; implementation and release validation pending**.
 
 Status: **captured for design; versions and dates undecided**.
 
+- [ ] Simplify Git collaboration on group projects: guide teammates through
+  connecting a shared development repository, pushing their committed work and
+  pulling each other's changes. Reuse the existing Git review/actions and show
+  incoming/outgoing commits, destination branches and synchronization status.
+  Explain divergent histories and conflicts with guided resolution steps;
+  preserve local edits and require review before changes, without automatic
+  overwrite or force-push. Keep shared development synchronization separate from
+  Vogsphere publication. Detailed design, version and date remain undecided.
 - [ ] Later, support Intra event registration/unregistration from the TUI after
   validating available capabilities and account permissions. Review and confirm
   actions, reflect capacity/eligibility where known and refresh uncertain results

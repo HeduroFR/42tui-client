@@ -29,8 +29,10 @@ reconcile the branches yourself;
 ## Recover work before editing
 
 Before the first editor launch in an app session, setup recovers existing
-Vogsphere work into a new or empty folder. If Vogsphere is empty, it uses the
-development repository; if both are empty, it initializes a local repository.
+Vogsphere work into a new or empty folder. If Vogsphere is empty or unreachable,
+it uses the development repository when that remote has committed work. A warning
+makes clear that Vogsphere changes have not been verified. If both reachable
+remotes are empty, it initializes a local repository.
 
 Editor recovery reuses completed remote checks for five minutes in the same app
 session when local files, HEAD, branches, index, remote configuration and operation
@@ -68,7 +70,8 @@ or **Cancel**. Opening files does not pull, merge, reset or overwrite work;
 reconcile histories explicitly before synchronizing. If Vogsphere is unreachable,
 an existing checkout with committed work still opens with a warning; its remote
 history will be checked again on the next editor launch. New or empty folders
-must complete recovery first. Existing Git folders without a local commit can
+can recover from a populated development remote; recovery remains blocked if no
+usable source can be verified. Existing Git folders without a local commit can
 also be reviewed and opened explicitly. Setup never resets or force-pushes work.
 
 ## Publish committed work

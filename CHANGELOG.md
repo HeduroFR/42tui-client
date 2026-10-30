@@ -2,7 +2,96 @@
 
 ## Unreleased
 
-No unreleased package changes.
+- License the client under GNU GPL version 3.0.
+
+- Use the maintained Supra libft fork to show structured test results; its Docker image rebuilds on first use.
+
+- Avoid a cluster-map error when a workstation view closes while its grid is being removed.
+
+- Offer Germinette for Python modules 00–10, 05 bis, 06 bis and A-Maze-ing
+  through a shared Docker image. Bis testers show reported checks; the other
+  modules report recorded failures but remain unverified when none are recorded. A report with
+  skipped checks is no longer displayed as a confirmed pass.
+
+- Preserve tester output and terminal formatting when reopening the workspace during a run.
+
+- Add project acknowledgements and shorten the README tester section, with a
+  separate guide for setup and results.
+
+- Clarify in the README that 42TUI primarily targets 42 Angoulême and some
+  features may be buggy or unusable on other campuses.
+
+- Add Tripouille get_next_line mandatory testing in a Linux container, with
+  verified test counts from the maintained fork. Docker builds the image on
+  first use; project files remain untouched.
+
+- Center the tester removal icon within its button.
+
+- Hide tester input for non-interactive runs and after completion; custom testers can configure it.
+
+- Use a trash icon for tester removal, with a readable Remove label in text mode.
+
+- Present tester results in a status card with readable counts that adapt to narrow
+  panels. Open the log in your preferred code editor, with “View full output”
+  alongside it on the right; successful
+  runs no longer show a raw log path or redundant exit code.
+
+- Use the maintained Supra printf fork with native arm64 Docker execution on Apple
+  Silicon, per-test timeouts and validated JSON result counts. The new pinned image
+  builds on first run. libft still uses amd64 emulation on ARM.
+
+- Remove bundled Francinette in favor of Supra printf/libft and native push_swap.
+  Keep custom catalog entries
+  and previously downloaded Docker images untouched.
+- Add a one-character left inset to tester console output.
+
+- Clean and force-rebuild Supra project copies inside Linux before testing, so
+  existing macOS/other-architecture objects and archives cannot be reused as an
+  up-to-date build. Original source folders and compiled outputs remain intact.
+
+- Add Supra testers for ft_printf and libft using pinned Linux containers
+  on Linux/macOS, with a Debian GCC/glibc environment and no host tester-tool
+  installation. Runs preserve project files, disable network access and keep full
+  diagnostics. libft completion remains unverified.
+
+- Show the current tester preparation/build/run stage. Keep detailed test cases
+  in the log; custom testers can provide verified summaries.
+
+- Run a pinned push_swap tester without Docker, using a private Python environment
+  and a disposable project copy. Native execution requires confirmation; Git and
+  project build tools must already be installed. Custom tester definitions can
+  select native execution and preparation commands.
+
+- Distinguish reported test failures from tester process failures, unreadable
+  reports and unverified results. Show exit codes and available test counts in
+  the workspace and saved log, with French/Spanish translations. Custom testers
+  can provide a fresh JSON summary through `result_file`; results are never inferred
+  from a successful exit alone.
+- Avoid a workspace refresh error when replacing a finished tester run.
+
+- Recover new or empty project folders from the development remote when Vogsphere
+  is unreachable, with a warning that Vogsphere history remains unverified.
+  Existing local work still requires review before synchronization.
+
+- Ask for SSH passphrases in the masked modal during Save + Set Up Checkout,
+  keeping authentication prompts inside the TUI. Cancel stops completion feedback.
+
+- Separate tester Run and removal controls with a visible gap and use the shared
+  square danger button for removal.
+
+- Keep tester status messages and multiline commands aligned at the left edge
+  of the console instead of drifting diagonally across the output.
+
+- Keep tester setup and execution inside 42TUI, with live output, line input,
+  cancellation, elapsed time, rerunning and saved logs. Close and reopen the
+  tester workspace while a run continues on its original project.
+  Render terminal redraws without repeated progress blocks, open the log folder
+  directly, and align the tester removal button with Run.
+  Separate the action buttons with gaps and leave space below the input field.
+
+- Run Docker testers against a disposable project copy, excluding Git metadata,
+  so tester builds and cleanup preserve your working folder. Generated files in
+  the copy are discarded after the run; diagnostics remain in the tester log.
 
 ## 0.5.2
 

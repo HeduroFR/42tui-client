@@ -31,6 +31,7 @@ secrets/
 .codex/
 .agents/
 .superpowers/
+/docs/superpowers/
 graphify-out/
 playwright-report/
 test-results/

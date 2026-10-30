@@ -39,6 +39,7 @@ class TerminalCapabilitiesTests(TestCase):
 
     def test_unknown_private_glyphs_have_a_portable_fallback(self):
         self.assertEqual(icon_glyph('\uf067', 'unicode'), '+')
+        self.assertEqual(icon_glyph('\uf1f8', 'unicode'), '🗑︎')
         self.assertEqual(icon_glyph('\uf067', 'nerd'), '\uf067')
         self.assertEqual(icon_glyph('\uf067', 'text'), '')
         self.assertEqual(icon_glyph('\ue123', 'unicode'), '·')

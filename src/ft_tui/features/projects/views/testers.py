@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import subprocess
+import time
 from functools import partial
 from typing import ClassVar
 
 from rich.markup import escape
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 
 from ft_tui.i18n import translate
 from ft_tui.features.projects.adapters.tester_catalog import Tester
-from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, TesterError
-from ft_tui.features.projects.adapters.tester_terminal import TerminalSession, wait_for_key
+from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, DockerStatus, TesterError
+from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+from ft_tui.features.projects.tester_results import TesterRunResult
+from ft_tui.features.projects.adapters.tester_native import run_native
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -55,6 +59,35 @@ class DockerInstallScreen(AppModal[bool]):
         self.dismiss(event.button.id == "confirm-docker-install")
 
 
+class NativeTesterConsent(AppModal[bool]):
+    BINDINGS = [("escape", "cancel", "Cancel")]
+    DEFAULT_CSS = """
+    #native-tester-consent { width: 80; max-width: 94%; height: auto; border: round $primary; padding: 1 2; }
+    #native-tester-consent Static { height: auto; margin-bottom: 1; }
+    #native-tester-consent Button { margin: 1 1; }
+    """
+
+    def __init__(self, tester):
+        super().__init__()
+        self.tester = tester
+
+    def compose(self):
+        with Vertical(id="native-tester-consent"):
+            yield Static(self.tester.name, markup=False, localize=False)
+            yield Static("Native testers run code on your computer. A disposable copy and virtual environment do not sandbox it.")
+            yield Static(f"{self.tester.repository}\n{self.tester.ref}", markup=False, localize=False)
+            yield Static("Requires Git, Python and any build tools used by the project. No system packages are installed.")
+            yield Button("Continue and run", id="confirm-native-tester")
+            yield Button("Cancel", id="cancel-native-tester")
+
+    def action_cancel(self):
+        self.dismiss(False)
+
+    def on_button_pressed(self, event):
+        event.stop()
+        self.dismiss(event.button.id == "confirm-native-tester")
+
+
 class TesterAction(Button):
     def __init__(self, tester: Tester, action: str, retry: bool = False, **kwargs):
         source = {"install": "Install {name}", "run": "Run {name}"}[action]
@@ -68,9 +101,58 @@ class TesterAction(Button):
 class TesterRemoveButton(Button):
     def __init__(self, tester: Tester, language: str):
         tooltip = f"Remove {tester.name} images for all projects to free disk space. Reinstallation will be required."
-        super().__init__("×", variant="error", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
+        super().__init__("Remove", icon="\uf1f8", icon_only=True, variant="danger", classes="tester-remove", id=f"tester-remove-{tester.id}", tooltip=tooltip)
         self.tester = tester
         self.tooltip = translate(tooltip, language)
+
+    def _sync_square_size(self):
+        super()._sync_square_size()
+        if self.square and self.is_mounted and self.styles.width is not None:
+            width = round(self.styles.width.value)
+            if width > 1 and width % 2 == 0:
+                # An odd cell count lets a single-cell icon occupy the exact center.
+                self.styles.width = width + 1
+                self.styles.min_width = width + 1
+                self.styles.max_width = width + 1
+
+
+class TesterLogButton(Button):
+    def __init__(self, log_path=None):
+        super().__init__("Open log", id="tester-log-open")
+        self.log_path = log_path
+
+
+class TesterResultCard(Vertical):
+    """Readable last-run summary; full process diagnostics stay in the transcript."""
+
+    def __init__(self, message, outcome, log_path, language):
+        status = outcome.status if isinstance(outcome, TesterRunResult) else "unknown"
+        tone = "success" if status == "passed" else "error" if status in ("failed", "process_failed", "unreadable") else "warning"
+        super().__init__(classes=f"tester-result-card result-{tone}")
+        self.message, self.outcome, self.log_path, self.language = message, outcome, log_path, language
+
+    def compose(self):
+        outcome = self.outcome
+        summary = outcome.summary if isinstance(outcome, TesterRunResult) else None
+        with Horizontal(classes="tester-result-heading"):
+            yield Static(self.message, markup=False, localize=False, classes="tester-result-title")
+            if summary:
+                yield Static(translate("{total} tests", self.language).format(total=summary.total),
+                             markup=False, localize=False, classes="tester-result-total")
+        if summary:
+            with Grid(classes="tester-result-counts"):
+                for key, label in (("passed", "Passed tests"), ("failed", "Failed tests"), ("errors", "Errors"), ("skipped", "Skipped")):
+                    yield Static(f"[b]{getattr(summary, key)}[/b]\n{escape(translate(label, self.language))}",
+                                 localize=False, classes=f"tester-count count-{key}")
+        if isinstance(outcome, TesterRunResult) and outcome.exit_code:
+            yield Static(translate("Process exit code: {code}", self.language).format(code=outcome.exit_code),
+                         markup=False, localize=False, classes="tester-result-detail")
+
+    def on_resize(self):
+        if counts := self.query(".tester-result-counts"):
+            narrow = self.size.width < 52
+            counts.first().styles.grid_size_columns = 2 if narrow else 4
+            counts.first().styles.height = 5 if narrow else 2
 
 
 class ProjectTesters(Vertical):
@@ -78,8 +160,32 @@ class ProjectTesters(Vertical):
     ProjectTesters { height: auto; border-top: solid $secondary; margin-top: 1; padding-top: 1; }
     ProjectTesters Static, #tester-rows { height: auto; }
     ProjectTesters Button { width: 1fr; min-width: 0; margin-top: 1; }
-    ProjectTesters .tester-action-row { height: auto; }
-    ProjectTesters .tester-remove { width: 5; min-width: 5; padding: 0; margin-left: 1; }
+    ProjectTesters .tester-action-row { height: 3; margin-top: 1; align-vertical: middle; }
+    ProjectTesters .tester-action-row Button { height: 3; margin-top: 0; margin-bottom: 0; }
+    ProjectTesters .tester-action-row TesterAction { margin-right: 2; }
+    ProjectTesters .tester-remove { width: auto; padding: 0 1; }
+    ProjectTesters .tester-result-card {
+        height: auto; margin-top: 1; padding: 1 2;
+        background: $surface; border-left: solid $warning;
+    }
+    ProjectTesters .tester-result-card.result-success { border-left: solid $success; }
+    ProjectTesters .tester-result-card.result-error { border-left: solid $error; }
+    ProjectTesters .tester-result-heading { height: auto; }
+    ProjectTesters .tester-result-title { width: 1fr; text-style: bold; }
+    ProjectTesters .result-success .tester-result-title { color: $success; }
+    ProjectTesters .result-error .tester-result-title { color: $error; }
+    ProjectTesters .tester-result-total { width: auto; margin-left: 2; color: $text-muted; }
+    ProjectTesters .tester-result-counts {
+        grid-size: 4; grid-columns: 1fr; grid-rows: 2; grid-gutter: 1 2; height: 2; margin-top: 1;
+    }
+    ProjectTesters .tester-count { height: 2; color: $text-muted; }
+    ProjectTesters .count-passed { color: $success; }
+    ProjectTesters .result-error .count-failed, ProjectTesters .result-error .count-errors { color: $error; }
+    ProjectTesters .tester-result-detail { color: $text-muted; margin-top: 1; }
+    ProjectTesters #tester-result-actions { height: auto; margin-top: 1; }
+    ProjectTesters #tester-result-actions Button { width: 1fr; height: auto; min-height: 3; margin-top: 0; padding: 0 1; }
+    ProjectTesters #tester-result-actions #tester-log-open { margin: 0 2 0 0; }
+    ProjectTesters #tester-status { color: $text-muted; }
     #tester-catalog-warning { color: $warning; }
     #tester-status-scroll { height: auto; max-height: 5; }
     """
@@ -89,9 +195,11 @@ class ProjectTesters(Vertical):
         self.project = None
         self._operating = False
         self._messages: dict[str, str] = {}
+        self._results = {}
         self._retry: set[str] = set()
         self._generation = 0
         self._setup_plan = None
+        self._workspace = None
 
     def compose(self):
         yield Static("Testers", classes="panel-title")
@@ -99,6 +207,9 @@ class ProjectTesters(Vertical):
         with VerticalScroll(id="tester-status-scroll"):
             yield Static("Select a project to see testers.", id="tester-status")
         yield Vertical(id="tester-rows")
+        with Horizontal(id="tester-result-actions"):
+            yield TesterLogButton()
+            yield Button("View full output", id="tester-workspace-open")
 
     def on_mount(self):
         for button in self.query(Button):
@@ -143,7 +254,15 @@ class ProjectTesters(Vertical):
         testers = catalog.for_project(project.slug, service.host.system) if project else ()
         for button in self.query(Button):
             button.disabled = True
-        self.query_one("#tester-status", Static).update("Checking Docker…" if testers else (
+        if self._workspace is not None:
+            button = self.query_one("#tester-workspace-open", Button)
+            button.display = True
+            button.disabled = False
+            log_button = self.query_one(TesterLogButton)
+            log_button.display, log_button.disabled = True, False
+            log_button.log_path = self._workspace.log_path
+        self.query_one("#tester-status", Static).update(
+            ("Checking Docker…" if any(tester.runtime == "docker" for tester in testers) else "Checking testers…") if testers else (
             "No tester is configured for this project on this platform." if project
             else "Select a project to see testers."
         ))
@@ -157,21 +276,23 @@ class ProjectTesters(Vertical):
         await asyncio.sleep(0.12)
         if not self._inspection_current(generation):
             return
-        status = await asyncio.to_thread(service.status)
+        docker_testers = tuple(tester for tester in testers if tester.runtime == "docker")
+        status = await asyncio.to_thread(service.status) if docker_testers else DockerStatus("native")
         if not self._inspection_current(generation):
             return
-        setup_plan = await asyncio.to_thread(service.setup_plan, status)
+        setup_plan = await asyncio.to_thread(service.setup_plan, status) if docker_testers else None
         if not self._inspection_current(generation):
             return
         self._setup_plan = setup_plan
-        removable = await asyncio.to_thread(lambda: {tester.id for tester in testers if service.has_images(tester)}) if (
+        removable = await asyncio.to_thread(lambda: {tester.id for tester in docker_testers if service.has_images(tester)}) if (
             status.state == "ready"
         ) else set()
         if not self._inspection_current(generation):
             return
         self._docker_state = status.state
         messages = {
-            "ready": "Docker is ready. Container execution and folder access are checked before each run.",
+            "native": "Native testers are available. Execution requires your confirmation; Docker is not used.",
+            "ready": "Docker ready",
             "incompatible": "A Linux Docker engine is required.",
             "missing": "Docker is not installed. Run the tester to set it up.",
             "stopped": "Docker is not responding. Run the tester to start or retry setup.",
@@ -188,7 +309,8 @@ class ProjectTesters(Vertical):
             message += "\n" + translate("Configure an existing local project folder to run tests.", self.app.language)
         status_widget = self.query_one("#tester-status", Static)
         status_widget.update(message)
-        status_widget.tooltip = escape(status.detail) if status.detail else None
+        status_widget.tooltip = escape(status.detail) if status.detail else translate(
+            "Container execution and folder access are checked before each run.", self.app.language) if status.state == "ready" else None
         rows = self.query_one("#tester-rows")
         for tester in testers:
             button = TesterAction(tester, "run", tester.id in self._retry)
@@ -202,7 +324,10 @@ class ProjectTesters(Vertical):
             if not self._inspection_current(generation):
                 return
             if tester.id in self._messages:
-                await rows.mount(Static(self._messages[tester.id]))
+                if tester.id in self._results:
+                    await rows.mount(TesterResultCard(*self._results[tester.id], self.app.language))
+                else:
+                    await rows.mount(Static(self._messages[tester.id]))
                 if not self._inspection_current(generation):
                     return
 
@@ -217,13 +342,24 @@ class ProjectTesters(Vertical):
 
     def on_button_pressed(self, event: Button.Pressed):
         event.stop()
+        if event.button.id == "tester-workspace-open":
+            if self._workspace and not self._workspace.is_current:
+                self.app.push_screen("tester-workspace")
+            return
+        if isinstance(event.button, TesterLogButton):
+            if event.button.log_path:
+                self.app._open_file_in_editor(event.button.log_path)
+            return
         if event.button.disabled or self._operating or self.app.tester_docker.busy:
             return
         if isinstance(event.button, TesterAction):
             tester = event.button.tester
             project_path = self.project.local_path if self.project else None
             plan = self._setup_plan
-            if plan:
+            if tester.runtime == "native":
+                self.app.push_screen(NativeTesterConsent(tester),
+                    lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+            elif plan:
                 self.app.push_screen(
                     DockerInstallScreen(plan),
                     lambda approved: self._start("run", tester, plan=plan, project_path=project_path)
@@ -234,6 +370,13 @@ class ProjectTesters(Vertical):
         elif isinstance(event.button, TesterRemoveButton):
             self._start("remove", event.button.tester)
 
+    def _rerun(self, tester, project_path, plan):
+        if tester.runtime == "native":
+            self.app.push_screen(NativeTesterConsent(tester),
+                lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+        else:
+            self._start("run", tester, plan=plan, project_path=project_path)
+
     def _start(self, action, tester=None, *, plan=None, project_path=None):
         if self._operating or self.app.tester_docker.busy:
             return
@@ -243,46 +386,79 @@ class ProjectTesters(Vertical):
         self.query_one("#tester-status", Static).update("Tester operation in progress…")
         if project_path is None:
             project_path = self.project.local_path if self.project else None
-        self.run_worker(partial(self._perform, action, tester, project_path, plan), group="tester-operation")
+        self.app.run_worker(self._perform(action, tester, project_path, plan), group="tester-operation")
 
     async def _perform(self, action, tester, project_path, plan):
         service = self.app.tester_docker
         language = self.app.language
         key = tester.id if tester else "docker"
-        message = "Tester operation completed."
+        message = "Tester finished. Test results are unverified. Read the log."
+        outcome = None
+        result_details = ""
         log_path = None
         error_detail = None
         try:
-            with service.operation():
-                log_path = service.log_path(action)
-                # Keep child output and the return-key prompt inside the terminal handoff.
-                with log_path.open("wb") as log, self.app.suspend():
-                    terminal = TerminalSession(log, language=language)
+            log_path = service.log_path(action)
+            if self.app.is_screen_installed("tester-workspace"):
+                self.app.uninstall_screen("tester-workspace")
+            workspace = self._workspace = TesterWorkspace(
+                f"{tester.name if tester else 'Docker'} · {project_path or action}", log_path,
+                rerun=partial(self._rerun, tester, project_path, plan) if action == "run" else None,
+                interactive_input=action == "run" and bool(tester and tester.interactive_input))
+            self.app.install_screen(workspace, "tester-workspace")
+            await self.app.push_screen("tester-workspace")
+            button = self.query_one("#tester-workspace-open", Button)
+            button.display, button.disabled = True, False
+            log_button = self.query_one(TesterLogButton)
+            log_button.display, log_button.disabled = True, False
+            log_button.log_path = log_path
+            with log_path.open("wb") as log:
+                terminal = workspace.session = WorkspaceSession(log, lambda data: None, language=language)
+
+                def operate():
+                    result = None
                     try:
-                        if action == "run":
-                            service.prepare_and_run(tester, project_path, terminal, plan=plan)
-                        elif action == "remove":
-                            service.remove(tester, terminal)
-                            message = "Tester removed. Run it again to reinstall and test."
-                        self._retry.discard(key)
+                        with service.operation():
+                            if action == "run":
+                                result = (run_native(tester, project_path, terminal) if tester.runtime == "native"
+                                          else service.prepare_and_run(tester, project_path, terminal, plan=plan))
+                            elif action == "remove":
+                                service.remove(tester, terminal)
+                            terminal.check_cancelled()
                     except (KeyboardInterrupt, EOFError):
-                        message = "Tester operation interrupted. You can retry."
-                        if action != "remove":
-                            self._retry.add(key)
-                    except (TesterError, OSError, subprocess.SubprocessError) as error:
-                        message = "Tester operation failed. You can retry."
-                        if action != "remove":
-                            self._retry.add(key)
-                        error_detail = str(error)
-                        terminal.write(error_detail)
-                    finally:
-                        terminal.write(message)
-                        terminal.write(translate("Log: {path}", language).format(path=log_path))
-                        try:
-                            wait_for_key(translate("Press any key to return to 42TUI.", language))
-                        except (KeyboardInterrupt, EOFError):
-                            pass
-        except (KeyboardInterrupt, EOFError):
+                        return False, None
+                    return True, result
+
+                task = asyncio.create_task(asyncio.to_thread(operate))
+                try:
+                    completed, outcome = await asyncio.shield(task)
+                except asyncio.CancelledError:
+                    terminal.cancel()
+                    # Keep the transcript open until child and container cleanup finish.
+                    try:
+                        await task
+                    except (TesterError, OSError, subprocess.SubprocessError):
+                        pass
+                    raise
+            if not completed:
+                raise EOFError
+            if action == "remove":
+                message = "Tester removed. Run it again to reinstall and test."
+            elif isinstance(outcome, TesterRunResult):
+                message = {
+                    "passed": "Tests passed.",
+                    "failed": "Tests failed. Read the log for details.",
+                    "process_failed": "Tester process failed. Test results are not confirmed. Read the log.",
+                    "unreadable": "Tester results could not be read. Read the log.",
+                    "unknown": "Tester finished. Test results are unverified. Read the log.",
+                }[outcome.status]
+                result_details = translate("Process exit code: {code}", language).format(code=outcome.exit_code)
+                if outcome.summary:
+                    result_details += "\n" + translate(
+                        "Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}",
+                        language).format(**vars(outcome.summary))
+            self._retry.discard(key)
+        except (EOFError, asyncio.CancelledError):
             message = "Tester operation interrupted. You can retry."
             if action != "remove":
                 self._retry.add(key)
@@ -291,16 +467,28 @@ class ProjectTesters(Vertical):
             if action != "remove":
                 self._retry.add(key)
             error_detail = str(error)
-            self.app.notify(f"{translate(message, language)} {error}", severity="error")
         finally:
             self._operating = False
             text = translate(message, language)
+            if result_details:
+                text += "\n" + result_details
             if error_detail:
-                text += "\n" + escape(translate(error_detail, language))
+                text += "\n" + translate(error_detail, language)
             if log_path:
-                text += "\n" + translate("Log: {path}", language).format(path=escape(str(log_path)))
-            self._messages[key] = text
-            self.app.refresh(layout=True)
-            self.set_project(self.project)
-            if tester is None:
-                self.app.notify(text, timeout=10)
+                text += "\n" + translate("Log: {path}", language).format(path=log_path)
+                try:
+                    with log_path.open("ab") as log:
+                        log.write((text + "\n").replace("\r\n", "\n").replace("\n", "\r\n").encode())
+                except OSError as error:
+                    text += "\n" + str(error)
+            if self._workspace is not None:
+                self._workspace.result = message
+                self._workspace.result_details = result_details
+                self._workspace.finished = time.monotonic()
+            self._messages[key] = escape(text)
+            card_message = translate(message, language)
+            if error_detail:
+                card_message += "\n" + translate(error_detail, language)
+            self._results[key] = (card_message, outcome, log_path)
+            if self.is_mounted:
+                self.set_project(self.project)

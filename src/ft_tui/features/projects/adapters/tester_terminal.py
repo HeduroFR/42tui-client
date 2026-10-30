@@ -123,3 +123,104 @@ def wait_for_key(message: str) -> None:
         os.read(descriptor, 1)
     finally:
         termios.tcsetattr(descriptor, termios.TCSADRAIN, original)
+
+
+class WorkspaceSession:
+    """Run children on a private PTY without taking over the application's terminal."""
+
+    def __init__(self, log: BinaryIO, output, language: str = "en"):
+        import threading
+        import queue
+        self.log, self.output, self.language = log, output, language
+        self.cancelled = threading.Event()
+        self.cancel_requested = False
+        self.phase = "Preparing the tester…"
+        self.input = queue.SimpleQueue()
+
+    def cancel(self):
+        self.cancel_requested = True
+        self.cancelled.set()
+
+    def check_cancelled(self):
+        if self.cancelled.is_set():
+            # Consume the interruption so finally blocks can run cleanup commands.
+            self.cancelled.clear()
+            raise KeyboardInterrupt
+
+    def write(self, message):
+        self.check_cancelled()
+        if message in {"Preparing a disposable project copy…", "Preparing the native tester…",
+                       "Building the tester image…", "Running the tester…",
+                       "Checking container execution and local folder access…"}:
+            self.phase = message
+        # App messages bypass the PTY, so supply its usual LF-to-CRLF conversion.
+        text = translate(message, self.language).replace("\r\n", "\n")
+        self._output((text.replace("\n", "\r\n") + "\r\n").encode())
+
+    def _output(self, data):
+        self.log.write(data)
+        self.log.flush()
+        self.output(data)
+
+    def run(self, args, *, cwd=None, env=None):
+        import queue
+        self.write("$ " + shlex.join(args))
+        master, slave = pty.openpty()
+        process = None
+        completed = False
+        try:
+            # Match the console emulator dimensions; input remains line-oriented.
+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 100, 0, 0))
+            process = subprocess.Popen(args, cwd=cwd, env={**(env if env is not None else os.environ), "TERM": "dumb"},
+                                       stdin=slave, stdout=slave, stderr=slave, start_new_session=True)
+            os.close(slave)
+            slave = None
+            while True:
+                self.check_cancelled()
+                try:
+                    while True:
+                        os.write(master, self.input.get_nowait())
+                except queue.Empty:
+                    pass
+                ready, _, _ = select.select([master], [], [], .1)
+                if not ready:
+                    if process.poll() is not None:
+                        # A background child must not keep the tester's PTY open forever.
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        completed = True
+                        break
+                    continue
+                try:
+                    data = os.read(master, 65536)
+                except OSError as error:
+                    if error.errno != errno.EIO:
+                        raise
+                    break
+                if not data:
+                    break
+                self._output(data)
+            while True:
+                self.check_cancelled()
+                try:
+                    code = process.wait(timeout=.1)
+                    completed = True
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
+            if code:
+                raise subprocess.CalledProcessError(code, args)
+        finally:
+            if process is not None:
+                if not completed:
+                    # The unreaped leader keeps its process-group identity reserved.
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                process.wait()
+            os.close(master)
+            if slave is not None:
+                os.close(slave)

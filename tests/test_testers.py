@@ -1,8 +1,10 @@
 """Catalog validation and Docker operations without an engine or administrator access."""
 
+import csv
 import json
 import os
-import shlex
+import shutil
+from importlib.resources import files
 import subprocess
 import sys
 import unittest
@@ -12,8 +14,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from ft_tui.features.projects.adapters.tester_catalog import load_catalog, user_catalog_path
+from ft_tui.features.projects.adapters.tester_catalog import Tester, load_catalog, user_catalog_path
 from ft_tui.features.projects.adapters.tester_docker import Host, TesterDocker, TesterError
+
+
+def docker_fixture():
+    return Tester("docker-fixture", "Docker fixture", ("libft", "ft_printf"), ("linux", "darwin"),
+                  "https://example.com/tester.git", "b" * 40, ".", ("runner",), ("amd64", "arm64"))
 
 
 class TesterCatalogTests(unittest.TestCase):
@@ -41,10 +48,17 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
 '''
 
     def test_explicit_slugs_platforms_and_no_born2beroot(self):
-        for slug in ("libft", "ft_printf", "get_next_line"):
+        for slug in ("libft", "ft_printf", "push_swap"):
             for platform in ("linux", "darwin"):
-                self.assertEqual(self.catalog.for_project(slug, platform), (self.tester,))
-                self.assertEqual(self.catalog.for_project("42cursus-" + slug, platform), (self.tester,))
+                entries = self.catalog.for_project(slug, platform)
+                self.assertEqual(len(entries), 1)
+                self.assertEqual(self.catalog.for_project("42cursus-" + slug, platform), entries)
+        gnl = self.catalog.for_project("get_next_line", "linux")
+        self.assertEqual([t.id for t in gnl], ["tripouille-gnl"])
+        self.assertEqual(gnl[0].architectures, ("amd64", "arm64"))
+        self.assertEqual(gnl[0].result_file, ".42tui-gnl-result.json")
+        self.assertFalse(gnl[0].interactive_input)
+        self.assertNotIn("francinette", {t.id for t in self.catalog.testers})
         self.assertFalse(self.catalog.for_project("born2beroot", "linux"))
         self.assertFalse(self.catalog.for_project("libft", "win32"))
 
@@ -52,11 +66,12 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         catalog = self.write(self.entry())
         self.assertEqual(len(catalog.for_project("libft", "linux")), 2)
         self.assertEqual(len(catalog.for_project("libft", "darwin")), 1)
-        catalog = self.write(self.entry("francinette"))
-        self.assertEqual(len(catalog.testers), 1)
+        catalog = self.write(self.entry("supra-libft"))
+        self.assertEqual(len(catalog.testers), len(self.catalog.testers))
         self.assertEqual(catalog.testers[0].name, "Custom tester")
-        self.assertFalse(catalog.for_project("ft_printf", "linux"))
-        self.assertFalse(self.write('[[testers]]\nid="francinette"\nenabled=false').testers)
+        self.assertEqual([t.id for t in catalog.for_project("ft_printf", "linux")], ["supra-printf"])
+        disabled = self.write('[[testers]]\nid="supra-libft"\nenabled=false')
+        self.assertFalse(disabled.for_project("libft", "linux"))
 
     def test_invalid_override_is_atomic(self):
         invalid = ["bad = [", "testers = 1", self.entry() + self.entry(),
@@ -66,15 +81,95 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                    self.entry().replace('"runner", ', '1, '),
                    self.entry().replace('"https://example.com/tester.git"', '"file:///tmp/tester"'),
                    self.entry().replace('a' * 40, 'master'),
-                   '[[testers]]\nid="francinette"\nenabled="false"']
+                   '[[testers]]\nid="docker-fixture"\nenabled="false"']
         for content in invalid:
             with self.subTest(content=content):
-                catalog = self.write('[[testers]]\nid="francinette"\nenabled=false\n' + content)
+                catalog = self.write('[[testers]]\nid="docker-fixture"\nenabled=false\n' + content)
                 self.assertTrue(catalog.error)
                 self.assertEqual(catalog.testers, self.catalog.testers)
         self.assertTrue(self.write("").error)
         self.path.write_bytes(b"\xff")
         self.assertEqual(load_catalog(self.path).testers, self.catalog.testers)
+
+    def test_optional_result_file_is_a_project_relative_json_report(self):
+        catalog = self.write(self.entry() + 'result_file = "reports/result.json"\n')
+        self.assertFalse(catalog.error)
+        self.assertEqual(catalog.testers[-1].result_file, "reports/result.json")
+        self.assertEqual(self.tester.result_file, ".42tui-libft-result.json")
+        for value in ('"/outside.json"', '"../outside.json"', '"."', '""', 'false', '".git/result.json"'):
+            with self.subTest(value=value):
+                catalog = self.write(self.entry() + f'result_file = {value}\n')
+                self.assertTrue(catalog.error)
+                self.assertEqual(catalog.testers, self.catalog.testers)
+
+    def test_native_commands_and_invalid_runtime_fields(self):
+        entry = self.entry() + 'runtime = "native"\nprepare = [["{python}", "-V"]]\n'
+        catalog = self.write(entry)
+        self.assertFalse(catalog.error)
+        self.assertEqual(catalog.testers[-1].runtime, 'native')
+        self.assertEqual(catalog.testers[-1].prepare, (('{python}', '-V'),))
+        for extra in ('runtime="shell"', 'prepare=[[]]', 'runtime="native"\nprepare=["make"]', 'prepare=[["make"]]'):
+            self.assertTrue(self.write(self.entry() + extra).error)
+        self.assertEqual(self.catalog.for_project('push_swap', 'darwin')[0].runtime, 'native')
+
+    def test_bundled_recipe_is_explicit_and_image_identity_tracks_its_bytes(self):
+        catalog = self.write(self.entry() + 'recipe="supra"\n')
+        self.assertFalse(catalog.error)
+        tester = catalog.testers[-1]
+        self.assertEqual(tester.recipe, "supra")
+        self.assertNotEqual(tester.image, replace(tester, recipe=None).image)
+        with patch("ft_tui.features.projects.adapters.tester_catalog.files") as resources:
+            resources.return_value.joinpath.return_value.read_bytes.return_value = b"changed recipe"
+            changed = tester.image
+        self.assertNotEqual(tester.image, changed)
+        for value in ('"../outside"', '"/tmp/file"', '"unknown"', 'false', '"supra"\nruntime="native"'):
+            with self.subTest(value=value):
+                self.assertTrue(self.write(self.entry() + f'recipe={value}\n').error)
+        self.assertFalse(self.write(self.entry() + 'recipe="supra"\narchitectures=["arm64"]\n').error)
+        self.assertTrue(self.write(self.entry().replace('context = "."', 'context = "nested"') + 'recipe="supra"\n').error)
+        for identifier in ("supra-printf", "supra-libft"):
+            bundled = next(t for t in self.catalog.testers if t.id == identifier)
+            self.assertEqual(bundled.architectures, ("amd64", "arm64") if identifier == "supra-printf" else ("amd64",))
+            self.assertEqual(bundled.runtime, "docker")
+            if identifier == "supra-printf":
+                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/42tui-tester-printf.git")
+                self.assertEqual(bundled.result_file, ".42tui-printf-result.json")
+                self.assertIn("--report", bundled.command)
+            else:
+                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/42tui-tester-libft.git")
+                self.assertEqual(bundled.result_file, ".42tui-libft-result.json")
+                self.assertIn("--report", bundled.command)
+
+    def test_germinette_projects_share_image_and_select_explicit_checks(self):
+        projects = [(f"python-module-{number:02}", f"python_module_{number:02}")
+                    for number in range(11)]
+        projects += [("python-module-05-bis", "python_module_05_bis"),
+                     ("python-module-06-bis", "python_module_06_bis"),
+                     ("a-maze-ing", "a_maze_ing")]
+        testers = []
+        for slug, module in projects:
+            with self.subTest(slug=slug):
+                entries = self.catalog.for_project(slug, "linux")
+                self.assertEqual(len(entries), 1)
+                tester = entries[0]
+                testers.append(tester)
+                self.assertEqual(tester.command[0], module)
+                self.assertEqual(tester.recipe, "germinette")
+                self.assertEqual(tester.architectures, ("amd64", "arm64"))
+                self.assertEqual(tester.result_file, ".42tui-germinette-result.json")
+                self.assertIn("--report", tester.command)
+                self.assertFalse(tester.interactive_input)
+        self.assertEqual(len({tester.image for tester in testers}), 1)
+        self.assertEqual(len({tester.image_for("arm64") for tester in testers}), 1)
+        self.assertEqual({tester.image_repository for tester in testers}, {"germinette"})
+        self.assertFalse(self.catalog.for_project("python-module-05-bis-extra", "linux"))
+
+    def test_interactive_input_catalog_option(self):
+        printf = next(t for t in self.catalog.testers if t.id == "supra-printf")
+        self.assertFalse(printf.interactive_input)
+        self.assertTrue(self.write(self.entry()).testers[-1].interactive_input)
+        self.assertFalse(self.write(self.entry() + 'interactive_input=false\n').testers[-1].interactive_input)
+        self.assertTrue(self.write(self.entry() + 'interactive_input="false"\n').error)
 
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):
@@ -82,14 +177,14 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": ""}):
             self.assertEqual(user_catalog_path(), Path.home() / ".config/42tui/testers.toml")
 
-    def test_image_identity_tracks_source_and_is_shared_across_projects(self):
-        self.assertEqual(self.catalog.for_project("libft")[0].image, self.catalog.for_project("ft_printf")[0].image)
+    def test_image_identity_tracks_source_and_distinguishes_project_testers(self):
+        self.assertNotEqual(self.catalog.for_project("libft")[0].image, self.catalog.for_project("ft_printf")[0].image)
         for changed in (replace(self.tester, ref="a" * 40), replace(self.tester, context="docker"),
                         replace(self.tester, repository="https://example.com/other.git")):
             self.assertNotEqual(self.tester.image, changed.image)
 
     def test_architectures_are_opt_in_and_use_separate_image_tags(self):
-        self.assertEqual(self.tester.architectures, ("amd64", "arm64"))
+        self.assertEqual(self.tester.architectures, ("amd64",))
         self.assertEqual(self.tester.image_for("amd64"), self.tester.image)
         self.assertNotEqual(self.tester.image_for("arm64"), self.tester.image)
         custom = self.write(self.entry()).testers[-1]
@@ -99,57 +194,41 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                 self.assertTrue(self.write(self.entry() + f'architectures = {value}\n').error)
 
 
-class FrancinetteLauncherTests(unittest.TestCase):
-    def test_private_compilers_preserve_arguments_and_cleanup_on_success_or_failure(self):
-        with TemporaryDirectory(prefix="francinette 'quoted' ") as directory:
+@unittest.skipUnless(all(shutil.which(tool) for tool in ("sh", "make", "cc", "ar")), "C build tools required")
+class SupraRebuildTests(unittest.TestCase):
+    def test_foreign_up_to_date_outputs_rebuild_only_in_the_project_copy(self):
+        import time
+        with TemporaryDirectory() as directory:
             root = Path(directory)
-            source = root / "source"
-            source.mkdir()
-            binaries = root / "bin"
-            binaries.mkdir()
-            compiler_script = (
-                "#!/bin/sh\nexec " + shlex.quote(sys.executable)
-                + " -c 'import json, sys; print(json.dumps(sys.argv[1:]))' \"$@\"\n"
-            )
-            for compiler in ("clang", "clang++"):
-                executable = binaries / compiler
-                executable.write_text(compiler_script)
-                executable.chmod(0o755)
-            (source / "helper.py").write_text("VALUE = 42\n")
-            main = '''import json, os, subprocess, sys
-from pathlib import Path
-from helper import VALUE
-arguments = ['-g3', 'source with spaces.c', '$(touch nope)', '-o', 'output file']
-print(json.dumps({
-    'root': str(Path(__file__).parent), 'cwd': os.getcwd(), 'value': VALUE,
-    'calls': [json.loads(subprocess.check_output([name, *arguments], text=True))
-              for name in ('clang', 'clang++')],
-}))
-sys.exit(int(os.environ['LAUNCHER_EXIT']))
-'''
-            (source / "main.py").write_text(main)
-            tester = load_catalog(root / "absent.toml").testers[0]
-            script = tester.command[2].replace('"/francinette"', repr(str(source)))
-            for exit_code in (0, 7):
-                with self.subTest(exit_code=exit_code):
-                    result = subprocess.run(
-                        [sys.executable, "-c", script], cwd=root,
-                        env={**os.environ, "PATH": str(binaries), "LAUNCHER_EXIT": str(exit_code)},
-                        capture_output=True, text=True, timeout=15, check=False,
-                    )
-                    self.assertEqual(result.returncode, exit_code, result.stderr)
-                    output = json.loads(result.stdout)
-                    self.assertEqual(output["calls"], [[
-                        "-fdebug-default-version=4", "-g3", "source with spaces.c",
-                        "$(touch nope)", "-o", "output file",
-                    ]] * 2)
-                    self.assertEqual(Path(output["cwd"]).resolve(), root.resolve())
-                    self.assertEqual(output["value"], 42)
-                    self.assertFalse(Path(output["root"]).parent.exists())
-                    self.assertFalse((root / "nope").exists())
-                    self.assertEqual((source / "main.py").read_text(), main)
-                    for compiler in ("clang", "clang++"):
-                        self.assertEqual((binaries / compiler).read_text(), compiler_script)
+            original = root / "original"
+            original.mkdir()
+            (original / "stub.c").write_text("int answer(void) { return 42; }\n")
+            (original / "Makefile").write_text("all: lib.a\nlib.a: stub.o\n\tar rcs lib.a stub.o\nstub.o: stub.c\n\tcc -c stub.c -o stub.o\nfclean:\n\trm -f lib.a stub.o\n")
+            for name in ("stub.o", "lib.a"):
+                (original / name).write_bytes(b"foreign build output")
+                os.utime(original / name, (time.time() + 3600,) * 2)
+            before = {p.name: p.read_bytes() for p in original.iterdir()}
+            copy = root / "copy with spaces"
+            shutil.copytree(original, copy)
+            wrapper = str(files("ft_tui").joinpath("tester_images", "supra.sh"))
+            process = subprocess.run(["sh", wrapper, sys.executable, "-c", "import sys; print(repr(sys.argv[1:]))",
+                                      "argument with spaces", "$(touch nope)"], cwd=copy, capture_output=True, text=True, timeout=20)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            self.assertIn("argument with spaces", process.stdout)
+            self.assertFalse((copy / "nope").exists())
+            self.assertNotEqual((copy / "stub.o").read_bytes(), b"foreign build output")
+            self.assertIn("stub.o", subprocess.check_output(["ar", "t", "lib.a"], cwd=copy, text=True).splitlines())
+            self.assertEqual({p.name: p.read_bytes() for p in original.iterdir()}, before)
+
+    def test_failed_cleanup_stops_before_the_tester_starts(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "Makefile").write_text("fclean:\n\tfalse\n")
+            wrapper = str(files("ft_tui").joinpath("tester_images", "supra.sh"))
+            process = subprocess.run(["sh", wrapper, sys.executable, "-c", "from pathlib import Path; Path('started').touch()"],
+                                     cwd=root, capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertFalse((root / "started").exists())
 
 
 class TesterDockerTests(unittest.TestCase):
@@ -158,7 +237,7 @@ class TesterDockerTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.service = TesterDocker(self.root, Host("linux", "amd64", "ubuntu", "noble"))
-        self.tester = load_catalog(self.root / "absent").testers[0]
+        self.tester = replace(docker_fixture(), result_file=None)
         connection = patch.object(self.service, "connection", side_effect=nullcontext)
         connection.start()
         self.addCleanup(connection.stop)
@@ -192,9 +271,35 @@ class TesterDockerTests(unittest.TestCase):
             self.service.install(self.tester, terminal)
         calls = [call.args[0] for call in terminal.run.call_args_list]
         self.assertEqual(calls[0][-1], f"{self.tester.repository}#{self.tester.ref}")
-        self.assertEqual(calls[0][:4], ["docker", "build", "--platform", "linux/amd64"])
+        self.assertEqual(calls[0][:6], ["docker", "build", "--progress", "plain", "--platform", "linux/amd64"])
         self.assertEqual(calls[1][:3], ["docker", "image", "tag"])
         self.assertFalse(any("install.sh" in " ".join(args) for args in calls))
+
+    def test_bundled_recipe_build_uses_an_isolated_packaged_context_and_pinned_source(self):
+        tester = next(t for t in load_catalog(self.root / "absent").testers if t.id == "supra-printf")
+        terminal = Mock()
+        observed = []
+        def run(args, **kwargs):
+            if "build" in args:
+                context = Path(args[-1])
+                observed.append(context)
+                self.assertEqual(sorted(p.name for p in context.iterdir()), ["Dockerfile", "supra.sh"])
+                self.assertIn("AS builder", (context / "Dockerfile").read_text())
+                self.assertIn("TESTER_REPOSITORY=" + tester.repository, args)
+                self.assertIn("TESTER_REF=" + tester.ref, args)
+        terminal.run.side_effect = run
+        with patch.object(self.service, "_require_ready", return_value="docker"), \
+                patch.object(self.service, "installed", side_effect=[False, True]), \
+                patch.object(self.service, "_cleanup"):
+            self.service.install(tester, terminal)
+        self.assertEqual(len(observed), 1)
+        self.assertFalse(observed[0].exists())
+        runtime = self.service._runtime_arguments(tester)
+        self.assertIn("/tmp:rw,exec,nosuid,nodev,size=256m", runtime)
+        self.assertIn("--read-only", runtime)
+        self.assertIn("none", runtime)
+        self.assertIn("no-new-privileges=true", runtime)
+        self.assertEqual(self.service._runtime_arguments(self.tester), [])
 
     def test_network_build_failure_and_interrupt_never_publish_install(self):
         for failure_at in ("build", "tag"):
@@ -247,6 +352,181 @@ class TesterDockerTests(unittest.TestCase):
                     self.service.run(self.tester, path, Mock())
             ready.assert_not_called()
 
+    def test_tester_writes_and_cleanup_never_change_the_checkout(self):
+        project = self.root / "project"
+        project.mkdir()
+        (project / "source.c").write_text("original")
+        (project / ".git").mkdir()
+        (project / ".git/config").write_text("private remote configuration")
+        (project / "source-link").symlink_to("source.c")
+        for failure in (None, KeyboardInterrupt(), subprocess.CalledProcessError(1, "tester")):
+            mounted = []
+
+            def run(args, **kwargs):
+                fields = next(csv.reader([args[args.index("--mount") + 1]]))
+                copy = Path(next(field.removeprefix("source=") for field in fields if field.startswith("source=")))
+                mounted.append(copy)
+                self.assertNotEqual(copy, project)
+                self.assertFalse((copy / ".git").exists())
+                self.assertTrue((copy / "source-link").is_symlink())
+                (copy / "source.c").write_text("tester changed this")
+                (copy / "artifact").write_text("build output")
+                if failure:
+                    raise failure
+
+            terminal = Mock()
+            terminal.run.side_effect = run
+            with patch.object(self.service, "_require_ready", return_value="docker"), \
+                    patch.object(self.service, "installed", return_value=True), \
+                    patch.object(self.service, "_user_arguments", return_value=[]), \
+                    patch.object(self.service, "_preflight"), \
+                    patch.object(self.service, "_cleanup"):
+                if isinstance(failure, KeyboardInterrupt):
+                    with self.assertRaises(KeyboardInterrupt):
+                        self.service.run(self.tester, str(project), terminal)
+                else:
+                    result = self.service.run(self.tester, str(project), terminal)
+                    self.assertEqual(result.status, "process_failed" if failure else "unknown")
+            self.assertEqual((project / "source.c").read_text(), "original")
+            self.assertEqual((project / ".git/config").read_text(), "private remote configuration")
+            self.assertFalse((project / "artifact").exists())
+            self.assertEqual(len(mounted), 1)
+            self.assertFalse(mounted[0].exists())
+
+    def synthetic_result(self, report=None, *, exit_code=0, configured=True, inherited=None, script=None):
+        from io import BytesIO
+        from ft_tui.features.projects.adapters.tester_docker import DockerStatus
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        project = self.root / "project"
+        project.mkdir(exist_ok=True)
+        if inherited is not None:
+            (project / "result.json").write_text(inherited)
+        tester = replace(self.tester, result_file="result.json" if configured else None)
+        log = BytesIO()
+        terminal = WorkspaceSession(log, lambda data: None)
+        mounted = []
+
+        def run(terminal, args, **kwargs):
+            fields = next(csv.reader([args[args.index("--mount") + 1]]))
+            copy = Path(next(field.removeprefix("source=") for field in fields if field.startswith("source=")))
+            mounted.append(copy)
+            program = "from pathlib import Path; import sys, os; "
+            if report is not None:
+                program += f"Path('result.json').write_text({report!r}); "
+            if script is not None:
+                program += script + "; "
+            program += f"print('synthetic tester finished'); sys.exit({exit_code})"
+            terminal.run([sys.executable, "-c", program], cwd=copy)
+
+        with (patch.object(self.service, "_require_ready", return_value="docker"),
+              patch.object(self.service, "status", return_value=DockerStatus("ready")),
+              patch.object(self.service, "_install"),
+              patch.object(self.service, "installed", return_value=True),
+              patch.object(self.service, "_user_arguments", return_value=[]),
+              patch.object(self.service, "_preflight"),
+              patch.object(self.service, "_run", side_effect=run),
+              patch.object(self.service, "_cleanup")):
+            result = self.service.prepare_and_run(tester, str(project), terminal)
+        self.assertIn(b"synthetic tester finished", log.getvalue())
+        self.assertFalse(mounted[0].exists())
+        return result
+
+    def test_zero_exit_does_not_hide_structured_test_failures(self):
+        result = self.synthetic_result(json.dumps(dict(version=1, total=3, passed=2, failed=1, skipped=0, errors=0)))
+        self.assertIsNotNone(result, "the runner must return a structured outcome")
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.summary.failed, 1)
+        self.assertEqual(result.summary.total, 3)
+        self.assertFalse((self.root / "project/result.json").exists())
+
+    def test_process_exit_without_a_reader_is_not_a_passing_test_result(self):
+        self.assertEqual(self.synthetic_result(configured=False).status, "unknown")
+        result = self.synthetic_result(configured=False, exit_code=1)
+        self.assertEqual(result.status, "process_failed")
+        self.assertEqual(result.exit_code, 1)
+
+    def test_nonzero_exit_with_reported_failures_is_a_test_failure(self):
+        report = json.dumps(dict(version=1, total=3, passed=2, failed=1, skipped=0, errors=0))
+        result = self.synthetic_result(report, exit_code=1)
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.exit_code, 1)
+
+    def test_nonzero_exit_cannot_be_overridden_by_a_passing_report(self):
+        report = json.dumps(dict(version=1, total=3, passed=3, failed=0, skipped=0, errors=0))
+        self.assertEqual(self.synthetic_result(report).status, "passed")
+        self.assertEqual(self.synthetic_result(report, exit_code=2).status, "process_failed")
+
+    def test_invalid_or_empty_summaries_are_unreadable_not_passing(self):
+        valid = dict(version=1, total=3, passed=3, failed=0, skipped=0, errors=0)
+        invalid = [None, "not JSON", "[]", "{}", "{" + "[" * 2000,
+                   json.dumps({**valid, "version": 2}), json.dumps({**valid, "version": True}),
+                   json.dumps({**valid, "failed": -1}), json.dumps({**valid, "passed": True}),
+                   json.dumps({**valid, "passed": "3"}), json.dumps({**valid, "passed": 2}),
+                   json.dumps(dict(version=1, total=0, passed=0, failed=0, skipped=0, errors=0)),
+                   json.dumps(dict(version=1, total=3, passed=0, failed=0, skipped=3, errors=0))]
+        for report in invalid:
+            with self.subTest(report=report):
+                try:
+                    result = self.synthetic_result(report)
+                except (ValueError, TypeError, KeyError, OSError, RecursionError) as error:
+                    self.fail(f"unreadable summaries must be outcomes, not crashes: {type(error).__name__}")
+                self.assertEqual(result.status, "unreadable")
+                self.assertIsNone(result.summary)
+
+    def test_incomplete_reports_never_confirm_a_pass(self):
+        report = dict(version=1, total=1, passed=0, failed=0, skipped=1, errors=0, incomplete=True)
+        result = self.synthetic_result(json.dumps(report))
+        self.assertEqual(result.status, "unknown")
+        self.assertTrue(result.summary.incomplete)
+        report.update(total=2, failed=1)
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "failed")
+        report.update(incomplete="yes")
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "unreadable")
+        report = dict(version=1, total=2, passed=1, failed=0, skipped=1, errors=0)
+        self.assertEqual(self.synthetic_result(json.dumps(report)).status, "unknown")
+
+    def test_results_must_be_fresh_regular_bounded_files_inside_the_copy(self):
+        report = json.dumps(dict(version=1, total=1, passed=1, failed=0, skipped=0, errors=0))
+        self.assertEqual(self.synthetic_result(inherited=report).status, "unreadable")
+        self.assertEqual((self.root / "project/result.json").read_text(), report)
+        outside = self.root / "outside.json"
+        outside.write_text(report)
+        for script in (f"Path('result.json').symlink_to({str(outside)!r})",
+                       "Path('result.json').mkdir()",
+                       "os.mkfifo('result.json')",
+                       "Path('result.json').write_bytes(b' ' * 65537)",
+                       "Path('result.json').write_bytes(b'\\xff')"):
+            with self.subTest(script=script):
+                self.assertEqual(self.synthetic_result(script=script).status, "unreadable")
+        self.assertEqual(outside.read_text(), report)
+
+    def test_docker_launch_failures_cannot_be_reported_as_test_failures(self):
+        report = json.dumps(dict(version=1, total=1, passed=0, failed=1, skipped=0, errors=0))
+        for code in (125, 126, 127):
+            with self.subTest(code=code), self.assertRaises(subprocess.CalledProcessError):
+                self.synthetic_result(report, exit_code=code)
+
+    def test_nested_report_paths_reject_symlink_parents_without_deleting_the_target(self):
+        from ft_tui.features.projects.adapters.tester_reports import clear_report, read_report
+        report = json.dumps(dict(version=1, total=1, passed=1, failed=0, skipped=0, errors=0))
+        project, outside = self.root / "copy", self.root / "outside"
+        project.mkdir()
+        outside.mkdir()
+        target = outside / "result.json"
+        target.write_text(report)
+        (project / "reports").symlink_to(outside, target_is_directory=True)
+        for operation in (clear_report, read_report):
+            with self.subTest(operation=operation.__name__), self.assertRaises(OSError):
+                operation(project, "reports/result.json")
+        self.assertEqual(target.read_text(), report)
+        (project / "reports").unlink()
+        (project / "reports").mkdir()
+        (project / "reports/result.json").write_text(report)
+        self.assertEqual(read_report(project, "reports/result.json").passed, 1)
+        clear_report(project, "reports/result.json")
+        self.assertFalse((project / "reports/result.json").exists())
+
     def test_global_operation_lock_is_released_after_interruption(self):
         with self.assertRaises(KeyboardInterrupt), self.service.operation():
             with self.assertRaises(TesterError), self.service.operation():
@@ -279,9 +559,9 @@ class TesterRemovalTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / "absent.toml").testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root, Host("linux", "amd64"))
-        self.tags = [self.tester.image, self.tester.image_for("arm64"), "42tui/francinette:older"]
+        self.tags = [self.tester.image, self.tester.image_for("arm64"), "42tui/docker-fixture:older"]
         self.containers = []
         for name, value in (("docker", "docker"), ("_require_ready", "docker")):
             mocked = patch.object(self.service, name, return_value=value)
@@ -301,7 +581,7 @@ class TesterRemovalTests(unittest.TestCase):
         return subprocess.CompletedProcess(args, 0, output, "")
 
     def test_removal_is_scoped_to_tester_tags_and_stopped_application_containers(self):
-        self.tags += ["42tui/other:latest", "42tui/francinette-extra:latest", "42tui/francinette:<none>"]
+        self.tags += ["42tui/other:latest", "42tui/docker-fixture-extra:latest", "42tui/docker-fixture:<none>"]
         for number, (name, image, state) in enumerate((
             ("42tui-test-" + "a" * 32, self.tester.image, "exited"),
             ("42tui-probe-" + "b" * 32, self.tester.image_for("arm64"), "created"),
@@ -319,6 +599,21 @@ class TesterRemovalTests(unittest.TestCase):
         self.assertEqual(set(commands[1][5:]), set(self.tags[:3]))
         self.assertFalse(any("prune" in command or "--force" in command for command in commands))
         self.assertIsNone(self.service._connection.get())
+
+    def test_germinette_removal_uses_shared_repository_not_project_id(self):
+        catalog = load_catalog(self.root / "absent")
+        first = catalog.for_project("python-module-00", "linux")[0]
+        other = catalog.for_project("python-module-05-bis", "linux")[0]
+        self.assertEqual(first.image, other.image)
+        self.tags = [first.image, "42tui/unrelated:latest"]
+        self.containers = [{"ID": "000000000001", "Names": "42tui-test-" + "a" * 32,
+                            "Image": first.image, "State": "exited"}]
+        terminal = Mock()
+        self.service.remove(other, terminal)
+        commands = [call.args[0] for call in terminal.run.call_args_list]
+        self.assertIn("000000000001", commands[0])
+        self.assertEqual(commands[1][-1], first.image)
+        self.assertNotIn("42tui/unrelated:latest", commands[1])
 
     def test_inspection_errors_never_start_removal(self):
         for failed_call in (1, 2):
@@ -358,7 +653,7 @@ class TesterArchitectureTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / "absent.toml").testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root, Host("darwin", "amd64"))
         self.engine = "aarch64"
         self.image_platform = "linux/arm64"
@@ -428,7 +723,9 @@ class TesterArchitectureTests(unittest.TestCase):
         terminal = Mock()
         def simulate(args, **kwargs):
             if "--entrypoint" in args:
-                folder = next(self.root.glob(".42tui-probe-*"))
+                fields = next(csv.reader([args[args.index("--mount") + 1]]))
+                source = next(field.removeprefix("source=") for field in fields if field.startswith("source="))
+                folder = next(Path(source).glob(".42tui-probe-*"))
                 (folder / "output").write_text((folder / "input").read_text())
         terminal.run.side_effect = simulate
         with patch.object(self.service, "_cleanup") as cleanup:
@@ -515,7 +812,7 @@ class DockerConnectionTests(unittest.TestCase):
     def test_mount_probe_verifies_roundtrip_and_cleans_failed_emulation(self):
         with TemporaryDirectory(prefix='probe, "quoted" ') as directory:
             path = Path(directory)
-            tester = load_catalog(path / 'absent').testers[0]
+            tester = docker_fixture()
             terminal = Mock()
             def simulate(args, **kwargs):
                 folder = next(path.glob('.42tui-probe-*'))
@@ -543,7 +840,7 @@ class DockerConnectionTests(unittest.TestCase):
     def test_missing_mount_is_reported_separately_from_emulation(self):
         with TemporaryDirectory() as directory:
             path = Path(directory)
-            tester = load_catalog(path / 'absent').testers[0]
+            tester = docker_fixture()
             terminal = Mock()
             terminal.run.side_effect = subprocess.CalledProcessError(81, 'docker')
             with patch.object(self.service, '_cleanup'), self.assertRaisesRegex(TesterError, 'file sharing'):
@@ -563,7 +860,7 @@ class TesterAutomaticSetupTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
-        self.tester = load_catalog(self.root / 'absent').testers[0]
+        self.tester = docker_fixture()
         self.terminal = Mock()
         desktop = patch.object(self.service, '_desktop_installed', return_value=True)
         desktop.start()
@@ -697,7 +994,7 @@ class TesterUnprivilegedTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / 'absent.toml').testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
 
     def test_linux_never_offers_system_installation_or_system_service_start(self):
@@ -853,3 +1150,62 @@ class TesterUnprivilegedTests(unittest.TestCase):
             self.service.install(self.tester, terminal)
         build = terminal.run.call_args_list[0].args[0]
         self.assertIn('BUILDKIT_CONTEXT_KEEP_GIT_DIR=1', build)
+
+
+class NativeTesterTests(unittest.TestCase):
+    def test_real_native_setup_results_and_project_preservation(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_native import run_native
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source, project = root / 'source', root / 'project'
+            source.mkdir()
+            project.mkdir()
+            (source / 'README').write_text('synthetic tester')
+            def git(*args):
+                return subprocess.check_output(['git', '-C', str(source), *args], stderr=subprocess.DEVNULL, text=True).strip()
+            git('init')
+            git('add', 'README')
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-m', 'fixture')
+            revision = git('rev-parse', 'HEAD')
+            (project / 'main.c').write_text('original')
+            tester = replace(docker_fixture(), runtime='native', repository=str(source), ref=revision,
+                             prepare=(("{python}", '-c', 'from pathlib import Path; Path("prepared").touch()'),),
+                             command=("{python}", '-c', 'import json; from pathlib import Path; assert Path("prepared").exists(); '
+                                      'Path("main.c").write_text("changed"); '
+                                      'Path("result.json").write_text(json.dumps(dict(version=1,total=1,passed=1,failed=0,errors=0,skipped=0)))'),
+                             result_file='result.json')
+            result = run_native(tester, str(project), WorkspaceSession(io.BytesIO(), lambda data: None))
+            self.assertEqual(result.status, 'passed')
+            self.assertEqual((project / 'main.c').read_text(), 'original')
+            self.assertFalse((project / 'result.json').exists())
+            failing = replace(tester, command=('{python}', '-c', 'raise SystemExit(3)'), result_file=None)
+            self.assertEqual(run_native(failing, str(project), WorkspaceSession(io.BytesIO(), lambda data: None)).status,
+                             'process_failed')
+            unreadable = replace(tester, command=('{python}', '-c', 'print("no report")'))
+            self.assertEqual(run_native(unreadable, str(project), WorkspaceSession(io.BytesIO(), lambda data: None)).status,
+                             'unreadable')
+            cancelled = replace(tester, command=('{python}', '-c', 'import time; print("NATIVE_READY",flush=True); time.sleep(30)'))
+            terminal = WorkspaceSession(io.BytesIO(), lambda data: terminal.cancel() if data.startswith(b'NATIVE_READY') else None)
+            with self.assertRaises(KeyboardInterrupt):
+                run_native(cancelled, str(project), terminal)
+            self.assertEqual((project / 'main.c').read_text(), 'original')
+            broken = replace(tester, prepare=(('{python}', '-c', 'raise SystemExit(4)'),))
+            with self.assertRaises(subprocess.CalledProcessError):
+                run_native(broken, str(project), WorkspaceSession(io.BytesIO(), lambda data: None))
+
+
+    def test_native_rejects_external_links_before_executing(self):
+        from ft_tui.features.projects.adapters.tester_native import run_native
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project = root / 'project'
+            project.mkdir()
+            (root / 'private').write_text('private')
+            (project / 'linked').symlink_to(root / 'private')
+            tester = replace(docker_fixture(), runtime='native')
+            terminal = Mock()
+            with self.assertRaisesRegex(TesterError, 'links outside'):
+                run_native(tester, str(project), terminal)
+            terminal.run.assert_not_called()

@@ -42,6 +42,12 @@ _VOGSPHERE_WARNING = (
 )
 
 
+_DEVELOPMENT_FALLBACK_WARNING = (
+    "Vogsphere could not be checked. Recovering from the development remote instead; "
+    "Vogsphere changes remain unverified."
+)
+
+
 def _remote_access_failure(error: ProjectGitError) -> bool:
     detail = str(error).casefold()
     return isinstance(error.__cause__, subprocess.TimeoutExpired) or (
@@ -100,14 +106,15 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         target, "rev-parse", "--verify", "HEAD^{commit}", timeout=timeout,
     ).returncode == 0
     warnings = []
+    heads = {}
 
     def inspect_remote(remote, *args):
         try:
             return git(*args)
         except ProjectGitError as error:
-            if remote != "vogsphere" or not committed_existing or not _remote_access_failure(error):
+            if remote != "vogsphere" or not (committed_existing or heads.get("origin")) or not _remote_access_failure(error):
                 raise
-            warnings.append(_VOGSPHERE_WARNING)
+            warnings.append(_VOGSPHERE_WARNING if committed_existing else _DEVELOPMENT_FALLBACK_WARNING)
             return None
 
     configured = []
@@ -122,7 +129,6 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         if url:
             remotes.append((remote, url))
 
-    heads = {}
     defaults = {}
     for remote, url in remotes:
         output = inspect_remote(remote, "ls-remote", "--symref", "--", url, "HEAD", "refs/heads/*")
@@ -137,7 +143,18 @@ def _setup(path: str | Path, dev_url: str | None, vog_url: str | None, timeout: 
         if source:
             branch = _remote_branch(source, heads[source], defaults.get(source))
             url = dict(remotes)[source]
-            git("clone", "--origin", source, "--branch", branch, "--", url, str(target))
+            try:
+                git("clone", "--origin", source, "--branch", branch, "--", url, str(target))
+            except ProjectGitError as error:
+                if (source != "vogsphere" or not heads.get("origin") or not _remote_access_failure(error)
+                        or target.exists() and any(target.iterdir())):
+                    raise
+                # Retry only into an absent/empty target; never remove a partial checkout.
+                source = "origin"
+                branch = _remote_branch(source, heads[source], defaults.get(source))
+                git("clone", "--origin", source, "--branch", branch, "--", dict(remotes)[source], str(target))
+                heads["vogsphere"] = {}
+                warnings.append(_DEVELOPMENT_FALLBACK_WARNING)
         else:
             target.mkdir(parents=True, exist_ok=True)
             git("init", "--initial-branch=dev")

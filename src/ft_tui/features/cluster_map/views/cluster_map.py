@@ -287,8 +287,8 @@ class ClusterMapWorkspace(Vertical):
         self.modal=ClusterWorkstationModal(self,event.hostname,state,'workstation' if event.open_issues else 'person' if state.login else 'workstation',self._scope())
         def closed(result):
             self.modal=None
-            if self.is_mounted:
-                grid=self.query_one(ClusterMapGrid)
+            if self.is_mounted and (grids:=self.query(ClusterMapGrid)):
+                grid=grids.first()
                 grid.clear_selection()
                 grid.focus()
         self.app.push_screen(self.modal,closed)

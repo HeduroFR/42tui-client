@@ -148,6 +148,16 @@ class ProjectNavigationMixin:
             self.notify("The configured project folder does not exist.", severity="error")
             return
 
+        self._open_path_in_editor(project_name, project_path)
+
+    def _open_file_in_editor(self, path: Path) -> None:
+        if not path.is_file():
+            self.notify("The log file no longer exists.", severity="error")
+            return
+        self._open_path_in_editor(path.name, path)
+
+    def _open_path_in_editor(self, project_name: str, project_path: Path) -> None:
+        directory = project_path if project_path.is_dir() else project_path.parent
         editor_commands = {
             "nvim": ("nvim", True),
             "vim": ("vim", True),
@@ -162,7 +172,7 @@ class ProjectNavigationMixin:
 
         args = [executable]
         if terminal_editor:
-            args.append(".")
+            args.append("." if project_path.is_dir() else str(project_path))
         elif self.favorite_editor == "vscode":
             args.extend(("--reuse-window", str(project_path)))
         elif self.favorite_editor == "zed":
@@ -179,7 +189,7 @@ class ProjectNavigationMixin:
                     editor_button.styles.pointer = "default"
                     self.screen.update_pointer_shape()
                     with self.suspend():
-                        result = subprocess.run(args, cwd=project_path, check=False)
+                        result = subprocess.run(args, cwd=directory, check=False)
                 finally:
                     editor_button.styles.pointer = button_pointer
                     self.screen.update_pointer_shape()
@@ -192,7 +202,7 @@ class ProjectNavigationMixin:
             else:
                 subprocess.Popen(
                     args,
-                    cwd=project_path,
+                    cwd=directory,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
