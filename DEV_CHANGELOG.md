@@ -16,6 +16,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Hide input for the non-interactive printf tester and after any run;
+  add a validated `interactive_input` catalog option defaulting to true for
+  compatibility with custom testers. Hide input for setup/removal operations.
+  Patch UI improvement within the planned 0.6.0 minor. Checks: 70 catalog
+  tests, focused catalog and workspace visibility tests passed; whitespace passed.
+  No live terminal check, release or deployment. PR #47.
+
 - 2026-10-30: Use the shared localized trash icon for tester removal, retaining
   square danger styling in icon modes and a readable Remove label in text mode.
   Replace the shared trash Unicode fallback cross with a text-presentation bin.

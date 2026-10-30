@@ -91,3 +91,6 @@ For local testing from the shared workspace, launch
 `42tui-client/.venv/bin/42tui`, open an ft_printf project, then use **Run Supra printf tester**.
 The new pinned image builds automatically; old images are not reused. A custom
 `~/.config/42tui/testers.toml` entry with the same ID overrides the bundled definition.
+
+Custom tester definitions can set `interactive_input = false` to hide the input field.
+It defaults to true for existing custom testers; the field is hidden after a run finishes.

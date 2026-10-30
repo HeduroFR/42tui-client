@@ -134,6 +134,13 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
             else:
                 self.assertIsNone(bundled.result_file)
 
+    def test_interactive_input_catalog_option(self):
+        printf = next(t for t in self.catalog.testers if t.id == "supra-printf")
+        self.assertFalse(printf.interactive_input)
+        self.assertTrue(self.write(self.entry()).testers[-1].interactive_input)
+        self.assertFalse(self.write(self.entry() + 'interactive_input=false\n').testers[-1].interactive_input)
+        self.assertTrue(self.write(self.entry() + 'interactive_input="false"\n').error)
+
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):
             self.assertEqual(user_catalog_path(), self.path.parent / "42tui/testers.toml")

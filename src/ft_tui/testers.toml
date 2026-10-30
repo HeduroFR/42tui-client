@@ -22,6 +22,7 @@ context = "."
 recipe = "supra"
 command = ["timeout", "--signal=TERM", "--kill-after=5s", "600s", "/opt/tester/bin/printf_tester", "--report", "/project/.42tui-printf-result.json"]
 result_file = ".42tui-printf-result.json"
+interactive_input = false
 
 [[testers]]
 id = "ft-ps-tester"

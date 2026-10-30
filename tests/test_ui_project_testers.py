@@ -551,6 +551,25 @@ class TesterLogFolderTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn('denied', notify.call_args.args[0])
 
 
+class TesterInputVisibilityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_interactive_input_visibility_tracks_run(self):
+        from textual.app import App
+        from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+        class Harness(App):
+            language = "en"
+        app = Harness()
+        async with app.run_test() as pilot:
+            for interactive in (False, True):
+                screen = TesterWorkspace("Test", Path("/tmp/test.log"), interactive_input=interactive)
+                await app.push_screen(screen)
+                await pilot.pause()
+                self.assertEqual(screen.query_one("#tester-input").display, interactive)
+                screen.finished = screen.started
+                screen.refresh_output()
+                self.assertFalse(screen.query_one("#tester-input").display)
+                await app.pop_screen()
+
+
 class TesterLogEditorTests(unittest.TestCase):
     def test_file_uses_preferred_editor_and_preserves_path_arguments(self):
         from contextlib import nullcontext

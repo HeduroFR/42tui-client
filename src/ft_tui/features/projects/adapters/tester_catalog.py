@@ -36,6 +36,7 @@ class Tester:
     runtime: str = "docker"
     prepare: tuple[tuple[str, ...], ...] = ()
     recipe: str | None = None
+    interactive_input: bool = True
 
     @property
     def image(self) -> str:
@@ -73,7 +74,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         raise ValueError("Expected [[testers]] entries")
     result: dict[str, Tester | None] = {}
     fields = {"id", "name", "projects", "platforms", "repository", "ref", "context", "command", "enabled",
-              "architectures", "result_file", "runtime", "prepare", "recipe"}
+              "architectures", "result_file", "runtime", "prepare", "recipe", "interactive_input"}
     for entry in document["testers"]:
         if not isinstance(entry, dict) or set(entry) - fields:
             raise ValueError("Unknown tester field")
@@ -127,6 +128,9 @@ def _entries(content: str) -> dict[str, Tester | None]:
             raise ValueError(f"{identifier}: context must stay inside the repository")
         if any(not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", slug) for slug in entry["projects"]):
             raise ValueError(f"{identifier}: invalid project slug")
+        interactive_input = entry.get("interactive_input", True)
+        if not isinstance(interactive_input, bool):
+            raise ValueError(f"{identifier}: interactive_input must be a boolean")
         result_file = entry.get("result_file")
         if "result_file" in entry and (
                 not isinstance(result_file, str) or not result_file.strip() or "\x00" in result_file
@@ -136,7 +140,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         result[identifier] = Tester(
             identifier, entry["name"], tuple(project_slug(slug) for slug in entry["projects"]),
             tuple(entry["platforms"]), entry["repository"], entry["ref"].lower(),
-            entry["context"], tuple(entry["command"]), tuple(architectures), result_file, runtime, tuple(tuple(command) for command in prepare), recipe,
+            entry["context"], tuple(entry["command"]), tuple(architectures), result_file, runtime, tuple(tuple(command) for command in prepare), recipe, interactive_input,
         )
     return result
 

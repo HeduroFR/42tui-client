@@ -25,12 +25,13 @@ class TesterWorkspace(AppModal):
     #tester-input { height: 3; }
     """
 
-    def __init__(self, title, log_path, *, rerun=None):
+    def __init__(self, title, log_path, *, rerun=None, interactive_input=True):
         super().__init__()
         self.title_text, self.log_path = title, log_path
         self.output = deque(maxlen=128)
         self.decoder = codecs.getincrementaldecoder('utf-8')(errors='replace')
         self.rerun = rerun
+        self.interactive_input = interactive_input
         self.session = None
         self.started = time.monotonic()
         self.finished = None
@@ -83,14 +84,16 @@ class TesterWorkspace(AppModal):
         self.query_one('#tester-rerun', Button).disabled = self.finished is None or self.rerun is None
         self.query_one('#tester-cancel', Button).disabled = self.finished is not None or bool(
             self.session and self.session.cancel_requested)
-        self.query_one('#tester-input', Input).disabled = self.finished is not None
+        input_widget = self.query_one('#tester-input', Input)
+        input_widget.display = self.interactive_input and self.finished is None
+        input_widget.disabled = self.finished is not None or not self.interactive_input
 
     def action_close(self):
         self.app.pop_screen()
 
     def on_input_submitted(self, event: Input.Submitted):
         event.stop()
-        if self.session and self.finished is None:
+        if self.interactive_input and self.session and self.finished is None:
             self.session.input.put((event.value + '\n').encode())
             event.input.value = ''
 

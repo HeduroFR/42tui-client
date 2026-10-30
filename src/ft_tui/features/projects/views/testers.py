@@ -393,7 +393,8 @@ class ProjectTesters(Vertical):
                 self.app.uninstall_screen("tester-workspace")
             workspace = self._workspace = TesterWorkspace(
                 f"{tester.name if tester else 'Docker'} · {project_path or action}", log_path,
-                rerun=partial(self._rerun, tester, project_path, plan) if action == "run" else None)
+                rerun=partial(self._rerun, tester, project_path, plan) if action == "run" else None,
+                interactive_input=action == "run" and bool(tester and tester.interactive_input))
             self.app.install_screen(workspace, "tester-workspace")
             await self.app.push_screen("tester-workspace")
             button = self.query_one("#tester-workspace-open", Button)

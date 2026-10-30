@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Hide tester input for non-interactive runs and after completion; custom testers can configure it.
+
 - Use a trash icon for tester removal, with a readable Remove label in text mode.
 
 - Present tester results in a status card with readable counts that adapt to narrow
