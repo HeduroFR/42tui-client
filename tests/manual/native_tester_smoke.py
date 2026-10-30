@@ -22,12 +22,13 @@ with TemporaryDirectory(prefix="42tui native 'quoted' ") as directory:
     log_path = Path("native-tester-smoke.log").resolve()
     with log_path.open("wb") as log:
         result = run_native(tester, str(project), WorkspaceSession(log, lambda data: None))
-    # Upstream's default main returns zero even when its printed suites fail.
-    assert result.status == "unknown" and result.exit_code == 0, result
+    # The suite exits zero even when the structured report contains failures.
+    assert result.status == "failed" and result.exit_code == 0, result
+    assert result.summary is not None and result.summary.failed > 0, result
     transcript = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", log_path.read_text())
     assert "BASIC FAILURE(S)" in transcript
     rows = re.findall(r"(?m)^(?:100|500)\s*\|[^\n]+\|\s*100\s*\|\s*0\s*$", transcript)
     assert len(rows) == 8, "Expected all eight performance groups to reject the fixture"
     assert {p.name: p.read_bytes() for p in project.iterdir()} == before
-    print(f"Default suite failures remain unverified despite exit zero; original preserved: {result}")
+    print(f"Default suite failures reported despite exit zero; original preserved: {result}")
     print(f"Review the transcript, including memory tooling: {log_path}")

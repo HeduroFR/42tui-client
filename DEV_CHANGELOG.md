@@ -16,6 +16,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   roadmap. Documentation only; no release required. Reviewed the roadmap diff;
   implementation and release validation remain pending.
 
+- 2026-10-30: Pin the merged push_swap tester fork and display its structured
+  results, marking unavailable memory checks incomplete. Patch impact. Fork PR:
+  https://github.com/HeduroFR/42tui-tester-push-swap/pull/1. The 74 focused
+  client tester checks and scope ownership check passed; five fork unit tests and
+  a macOS ARM full-suite failing fixture passed. Intel/AMD, release CI and a
+  passing student implementation remain unverified.
+
 - 2026-10-30: Serialize pairing with credential refresh and reject an approved
   pairing if its installation key changed; restore the selected keyring after
   a failed session-only attempt. Put the shared session lock beside the vault

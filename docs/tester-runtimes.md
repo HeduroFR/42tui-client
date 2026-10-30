@@ -2,8 +2,9 @@
 
 Native push_swap uses a private Python environment and disposable C build. Git,
 Python, make and a C compiler must already be installed. It executes host code
-after per-run consent and requires no Docker runtime. Its upstream default suite
-has no validated structured reader, so a successful exit remains unverified.
+after per-run consent and requires no Docker runtime. The maintained fork writes
+a structured report for the full default suite. The basic suite counts as one check, each performance run counts separately, and
+unavailable or timed-out memory checks leave the result unverified.
 
 Francinette is no longer bundled. Supra covers printf/libft and the native tester
 covers push_swap; the Tripouille fork covers get_next_line. Custom catalog entries stay
@@ -32,8 +33,8 @@ resource measurements or successful lifecycle validation are claimed.
 Run `python tests/manual/native_tester_smoke.py` from the repository root with the
 package installed. It builds an intentionally incorrect C fixture, runs the full
 pinned push_swap default suite, checks the printed failures and confirms the original remains unchanged.
-The pinned default suite exits zero even with failures: the app must retain an
-unverified result rather than a confirmed pass. Inspect `native-tester-smoke.log`: upstream memory tools can time out or
+The pinned default suite exits zero even with failures: the report must identify
+those failures rather than infer success from the exit code. Inspect `native-tester-smoke.log`: upstream memory tools can time out or
 be unavailable, and a printed memory PASS alone is not validation.
 
 The opt-in `tester-platforms.yml` workflow runs that same check on Ubuntu,

@@ -47,11 +47,12 @@ projects = ["push_swap"]
 platforms = ["linux", "darwin"]
 architectures = ["amd64", "arm64"]
 runtime = "native"
-repository = "https://github.com/italoalmeida0/ft_ps_tester.git"
-ref = "49cf9c702812ec3fc1f9d5a1d34bb8d87c073214"
+repository = "https://github.com/HeduroFR/42tui-tester-push-swap.git"
+ref = "03ca0523d1853ee01083ebf4be2319af1cc4a899"
 context = "."
 prepare = [["make"]]
-command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap"]
+command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap", "--report", "{project}/.42tui-push-swap-result.json"]
+result_file = ".42tui-push-swap-result.json"
 
 [[testers]]
 id = "germinette-00"
