@@ -1,83 +1,14 @@
 [[testers]]
-id = "francinette"
-name = "Francinette"
-projects = ["libft", "ft_printf", "get_next_line"]
+id = "supra-libft"
+name = "Supra libft tester"
+projects = ["libft"]
 platforms = ["linux", "darwin"]
-architectures = ["amd64", "arm64"]
-repository = "https://github.com/WaRtr0/francinette-image.git"
-ref = "6b2fcb8e8e587f1ba2969e6fc1fc535847a4cc07"
+architectures = ["amd64"]
+repository = "https://github.com/nda-cunh/libft_tester.git"
+ref = "fa0062fe805ff55179ad4bfd5ccd8d19d3c330fd"
 context = "."
-result_file = ".42tui-francinette-result.json"
-# Francinette writes logs and caches beside main.py. A private writable copy
-# lets standard Linux Docker run with the host UID as well as rootless Docker.
-# Ubuntu 22.04 pairs Clang 14 (DWARF 5 by default) with Valgrind 3.18,
-# which cannot read that debug info. Private compiler wrappers select DWARF 4
-# when -g is requested, retaining Valgrind checks and explicit compiler options.
-command = ["python3", "-c", '''
-import hashlib, importlib, json, os, re, runpy, shlex, shutil, sys, tempfile
-from pathlib import Path
-
-with tempfile.TemporaryDirectory(prefix="francinette-") as directory:
-    root = Path(directory) / "francinette"
-    shutil.copytree("/francinette", root)
-    binaries = Path(directory) / "bin"
-    binaries.mkdir()
-    for name in ("clang", "clang++"):
-        compiler = shutil.which(name)
-        if compiler:
-            wrapper = binaries / name
-            wrapper.write_text(
-                "#!/bin/sh\nexec " + shlex.quote(compiler)
-                + ' -fdebug-default-version=4 "$@"\n', encoding="utf-8"
-            )
-            wrapper.chmod(0o755)
-    os.environ["PATH"] = str(binaries) + os.pathsep + os.environ.get("PATH", "")
-    sys.path.insert(0, str(root))
-    report_path = Path.cwd() / ".42tui-francinette-result.json"
-    def _summary_report(norm, missing, errors, executed, ignore_norm):
-        if (not isinstance(norm, str) or not isinstance(missing, list)
-                or not isinstance(executed, list) or not isinstance(errors, list) or not errors
-                or any(not isinstance(value, str) for value in missing + executed)):
-            return None
-        if any(not isinstance(item, (tuple, list)) or len(item) != 2 or not isinstance(item[0], str)
-               or not isinstance(item[1], list) or any(not isinstance(value, str) for value in item[1]) for item in errors):
-            return None
-        failed = sum(bool(item[1]) for item in errors) + bool(missing)
-        failed += not ignore_norm and any(re.match(r"^[\w\/]+\.(?:c|h): Error!", line) for line in norm.splitlines())
-        skipped = int(bool(ignore_norm)) + int(not executed and not missing)
-        total = len(errors) + 2
-        return dict(version=1, total=total, passed=total-failed-skipped, failed=int(failed), errors=0, skipped=skipped)
-    summary_source = root / "testers/BaseTester.py"
-    if summary_source.is_file() and hashlib.sha256(summary_source.read_bytes()).hexdigest() == "dcae29fb3942b72aa1c54aa6be10daf90be2bfa963355995cde0048ce80cd44e":
-        base = importlib.import_module("testers.BaseTester")
-        original_summary = base.BaseTester.show_summary
-        def show_summary(self, norm, missing, errors, executed):
-            report = _summary_report(norm, missing, errors, executed, self.info.args.ignore_norm)
-            try:
-                return original_summary(self, norm, missing, errors, executed)
-            finally:
-                if report is not None:
-                    report_path.write_text(json.dumps(report), encoding="utf-8")
-        base.BaseTester.show_summary = show_summary
-        # The cached image's tester revision is verified above; keep that revision for this run.
-        importlib.import_module("utils.update").update_paco = lambda: None
-    runpy.run_path(str(root / "main.py"), run_name="__main__")
-''']
-
-
-[[testers]]
-id = "ft-ps-tester"
-name = "Push_swap tester"
-projects = ["push_swap"]
-platforms = ["linux", "darwin"]
-architectures = ["amd64", "arm64"]
-runtime = "native"
-repository = "https://github.com/italoalmeida0/ft_ps_tester.git"
-ref = "49cf9c702812ec3fc1f9d5a1d34bb8d87c073214"
-context = "."
-prepare = [["make"]]
-command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap"]
-
+recipe = "supra"
+command = ["/opt/tester/bin/libft_tester"]
 
 [[testers]]
 id = "supra-printf"
@@ -92,13 +23,14 @@ recipe = "supra"
 command = ["/opt/tester/bin/printf_tester"]
 
 [[testers]]
-id = "supra-libft"
-name = "Supra libft tester"
-projects = ["libft"]
+id = "ft-ps-tester"
+name = "Push_swap tester"
+projects = ["push_swap"]
 platforms = ["linux", "darwin"]
-architectures = ["amd64"]
-repository = "https://github.com/nda-cunh/libft_tester.git"
-ref = "fa0062fe805ff55179ad4bfd5ccd8d19d3c330fd"
+architectures = ["amd64", "arm64"]
+runtime = "native"
+repository = "https://github.com/italoalmeida0/ft_ps_tester.git"
+ref = "49cf9c702812ec3fc1f9d5a1d34bb8d87c073214"
 context = "."
-recipe = "supra"
-command = ["/opt/tester/bin/libft_tester"]
+prepare = [["make"]]
+command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap"]

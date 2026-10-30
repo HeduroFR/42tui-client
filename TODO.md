@@ -162,7 +162,7 @@ version or authorize publication.
 
 | Item | Integration status | 0.6.0 scope |
 | --- | --- | --- |
-| One-button Francinette setup/run on Linux and macOS | Published in 0.5.0 (PR #13, #38) | Main feature |
+| Supra printf/libft container setup/run on Linux and macOS | Replaces bundled Francinette in 0.6.0 | Main feature |
 | Modular testers with lighter setup and an in-TUI workspace | Workspace/results implemented; native push_swap added, platform validation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
@@ -182,10 +182,10 @@ version or authorize publication.
   mandatory for every tester. Evaluate a headless macOS runtime such as Colima,
   including installation prerequisites, lifecycle and resource use, before
   selecting it. Do not silently change environments or omit checks.
-- [ ] Validate a lighter Francinette setup against the pinned source on Linux
-  and macOS, including Intel/Apple Silicon support and memory-check tooling.
-  Do not assume native execution preserves all checks. Preserve unprivileged
-  setup, explicit prerequisite approval, retries and existing user configuration.
+- [ ] Validate the pinned Supra printf/libft Linux containers on Linux and
+  macOS, including Intel/Apple Silicon emulation and memory-check limitations.
+  Preserve unprivileged setup, explicit prerequisite approval, retries and user
+  configuration. Francinette is removed from the bundled catalog.
 - [x] Add a dedicated Testers workspace showing preparation/build/run stages,
   live scrollable output, cancellation, follow-output control and final results.
   Keep execution inside the TUI, including internal terminal emulation when
@@ -199,18 +199,17 @@ version or authorize publication.
   the working folder. Native runs require explicit confirmation explaining that
   a private directory or virtual environment does not sandbox executed code.
 
-Current implementation: Francinette plus pinned Supra printf/libft Docker recipes,
+Current implementation: pinned Supra printf/libft Docker recipes,
 and ft_ps_tester for push_swap
 (native Python environment with definition-driven build/run commands). The native
 adapter has synthetic PTY/result/cancellation tests. Full Linux/macOS platform
 validation and headless-runtime lifecycle/resource measurements remain pending.
-The verified Francinette summary reader and dedicated stage indicators are now
-implemented. See [runtime assessment and repeatable platform checks](docs/tester-runtimes.md).
+Dedicated stage indicators are implemented; bundled testers currently require
+reading logs for their test outcomes. See [runtime assessment and repeatable platform checks](docs/tester-runtimes.md).
 Supra definitions select Linux amd64 consistently on supported Linux/macOS hosts;
 real build/run and ARM emulation validation remain required.
-Local Francinette confirmed failures despite exit zero; native push_swap default
-also exits zero despite printed failures, so its results remain unverified.
-- [ ] Prove the complete flow with Francinette and one contrasting tester
+Native push_swap exits zero despite printed failures, so its results remain unverified.
+- [ ] Prove the complete flow with Supra and one contrasting tester
   (push_swap or a Python module tester), including setup/retry, cancellation,
   output capture, result handling and French/Spanish interface coverage.
 

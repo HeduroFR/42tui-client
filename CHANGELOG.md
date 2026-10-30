@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Remove bundled Francinette in favor of Supra printf/libft and native push_swap.
+  There is currently no bundled get_next_line tester. Keep custom catalog entries
+  and previously downloaded Docker images untouched.
+- Add a one-character left inset to tester console output.
+
 - Clean and force-rebuild Supra project copies inside Linux before testing, so
   existing macOS/other-architecture objects and archives cannot be reused as an
   up-to-date build. Original source folders and compiled outputs remain intact.
@@ -12,9 +17,8 @@
   files, disable network access and keep full diagnostics; completion remains
   unverified until a trustworthy result reader is available.
 
-- Show the current tester preparation/build/run stage. Read Francinette's verified
-  summary so failed suites and norm checks remain failures even when it exits zero.
-  Counts describe suites and checks; detailed test cases remain in the log.
+- Show the current tester preparation/build/run stage. Keep detailed test cases
+  in the log; custom testers can provide verified summaries.
 
 - Run a pinned push_swap tester without Docker, using a private Python environment
   and a disposable project copy. Native execution requires confirmation; Git and

@@ -1,11 +1,8 @@
 """Catalog validation and Docker operations without an engine or administrator access."""
 
-import ast
-import re
 import csv
 import json
 import os
-import shlex
 import shutil
 from importlib.resources import files
 import subprocess
@@ -17,8 +14,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from ft_tui.features.projects.adapters.tester_catalog import load_catalog, user_catalog_path
+from ft_tui.features.projects.adapters.tester_catalog import Tester, load_catalog, user_catalog_path
 from ft_tui.features.projects.adapters.tester_docker import Host, TesterDocker, TesterError
+
+
+def docker_fixture():
+    return Tester("docker-fixture", "Docker fixture", ("libft", "ft_printf"), ("linux", "darwin"),
+                  "https://example.com/tester.git", "b" * 40, ".", ("runner",), ("amd64", "arm64"))
 
 
 class TesterCatalogTests(unittest.TestCase):
@@ -46,25 +48,26 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
 '''
 
     def test_explicit_slugs_platforms_and_no_born2beroot(self):
-        for slug in ("libft", "ft_printf", "get_next_line"):
+        for slug in ("libft", "ft_printf", "push_swap"):
             for platform in ("linux", "darwin"):
                 entries = self.catalog.for_project(slug, platform)
-                self.assertIn(self.tester, entries)
-                self.assertEqual(len(entries), 1 if slug == "get_next_line" else 2)
+                self.assertEqual(len(entries), 1)
                 self.assertEqual(self.catalog.for_project("42cursus-" + slug, platform), entries)
+        self.assertFalse(self.catalog.for_project("get_next_line", "linux"))
+        self.assertNotIn("francinette", {t.id for t in self.catalog.testers})
         self.assertFalse(self.catalog.for_project("born2beroot", "linux"))
         self.assertFalse(self.catalog.for_project("libft", "win32"))
 
     def test_add_replace_and_disable(self):
         catalog = self.write(self.entry())
-        self.assertEqual(len(catalog.for_project("libft", "linux")), 3)
-        self.assertEqual(len(catalog.for_project("libft", "darwin")), 2)
-        catalog = self.write(self.entry("francinette"))
+        self.assertEqual(len(catalog.for_project("libft", "linux")), 2)
+        self.assertEqual(len(catalog.for_project("libft", "darwin")), 1)
+        catalog = self.write(self.entry("supra-libft"))
         self.assertEqual(len(catalog.testers), len(self.catalog.testers))
         self.assertEqual(catalog.testers[0].name, "Custom tester")
         self.assertEqual([t.id for t in catalog.for_project("ft_printf", "linux")], ["supra-printf"])
-        disabled = self.write('[[testers]]\nid="francinette"\nenabled=false')
-        self.assertEqual([t.id for t in disabled.for_project("libft", "linux")], ["supra-libft"])
+        disabled = self.write('[[testers]]\nid="supra-libft"\nenabled=false')
+        self.assertFalse(disabled.for_project("libft", "linux"))
 
     def test_invalid_override_is_atomic(self):
         invalid = ["bad = [", "testers = 1", self.entry() + self.entry(),
@@ -74,10 +77,10 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                    self.entry().replace('"runner", ', '1, '),
                    self.entry().replace('"https://example.com/tester.git"', '"file:///tmp/tester"'),
                    self.entry().replace('a' * 40, 'master'),
-                   '[[testers]]\nid="francinette"\nenabled="false"']
+                   '[[testers]]\nid="docker-fixture"\nenabled="false"']
         for content in invalid:
             with self.subTest(content=content):
-                catalog = self.write('[[testers]]\nid="francinette"\nenabled=false\n' + content)
+                catalog = self.write('[[testers]]\nid="docker-fixture"\nenabled=false\n' + content)
                 self.assertTrue(catalog.error)
                 self.assertEqual(catalog.testers, self.catalog.testers)
         self.assertTrue(self.write("").error)
@@ -88,7 +91,7 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         catalog = self.write(self.entry() + 'result_file = "reports/result.json"\n')
         self.assertFalse(catalog.error)
         self.assertEqual(catalog.testers[-1].result_file, "reports/result.json")
-        self.assertEqual(self.tester.result_file, ".42tui-francinette-result.json")
+        self.assertIsNone(self.tester.result_file)
         for value in ('"/outside.json"', '"../outside.json"', '"."', '""', 'false', '".git/result.json"'):
             with self.subTest(value=value):
                 catalog = self.write(self.entry() + f'result_file = {value}\n')
@@ -132,14 +135,14 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": ""}):
             self.assertEqual(user_catalog_path(), Path.home() / ".config/42tui/testers.toml")
 
-    def test_image_identity_tracks_source_and_is_shared_across_projects(self):
-        self.assertEqual(self.catalog.for_project("libft")[0].image, self.catalog.for_project("ft_printf")[0].image)
+    def test_image_identity_tracks_source_and_distinguishes_project_testers(self):
+        self.assertNotEqual(self.catalog.for_project("libft")[0].image, self.catalog.for_project("ft_printf")[0].image)
         for changed in (replace(self.tester, ref="a" * 40), replace(self.tester, context="docker"),
                         replace(self.tester, repository="https://example.com/other.git")):
             self.assertNotEqual(self.tester.image, changed.image)
 
     def test_architectures_are_opt_in_and_use_separate_image_tags(self):
-        self.assertEqual(self.tester.architectures, ("amd64", "arm64"))
+        self.assertEqual(self.tester.architectures, ("amd64",))
         self.assertEqual(self.tester.image_for("amd64"), self.tester.image)
         self.assertNotEqual(self.tester.image_for("arm64"), self.tester.image)
         custom = self.write(self.entry()).testers[-1]
@@ -186,80 +189,13 @@ class SupraRebuildTests(unittest.TestCase):
             self.assertFalse((root / "started").exists())
 
 
-class FrancinetteLauncherTests(unittest.TestCase):
-    def test_summary_counts_suites_and_checks_without_trusting_exit_zero(self):
-        script = load_catalog(Path("absent")).testers[0].command[2]
-        function = next(node for node in ast.walk(ast.parse(script))
-                        if isinstance(node, ast.FunctionDef) and node.name == "_summary_report")
-        namespace = {"re": re}
-        exec(compile(ast.Module(body=[function], type_ignores=[]), "summary", "exec"), namespace)
-        report = namespace["_summary_report"]
-        self.assertEqual(report("", [], [("suite", [])], [], False),
-                         dict(version=1, total=3, passed=2, failed=0, errors=0, skipped=1))
-        self.assertEqual(report("src/file.c: Error!", ["function"], [("suite", ["failure"])], ["function"], False)["failed"], 3)
-        self.assertEqual(report("", [], [("suite", [])], [], True)["skipped"], 2)
-        for errors in ([], None, [("suite", None)], [("suite", [1])]):
-            self.assertIsNone(report("", [], errors, [], False))
-
-    def test_private_compilers_preserve_arguments_and_cleanup_on_success_or_failure(self):
-        with TemporaryDirectory(prefix="francinette 'quoted' ") as directory:
-            root = Path(directory)
-            source = root / "source"
-            source.mkdir()
-            binaries = root / "bin"
-            binaries.mkdir()
-            compiler_script = (
-                "#!/bin/sh\nexec " + shlex.quote(sys.executable)
-                + " -c 'import json, sys; print(json.dumps(sys.argv[1:]))' \"$@\"\n"
-            )
-            for compiler in ("clang", "clang++"):
-                executable = binaries / compiler
-                executable.write_text(compiler_script)
-                executable.chmod(0o755)
-            (source / "helper.py").write_text("VALUE = 42\n")
-            main = '''import json, os, subprocess, sys
-from pathlib import Path
-from helper import VALUE
-arguments = ['-g3', 'source with spaces.c', '$(touch nope)', '-o', 'output file']
-print(json.dumps({
-    'root': str(Path(__file__).parent), 'cwd': os.getcwd(), 'value': VALUE,
-    'calls': [json.loads(subprocess.check_output([name, *arguments], text=True))
-              for name in ('clang', 'clang++')],
-}))
-sys.exit(int(os.environ['LAUNCHER_EXIT']))
-'''
-            (source / "main.py").write_text(main)
-            tester = load_catalog(root / "absent.toml").testers[0]
-            script = tester.command[2].replace('"/francinette"', repr(str(source)))
-            for exit_code in (0, 7):
-                with self.subTest(exit_code=exit_code):
-                    result = subprocess.run(
-                        [sys.executable, "-c", script], cwd=root,
-                        env={**os.environ, "PATH": str(binaries), "LAUNCHER_EXIT": str(exit_code)},
-                        capture_output=True, text=True, timeout=15, check=False,
-                    )
-                    self.assertEqual(result.returncode, exit_code, result.stderr)
-                    output = json.loads(result.stdout)
-                    self.assertEqual(output["calls"], [[
-                        "-fdebug-default-version=4", "-g3", "source with spaces.c",
-                        "$(touch nope)", "-o", "output file",
-                    ]] * 2)
-                    self.assertEqual(Path(output["cwd"]).resolve(), root.resolve())
-                    self.assertEqual(output["value"], 42)
-                    self.assertFalse(Path(output["root"]).parent.exists())
-                    self.assertFalse((root / "nope").exists())
-                    self.assertEqual((source / "main.py").read_text(), main)
-                    for compiler in ("clang", "clang++"):
-                        self.assertEqual((binaries / compiler).read_text(), compiler_script)
-
-
 class TesterDockerTests(unittest.TestCase):
     def setUp(self):
         self.directory = TemporaryDirectory(prefix="testers space ")
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.service = TesterDocker(self.root, Host("linux", "amd64", "ubuntu", "noble"))
-        self.tester = replace(load_catalog(self.root / "absent").testers[0], result_file=None)
+        self.tester = replace(docker_fixture(), result_file=None)
         connection = patch.object(self.service, "connection", side_effect=nullcontext)
         connection.start()
         self.addCleanup(connection.stop)
@@ -569,9 +505,9 @@ class TesterRemovalTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / "absent.toml").testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root, Host("linux", "amd64"))
-        self.tags = [self.tester.image, self.tester.image_for("arm64"), "42tui/francinette:older"]
+        self.tags = [self.tester.image, self.tester.image_for("arm64"), "42tui/docker-fixture:older"]
         self.containers = []
         for name, value in (("docker", "docker"), ("_require_ready", "docker")):
             mocked = patch.object(self.service, name, return_value=value)
@@ -591,7 +527,7 @@ class TesterRemovalTests(unittest.TestCase):
         return subprocess.CompletedProcess(args, 0, output, "")
 
     def test_removal_is_scoped_to_tester_tags_and_stopped_application_containers(self):
-        self.tags += ["42tui/other:latest", "42tui/francinette-extra:latest", "42tui/francinette:<none>"]
+        self.tags += ["42tui/other:latest", "42tui/docker-fixture-extra:latest", "42tui/docker-fixture:<none>"]
         for number, (name, image, state) in enumerate((
             ("42tui-test-" + "a" * 32, self.tester.image, "exited"),
             ("42tui-probe-" + "b" * 32, self.tester.image_for("arm64"), "created"),
@@ -648,7 +584,7 @@ class TesterArchitectureTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / "absent.toml").testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root, Host("darwin", "amd64"))
         self.engine = "aarch64"
         self.image_platform = "linux/arm64"
@@ -807,7 +743,7 @@ class DockerConnectionTests(unittest.TestCase):
     def test_mount_probe_verifies_roundtrip_and_cleans_failed_emulation(self):
         with TemporaryDirectory(prefix='probe, "quoted" ') as directory:
             path = Path(directory)
-            tester = load_catalog(path / 'absent').testers[0]
+            tester = docker_fixture()
             terminal = Mock()
             def simulate(args, **kwargs):
                 folder = next(path.glob('.42tui-probe-*'))
@@ -835,7 +771,7 @@ class DockerConnectionTests(unittest.TestCase):
     def test_missing_mount_is_reported_separately_from_emulation(self):
         with TemporaryDirectory() as directory:
             path = Path(directory)
-            tester = load_catalog(path / 'absent').testers[0]
+            tester = docker_fixture()
             terminal = Mock()
             terminal.run.side_effect = subprocess.CalledProcessError(81, 'docker')
             with patch.object(self.service, '_cleanup'), self.assertRaisesRegex(TesterError, 'file sharing'):
@@ -855,7 +791,7 @@ class TesterAutomaticSetupTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
-        self.tester = load_catalog(self.root / 'absent').testers[0]
+        self.tester = docker_fixture()
         self.terminal = Mock()
         desktop = patch.object(self.service, '_desktop_installed', return_value=True)
         desktop.start()
@@ -989,7 +925,7 @@ class TesterUnprivilegedTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.tester = load_catalog(self.root / 'absent.toml').testers[0]
+        self.tester = docker_fixture()
         self.service = TesterDocker(self.root / 'testers', Host('linux', 'amd64', 'ubuntu', 'noble'))
 
     def test_linux_never_offers_system_installation_or_system_service_start(self):
@@ -1165,7 +1101,7 @@ class NativeTesterTests(unittest.TestCase):
             git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-m', 'fixture')
             revision = git('rev-parse', 'HEAD')
             (project / 'main.c').write_text('original')
-            tester = replace(load_catalog(root / 'absent').testers[0], runtime='native', repository=str(source), ref=revision,
+            tester = replace(docker_fixture(), runtime='native', repository=str(source), ref=revision,
                              prepare=(("{python}", '-c', 'from pathlib import Path; Path("prepared").touch()'),),
                              command=("{python}", '-c', 'import json; from pathlib import Path; assert Path("prepared").exists(); '
                                       'Path("main.c").write_text("changed"); '
@@ -1199,7 +1135,7 @@ class NativeTesterTests(unittest.TestCase):
             project.mkdir()
             (root / 'private').write_text('private')
             (project / 'linked').symlink_to(root / 'private')
-            tester = replace(load_catalog(root / 'absent').testers[0], runtime='native')
+            tester = replace(docker_fixture(), runtime='native')
             terminal = Mock()
             with self.assertRaisesRegex(TesterError, 'links outside'):
                 run_native(tester, str(project), terminal)

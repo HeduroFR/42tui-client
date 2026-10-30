@@ -137,8 +137,14 @@ are not retained.
 
 ## Project testers
 
+Francinette is no longer bundled. `get_next_line` currently has no bundled tester.
+Existing user catalog definitions remain user-controlled; remove a custom
+Francinette entry there if you added one. Previously downloaded images are not
+automatically deleted.
+
 Configure an existing local project folder, find **Testers** below Registration
-(or press `t` in Projects), then choose **Run Francinette**. The same button handles setup and retries.
+(or press `t` in Projects), then choose **Run Supra libft tester** or
+**Run Supra printf tester**. The same button handles setup and retries.
 
 Tester builds and cleanup run against a temporary copy of the project, excluding
 Git metadata. Your original files stay in place; generated files in the copy are
@@ -154,11 +160,9 @@ The console interprets cursor redraws and colors on a 100-column terminal with
 scrollback; narrow windows can scroll horizontally. Process completion alone does
 not mean all tests passed. The workspace and saved log distinguish reported test
 failures, process failures, unreadable reports and unverified results, with the
-process exit code and available test counts. The bundled Francinette integration
-reads the verified upstream summary. Counts represent tester suites plus
-norm/function checks, not individual C test cases.
-Unknown source versions or missing summaries remain **unreadable**; always
-check details in the log. Full-screen terminal applications are not supported.
+process exit code and available test counts. Bundled Supra testers retain
+unverified completion; read their full logs. Full-screen terminal applications
+are not supported.
 
 Custom definitions in `~/.config/42tui/testers.toml` (or
 `$XDG_CONFIG_HOME/42tui/testers.toml`) can opt into structured results by adding
@@ -197,7 +201,7 @@ Custom native definitions use `runtime = "native"`, optional
 `{python}` (the private environment's interpreter). Commands run without a shell,
 from the project copy. Docker remains the default for existing definitions.
 
-For **ft_printf** and **libft**, additional **Supra printf tester** and
+For **ft_printf** and **libft**, **Supra printf tester** and
 **Supra libft tester** actions build the pinned nda-cunh testers in Linux amd64
 containers on Linux and macOS. ARM machines need Docker CPU emulation; the engine
 and mount checks stop with diagnostics when it is unavailable. No Vala, Meson,
@@ -207,14 +211,12 @@ shared Docker layers. Their runtime has networking disabled, a read-only root
 filesystem and a writable disposable project copy plus temporary storage.
 
 These testers currently report **unverified** completion: read the full transcript,
-including failures, missing functions and forbidden-function checks. They do not
-replace Francinette or establish official project correctness or superior memory
-coverage. To include printf bonus tests, override `supra-printf` in your user catalog
+including failures, missing functions and forbidden-function checks. They do not establish official project correctness or superior memory coverage. To include printf bonus tests, override `supra-printf` in your user catalog
 with the same fields and append `"--bonus"` to its `command`. Runtime Makefiles
 must work with GCC/cc; compiler-specific dependencies are not installed automatically.
 See [runtime details and validation](docs/tester-runtimes.md).
 
-For Francinette on Linux, an accessible Docker engine with BuildKit support must already be
+For Docker testers on Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an
 existing rootless user service; it does not install system packages, start system
 services, change socket permissions or use `sudo`. If Docker is missing or access

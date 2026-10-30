@@ -16,6 +16,17 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Remove the bundled Francinette definition/launcher and its retired
+  manual smoke harness; retain Supra printf/libft and native push_swap. Update
+  catalog/UI regressions and active documentation/roadmap, preserving custom user
+  definitions and old images. Add a one-cell RichLog left inset without changing
+  PTY columns, emulator text or saved transcripts. get_next_line now has no bundled
+  tester. Checks: tester scope 98 passed (74.751 seconds), adapter 70,
+  architecture 9 and locale 2 passed; scope assignments cover 957 tests. Clean
+  wheel/sdist validation confirms only the three remaining tester definitions;
+  whitespace passed. Minor release remains 0.6.0 preparation, with runtime/release
+  gates open. PR #47; no version bump, publication or deployment.
+
 - 2026-10-30: Fix Supra container runs reusing up-to-date host objects/archives
   (macOS Mach-O cannot link into Linux ELF shared libraries). Add an entrypoint
   that runs fclean and a forced all build only inside the disposable mount, fails

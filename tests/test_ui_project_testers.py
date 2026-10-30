@@ -55,11 +55,11 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
         async with self.workspace() as (_app, widget, service, projects, pilot, root):
             for installed in (False, True):
                 service.installed.return_value = installed
-                for slug in ("libft", "ft_printf", "get_next_line"):
+                for slug in ("libft", "ft_printf"):
                     projects[slug].local_path = None
                     await self.select(widget, projects[slug], pilot)
                     button = widget.query_one(TesterAction)
-                    self.assertEqual(str(button.label), "Run Francinette")
+                    self.assertEqual(str(button.label), "Run Supra libft tester" if slug == "libft" else "Run Supra printf tester")
                     self.assertTrue(button.disabled)
                     projects[slug].local_path = str(root)
                     await self.select(widget, projects[slug], pilot)
@@ -74,8 +74,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.status.return_value = DockerStatus(state, "test detail")
                 await self.select(widget, projects["libft"], pilot)
                 buttons = list(widget.query(Button))
-                self.assertEqual({b.tester.id for b in buttons if b.display}, {"francinette", "supra-libft"})
-                self.assertEqual(str(buttons[0].label), "Run Francinette")
+                self.assertEqual({b.tester.id for b in buttons if b.display}, {"supra-libft"})
+                self.assertEqual(str(buttons[0].label), "Run Supra libft tester")
                 self.assertFalse(buttons[0].disabled)
 
     async def test_workspace_keeps_output_and_run_when_closed_and_cancels(self):
@@ -112,7 +112,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await widget.workers.wait_for_complete()
             self.assertFalse(service.busy)
             self.assertFalse(widget._operating)
-            self.assertIn("francinette", widget._retry)
+            self.assertIn("supra-libft", widget._retry)
             service.prepare_and_run.assert_called_once()
             transcript = workspace.log_path.read_text()
             self.assertIn("live tester output", transcript)
@@ -262,7 +262,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 await widget.workers.wait_for_complete()
                 run.assert_called_once()
                 self.assertEqual(run.call_args.args[1], str(root))
-                self.assertIn('unverified', widget._messages['francinette'])
+                self.assertIn('unverified', widget._messages['supra-libft'])
 
     async def test_multiple_testers(self):
         from dataclasses import replace
@@ -303,10 +303,10 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             service.remove.assert_called_once()
             self.assertFalse(widget.query(TesterRemoveButton))
             self.assertFalse(service.busy)
-            self.assertIn("removed", widget._messages["francinette"])
+            self.assertIn("removed", widget._messages["supra-libft"])
             await self.select(widget, projects["ft_printf"], pilot)
             self.assertFalse(widget.query(TesterRemoveButton))
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Francinette")
+            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Supra printf tester")
 
     async def test_remove_failure_keeps_the_delete_action_available_without_changing_run_retry(self):
         async with self.workspace() as (app, widget, service, projects, pilot, _root):
@@ -322,9 +322,9 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()
                 await widget._inspection_worker.wait()
-            self.assertIn("failed", widget._messages["francinette"])
-            self.assertNotIn("francinette", widget._retry)
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Francinette")
+            self.assertIn("failed", widget._messages["supra-libft"])
+            self.assertNotIn("supra-libft", widget._retry)
+            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Supra libft tester")
             self.assertFalse(widget.query_one(TesterRemoveButton).disabled)
             with service.operation():
                 await self.select(widget, projects["libft"], pilot)
@@ -337,7 +337,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await widget._perform("run", app.tester_catalog.testers[0], str(root), None)
             self.assertFalse(service.busy)
             self.assertFalse(widget._operating)
-            self.assertIn("francinette", widget._retry)
+            self.assertIn("supra-libft", widget._retry)
             self.assertIn("build failed", widget._workspace.log_path.read_text())
 
     async def test_invalid_catalog_warning_keeps_bundled_tester_usable(self):
@@ -347,7 +347,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             warning = widget.query_one("#tester-catalog-warning")
             self.assertTrue(warning.display)
             self.assertIn("Invalid tester configuration", str(warning.render()))
-            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Francinette")
+            self.assertEqual(str(widget.query_one(TesterAction).label), "Run Supra libft tester")
             self.assertFalse(widget.query_one(TesterAction).disabled)
 
     async def test_user_directory_installation_requires_explicit_confirmation(self):
@@ -480,6 +480,8 @@ class TesterLogFolderTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test() as pilot:
             screen = TesterWorkspace('Test', Path('/tmp/tester/logs/run.log'))
             await app.push_screen(screen)
+            await pilot.pause()
+            self.assertEqual(screen.query_one("#tester-output").styles.padding.left, 1)
             with patch('ft_tui.features.projects.views.tester_workspace.open_project_folder') as open_folder:
                 await screen._open_log_folder()
                 open_folder.assert_called_once_with('/tmp/tester/logs')

@@ -5,21 +5,16 @@ Python, make and a C compiler must already be installed. It executes host code
 after per-run consent and requires no Docker runtime. Its upstream default suite
 has no validated structured reader, so a successful exit remains unverified.
 
-Francinette stays in Linux containers to retain Valgrind and the upstream Linux
-toolchain. The image definition is pinned, but its Dockerfile clones Francinette
-upstream; the summary hook therefore checks the exact BaseTester.py SHA-256 before
-reading its results and disables automatic updates for the verified source. The
-validated source revision is b828ca56497afd1f183da483ba64caf6fe6326e3. Unrecognized
-source yields an unreadable report. The report counts suite outcomes and the
-norm/function-list checks, not individual test assertions. Failed norm or suite
-checks remain failures even when upstream exits zero. Logs preserve details.
+Francinette is no longer bundled. Supra covers printf/libft and the native tester
+covers push_swap; get_next_line has no bundled tester. Custom catalog entries stay
+user-controlled, and old Docker images are not automatically deleted.
 
 ## Headless macOS runtime assessment — 2026-10-30
 
 [Colima's documentation](https://github.com/abiosoft/colima) describes a headless
 Docker-compatible VM, with configurable CPU, memory and disk allocation. It still
 requires installation, a Linux VM and a Docker CLI. Native execution avoids those
-costs for suitable testers; Colima does not eliminate Francinette's Linux image or
+costs for suitable testers; Colima does not eliminate the Supra Linux images or
 prove memory-check equivalence on either architecture.
 
 The [Colima FAQ](https://github.com/abiosoft/colima/blob/main/docs/FAQ.md) states that
@@ -31,11 +26,6 @@ startup, folder mounts with spaces/quotes, builds, run/cancel/retry and shutdown
 and measure startup time, idle/peak RAM and image/disk use before selecting it.
 This machine has Docker Desktop available but no Colima installation; no Colima
 resource measurements or successful lifecycle validation are claimed.
-
-Native Francinette is not selected: macOS cannot provide the Linux Valgrind checks
-merely through a Python venv. A smaller replacement image must pin all upstream
-sources and demonstrate the same suites and memory checks on Linux amd64/arm64
-before adoption. The existing runtime remains available during that work.
 
 ## Reproducible platform checks
 
@@ -49,9 +39,8 @@ be unavailable, and a printed memory PASS alone is not validation.
 The opt-in `tester-platforms.yml` workflow runs that same check on Ubuntu,
 macOS Intel and Apple Silicon and retains transcripts. A workflow definition is
 not a successful run. School-managed Linux still needs its own permission/runtime
-check; a hosted Linux runner does not establish that policy. For container/UI
-coverage, use `python tests/manual/tester_smoke.py NEW_DISPOSABLE_DIRECTORY` with
-an accessible engine. No personal projects/accounts are used by these checks.
+check; a hosted Linux runner does not establish that policy. For actual container coverage, use the Supra smoke commands below with an
+accessible engine. No personal projects/accounts are used by these checks.
 
 ## Supra printf/libft containers
 
@@ -84,8 +73,7 @@ not evidence that one tester finds more bugs or has stronger memory checks.
 
 The sources lack a validated machine-readable summary integration here. Keep
 results unverified even if the process exits zero. Missing functions and forbidden
-function checks must remain visible in the full log. Francinette stays available;
-Supra is an additional choice. No upstream code is vendored in the Python package.
+function checks must remain visible in the full log. Supra is the bundled choice for printf/libft. No upstream code is vendored in the Python package.
 
 `python tests/manual/supra_tester_smoke.py ft_printf` (or `libft`) builds and runs
 the actual pinned tester against an incomplete synthetic C fixture, checks the
