@@ -395,6 +395,8 @@ class FortyTwoTuiApp(
         if not self.account_connected and (locked_vault or not onboarding_pending):
             self.call_after_refresh(lambda: self.open_account_connection(start_vault=locked_vault, required=not onboarding_pending))
         self.call_after_refresh(self._start_updates)
+        if self.account_connected and not onboarding_pending:
+            self._schedule_community_reminders()
         if self.account_connected:
             self.run_worker(
                 self._sync_online_provider(self.provider, self.account_generation),
@@ -418,8 +420,32 @@ class FortyTwoTuiApp(
         self._apply_language()
         self._update_editor_button()
         await self._refresh_dashboard()
+        self._schedule_community_reminders()
 
+    def _schedule_community_reminders(self):
+        self.set_timer(3, lambda: self._show_community_reminder('github'))
+        self.set_timer(18, lambda: self._show_community_reminder('discord'))
 
+    def _show_community_reminder(self, name):
+        if not self.account_connected or self._settings_operations().get('onboarding_completed') != 'true':
+            return
+        if len(self.screen_stack) > 1:
+            self.set_timer(5, lambda: self._show_community_reminder(name))
+            return
+        if self.screen.query('#community-reminder'):
+            self.set_timer(5, lambda: self._show_community_reminder(name))
+            return
+        key = f'community_{name}_reminder_seen'
+        settings = self._settings_operations()
+        if settings.get(key) == 'true':
+            return
+        from ft_tui.features.settings.views.community import CommunityReminder
+        reminder = CommunityReminder(name)
+        try:
+            settings.save_values({key: 'true'})
+        except Exception:
+            return
+        self.screen.mount(reminder)
 
 
 

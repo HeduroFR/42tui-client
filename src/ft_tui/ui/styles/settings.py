@@ -30,7 +30,14 @@ SETTINGS_CSS = r"""
     #settings-storage-apply { width: auto; min-width: 0; margin-left: 2; }
     .narrow-storage #settings-storage-row { height: 6; layout: vertical; }
     .narrow-storage #settings-storage-apply { margin-left: 0; }
-    #community-github-reminder, #community-discord-reminder { height: auto; margin-top: 1; }
+    #community-links { height: auto; }
+    .community-card { width: 1fr; margin-right: 1; }
+    .community-card:last-child { margin-right: 0; }
+    .community-description { height: auto; color: $text; }
+    .community-url { height: auto; color: $text-muted; margin: 1 0; }
+    .community-card Button { width: auto; min-width: 0; }
+    .compact #community-links { layout: vertical; }
+    .compact .community-card { margin-right: 0; }
     #community-status { height: auto; color: $text-muted; }
     #settings-actions { height: 3; padding: 0 1; background: $surface; }
     #save-settings { width: auto; min-width: 0; }

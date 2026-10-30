@@ -68,15 +68,15 @@ class SettingsWorkspace(Vertical):
         from ft_tui.ui.theme_preview import watch_theme_preview
         watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
-        for name in ('github', 'discord'):
-            self.query_one(f'#community-{name}-reminder').display = (
-                self.app._settings_operations().get(f'community_{name}_reminder_seen') != 'true')
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
         self.set_class(self.size.width < 52, "narrow-storage")
 
     def show_category(self, index: int) -> None:
+        categories = self.query_one('#settings-categories', ListView)
+        if categories.index != index:
+            categories.index = index
         for position, (key, _) in enumerate(SETTINGS_CATEGORIES):
             self.query_one(f"#settings-panel-{key}").display = position == index
         key, label = SETTINGS_CATEGORIES[index]
@@ -147,22 +147,13 @@ class SettingsWorkspace(Vertical):
                         selector.value = current
                 button.disabled = selector.disabled = False
 
-    @on(Button.Pressed, '#community-github, #community-discord, #community-github-dismiss, #community-discord-dismiss')
+    @on(Button.Pressed, '#community-github, #community-discord')
     async def community_action(self, event):
         event.stop()
         name = 'github' if 'github' in event.button.id else 'discord'
         status = self.query_one('#community-status', Static)
-        if event.button.id.endswith('-dismiss'):
-            try:
-                self.app._settings_operations().save_values({f'community_{name}_reminder_seen': 'true'})
-            except Exception:
-                status.update('Could not save the reminder. Please try again.')
-                return
-            self.query_one(f'#community-{name}-reminder').display = False
-            status.update('Reminder dismissed.')
-            return
-        url = ('https://github.com/HeduroFR/42tui-client' if name == 'github'
-               else 'https://tui.42wip.in/discord')
+        from ft_tui.features.settings.views.community import COMMUNITY_LINKS
+        url = COMMUNITY_LINKS[name]
         try:
             opened = await asyncio.to_thread(webbrowser.open, url)
         except Exception:
@@ -385,20 +376,17 @@ class SettingsMixin:
                                 classes="field-help",
                             )
                     with Vertical(id="settings-panel-community", classes="settings-panel"):
-                        with Vertical(classes="settings-section"):
-                            yield Static("GitHub", classes="section-kicker")
-                            yield Static("https://github.com/HeduroFR/42tui-client", markup=False, localize=False, classes="field-help")
-                            yield Button("Open GitHub", id="community-github")
-                            with Vertical(id="community-github-reminder"):
-                                yield Static("Enjoy 42TUI? Consider starring the project on GitHub.", classes="field-help")
-                                yield Button("Dismiss reminder", id="community-github-dismiss")
-                        with Vertical(classes="settings-section"):
-                            yield Static("Discord", classes="section-kicker")
-                            yield Static("https://tui.42wip.in/discord", markup=False, localize=False, classes="field-help")
-                            yield Button("Open Discord", id="community-discord")
-                            with Vertical(id="community-discord-reminder"):
-                                yield Static("Join the 42TUI community on Discord.", classes="field-help")
-                                yield Button("Dismiss reminder", id="community-discord-dismiss")
+                        with Horizontal(id="community-links"):
+                            with Vertical(id="community-github-card", classes="settings-section community-card"):
+                                yield Static("★  GitHub", classes="section-kicker", localize=False)
+                                yield Static("Explore the code, report issues or star the project.", classes="community-description")
+                                yield Static("tui.42wip.in/github", markup=False, localize=False, classes="community-url")
+                                yield Button("Open GitHub", icon="↗", id="community-github")
+                            with Vertical(id="community-discord-card", classes="settings-section community-card"):
+                                yield Static("✦  Discord", classes="section-kicker", localize=False)
+                                yield Static("Meet other users and join the conversation.", classes="community-description")
+                                yield Static("tui.42wip.in/discord", markup=False, localize=False, classes="community-url")
+                                yield Button("Open Discord", icon="↗", id="community-discord")
                         yield Static("", id="community-status")
             with Horizontal(id="settings-actions"):
                 yield Static("Save to keep preference changes.", id="settings-status")

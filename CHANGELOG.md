@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Open GitHub and Discord from Settings and dismiss each community reminder once.
+- Find the GitHub and Discord links in clearer Community cards in Settings.
+
+- Open GitHub and Discord from Settings; see each community reminder once in a bottom-right card with a link button.
 - Copy the login link using the local desktop clipboard when available; the link remains visible if copying cannot be confirmed.
 
 - Preview themes while moving through the selector and place the session-move action beside its selector.

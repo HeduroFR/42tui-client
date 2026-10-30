@@ -128,6 +128,8 @@ class AccountControllerMixin:
             self.call_later(self._reload_project_catalog)
             self.call_later(self._load_friends)
         self._update_account_connection_widgets()
+        if result == 'connected' and self._settings_operations().get('onboarding_completed') == 'true':
+            self._schedule_community_reminders()
 
         if self._session_expiry_prompt_pending:
             self._session_expiry_prompt_pending = False

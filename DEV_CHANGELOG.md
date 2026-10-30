@@ -13,6 +13,15 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Redesign the Settings Community section with descriptive,
+  responsive GitHub and Discord cards. Patch impact within 0.7.0; focused
+  Settings checks run. Full CI and release validation remain pending.
+
+- 2026-10-30: Show the GitHub and Discord reminders once as bottom-right
+  cards after setup, with link and dismiss buttons and project-hosted redirect
+  links for GitHub and Discord. Minor impact toward 0.7.0;
+  focused reminder persistence and UI checks run. Full release checks pending.
+
 - 2026-10-30: Add Community links and independently persistent reminders, and
   use native desktop clipboard tools for OAuth links with terminal fallback.
   Minor impact toward 0.7.0; focused Settings and account tests run. Full CI,

@@ -86,7 +86,7 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 factory.kw['bind'].dispose()
 
-    async def test_community_links_and_reminders_persist_independently(self):
+    async def test_community_links_and_notifications_persist_independently(self):
         from unittest.mock import patch
         from ft_tui.features.settings.views.workspace import SettingsWorkspace
         with tempfile.TemporaryDirectory() as directory:
@@ -97,36 +97,76 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                 app = FortyTwoTuiApp(factory, None)
                 async with app.run_test(size=(100, 36)) as pilot:
                     await pilot.press('f5')
-                    workspace = app.query_one(SettingsWorkspace)
-                    workspace.show_category(len(SETTINGS_CATEGORIES) - 1)
+                    app.query_one(SettingsWorkspace).show_category(len(SETTINGS_CATEGORIES) - 1)
                     await pilot.pause()
-                    self.assertTrue(app.query_one('#community-github-reminder').display)
-                    self.assertTrue(app.query_one('#community-discord-reminder').display)
+                    self.assertEqual(app.query_one('#settings-categories', ListView).index, len(SETTINGS_CATEGORIES) - 1)
+                    github = app.query_one('#community-github-card')
+                    discord = app.query_one('#community-discord-card')
+                    self.assertEqual(github.region.y, discord.region.y)
+                    self.assertLessEqual(github.region.right, discord.region.x)
+                    self.assertTrue(github.content_region.contains_region(app.query_one('#community-github').region))
+                    self.assertTrue(discord.content_region.contains_region(app.query_one('#community-discord').region))
                     with patch('ft_tui.features.settings.views.workspace.webbrowser.open', return_value=True) as browser:
                         app.query_one('#community-github').press()
                         await pilot.pause()
-                        browser.assert_called_with('https://github.com/HeduroFR/42tui-client')
+                        browser.assert_called_with('https://tui.42wip.in/github')
                         app.query_one('#community-discord').press()
                         await pilot.pause()
                         browser.assert_called_with('https://tui.42wip.in/discord')
-                    app.query_one('#community-github-dismiss').press()
+                    app._show_community_reminder('github')
                     await pilot.pause()
-                    self.assertFalse(app.query_one('#community-github-reminder').display)
-                    self.assertTrue(app.query_one('#community-discord-reminder').display)
+                    self.assertFalse(app.query('#community-reminder'))
+                    app.account_connected = True
+                    focused = app.focused
+                    tabs_region = app.query_one('#main-tabs').region
+                    app._show_community_reminder('github')
+                    await pilot.pause()
+                    card = app.query_one('#community-reminder-card')
+                    self.assertGreater(card.region.x, 0)
+                    self.assertGreater(card.region.y, 0)
+                    self.assertEqual(app.focused, focused)
+                    self.assertEqual(app.query_one('#main-tabs').region, tabs_region)
+                    self.assertIn('GitHub', str(app.query_one('#community-reminder-heading', Static).render()))
                     with factory() as session:
                         self.assertEqual(get_setting(session, 'community_github_reminder_seen'), 'true')
                         self.assertNotEqual(get_setting(session, 'community_discord_reminder_seen'), 'true')
+                    with patch('ft_tui.features.settings.views.community.webbrowser.open', return_value=True) as browser:
+                        app.query_one('#community-reminder-open').press()
+                        await pilot.pause()
+                        browser.assert_called_once_with('https://tui.42wip.in/github')
+                    self.assertFalse(app.query('#community-reminder'))
+                    app._show_community_reminder('discord')
+                    await pilot.pause()
+                    self.assertIn('Discord', str(app.query_one('#community-reminder-heading', Static).render()))
+                    await pilot.resize_terminal(64, 24)
+                    await pilot.pause()
+                    card = app.query_one('#community-reminder-card')
+                    self.assertLessEqual(card.region.right, 64)
+                    self.assertLessEqual(card.region.bottom, 24)
+                    with patch('ft_tui.features.settings.views.community.webbrowser.open', return_value=False):
+                        app.query_one('#community-reminder-open').press()
+                        await pilot.pause()
+                        self.assertIn('Could not open', str(app.query_one('#community-reminder-status', Static).render()))
+                    app.query_one('#community-reminder-close').press()
+                    await pilot.pause()
+                    self.assertFalse(app.query('#community-reminder'))
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'community_discord_reminder_seen'), 'true')
                 app = FortyTwoTuiApp(factory, None)
                 async with app.run_test(size=(100, 36)) as pilot:
                     await pilot.press('f5')
                     await pilot.resize_terminal(64, 24)
                     app.query_one(SettingsWorkspace).show_category(len(SETTINGS_CATEGORIES) - 1)
                     await pilot.pause()
-                    self.assertFalse(app.query_one('#community-github-reminder').display)
-                    self.assertTrue(app.query_one('#community-discord-reminder').display)
-                    app.query_one('#community-discord-dismiss').press()
+                    github = app.query_one('#community-github-card')
+                    discord = app.query_one('#community-discord-card')
+                    self.assertGreaterEqual(discord.region.y, github.region.bottom)
+                    self.assertLessEqual(github.region.right, app.query_one('#settings-content').content_region.right)
+                    app.account_connected = True
+                    app._show_community_reminder('github')
+                    app._show_community_reminder('discord')
                     await pilot.pause()
-                    self.assertFalse(app.query_one('#community-discord-reminder').display)
+                    self.assertFalse(app.query('#community-reminder'))
             finally:
                 factory.kw['bind'].dispose()
 
