@@ -1,4 +1,4 @@
-# Keep the same Linux ABI and libc on every host. printf's NASM shim needs amd64.
+# Keep Debian glibc consistent across hosts; select the architecture from the catalog.
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates git gcc libc6-dev pkg-config valac meson ninja-build nasm libglib2.0-dev libbsd-dev \

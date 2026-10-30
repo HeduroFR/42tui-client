@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Use the maintained Supra printf fork with native arm64 Docker execution on Apple
+  Silicon, per-test timeouts and validated JSON result counts. The new pinned image
+  builds on first run. libft still uses amd64 emulation on ARM.
+
 - Remove bundled Francinette in favor of Supra printf/libft and native push_swap.
   There is currently no bundled get_next_line tester. Keep custom catalog entries
   and previously downloaded Docker images untouched.
@@ -11,11 +15,10 @@
   existing macOS/other-architecture objects and archives cannot be reused as an
   up-to-date build. Original source folders and compiled outputs remain intact.
 
-- Add Supra testers for ft_printf and libft using pinned Linux amd64 containers
-  on Linux/macOS, with the same GCC/glibc environment and no host tester-tool
-  installation. ARM hosts require Docker CPU emulation. Runs preserve project
-  files, disable network access and keep full diagnostics; completion remains
-  unverified until a trustworthy result reader is available.
+- Add Supra testers for ft_printf and libft using pinned Linux containers
+  on Linux/macOS, with a Debian GCC/glibc environment and no host tester-tool
+  installation. Runs preserve project files, disable network access and keep full
+  diagnostics. libft completion remains unverified.
 
 - Show the current tester preparation/build/run stage. Keep detailed test cases
   in the log; custom testers can provide verified summaries.

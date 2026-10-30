@@ -121,13 +121,18 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         for value in ('"../outside"', '"/tmp/file"', '"unknown"', 'false', '"supra"\nruntime="native"'):
             with self.subTest(value=value):
                 self.assertTrue(self.write(self.entry() + f'recipe={value}\n').error)
-        self.assertTrue(self.write(self.entry() + 'recipe="supra"\narchitectures=["arm64"]\n').error)
+        self.assertFalse(self.write(self.entry() + 'recipe="supra"\narchitectures=["arm64"]\n').error)
         self.assertTrue(self.write(self.entry().replace('context = "."', 'context = "nested"') + 'recipe="supra"\n').error)
         for identifier in ("supra-printf", "supra-libft"):
             bundled = next(t for t in self.catalog.testers if t.id == identifier)
-            self.assertEqual(bundled.architectures, ("amd64",))
+            self.assertEqual(bundled.architectures, ("amd64", "arm64") if identifier == "supra-printf" else ("amd64",))
             self.assertEqual(bundled.runtime, "docker")
-            self.assertIsNone(bundled.result_file)
+            if identifier == "supra-printf":
+                self.assertEqual(bundled.repository, "https://github.com/HeduroFR/printf_tester.git")
+                self.assertEqual(bundled.result_file, ".42tui-printf-result.json")
+                self.assertIn("--report", bundled.command)
+            else:
+                self.assertIsNone(bundled.result_file)
 
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):

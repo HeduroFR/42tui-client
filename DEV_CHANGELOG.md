@@ -16,6 +16,21 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Connect bundled Supra printf to the maintained HeduroFR fork at
+  f5c6484ab94efdfad0a65bbe8b88be93459c0d05. Prefer native arm64 Docker on
+  Apple Silicon/ARM engines, retain amd64 on Intel, and pass a fresh JSON report
+  to the existing validated result reader. Keep libft on amd64. Configure the
+  fork watchdog, update architecture validation and catalog/manual regressions,
+  and document the local development launcher. Checks: tester scope 98 passed (88.665 seconds),
+  70 adapter and 9 architecture tests passed;
+  real macOS Apple Silicon Docker run through the production adapter completed
+  all 503 comparisons with one expected forbidden-vprintf failure, parsed the
+  report and preserved the poisoned original fixture. No interactive WezTerm
+  visual validation or new CI run claimed. Changes remain uncommitted on
+  feat/tester-workspace-0.6.0 (PR #47). Patch fix within the accumulated 0.6.0
+  minor; release/runtime and redistribution-license gates remain open. No bump,
+  publication, backend change or deployment.
+
 - 2026-10-30: Remove the bundled Francinette definition/launcher and its retired
   manual smoke harness; retain Supra printf/libft and native push_swap. Update
   catalog/UI regressions and active documentation/roadmap, preserving custom user

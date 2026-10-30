@@ -45,15 +45,17 @@ accessible engine. No personal projects/accounts are used by these checks.
 ## Supra printf/libft containers
 
 The bundled definitions use `recipe = "supra"`, the pinned Debian bookworm-slim
-base digest, and exact source SHAs from nda-cunh/printf_tester and libft_tester.
+base digest, and exact source SHAs from HeduroFR/printf_tester (the maintained
+portability fork) and nda-cunh/libft_tester.
 They share one multi-stage recipe and cached toolchain layers; each final image
 contains one tester and the GCC C-project build/runtime dependencies. Vala,
 Meson, Ninja, NASM and Git are build-only. Debian package updates are resolved
 when building an image; this is a common Linux ABI/toolchain, not a bit-reproducible
 package archive. Image identity includes the recipe bytes and source revision.
 
-Both definitions select Linux amd64 on every supported host. On Apple Silicon or
-Linux ARM, Docker must provide amd64 emulation. Existing host/engine detection,
+The printf fork selects native Linux arm64 on Apple Silicon/Linux ARM and amd64
+on Intel hosts. The libft definition still requires Linux amd64 emulation on ARM.
+Existing host/engine detection,
 architecture inspection and writable-mount/execution probes remain mandatory.
 Windows is outside the current client support matrix. No emulator, system package,
 Docker context or daemon permission is silently changed by these definitions.
@@ -71,14 +73,21 @@ project mount and bounded `/tmp` are writable. Temporary storage permits executi
 because the testers compile and load shared libraries there. This limits host exposure, but is
 not evidence that one tester finds more bugs or has stronger memory checks.
 
-The sources lack a validated machine-readable summary integration here. Keep
-results unverified even if the process exits zero. Missing functions and forbidden
-function checks must remain visible in the full log. Supra is the bundled choice for printf/libft. No upstream code is vendored in the Python package.
+The printf fork writes a version-1 JSON report inside the disposable copy through
+`--report`; the existing `result_file` reader validates it and displays counts.
+The fork compares binary stdout and return values in isolated sequential children,
+with a two-second case timeout and a ten-minute runner watchdog. Failed builds do
+not produce a report. libft still has no structured reader and stays unverified
+even if its process exits zero. Missing and forbidden functions remain visible in the log. Supra is the bundled choice for printf/libft. No upstream code is vendored in the Python package.
 
 `python tests/manual/supra_tester_smoke.py ft_printf` (or `libft`) builds and runs
 the actual pinned tester against an incomplete synthetic C fixture, checks the
 expected diagnostics and unchanged original files, and reports image size. PR CI
-runs both cases on amd64 and ARM Linux runners (amd64 emulation) and retains logs. These checks do not establish all
-passing/failing cases, memory-check equivalence, or Mac/ARM emulation support.
-Local Docker Desktop could not start in this session; live container validation
-must be established through CI and later Mac/ARM runs before release claims.
+runs both cases on amd64 and ARM Linux runners and retains logs. printf uses
+native ARM; libft uses emulation. These checks do not establish memory-check
+equivalence or every passing/failing student implementation.
+
+For local testing from the shared workspace, launch
+`42tui-client/.venv/bin/42tui`, open an ft_printf project, then use **Run Supra printf tester**.
+The new pinned image builds automatically; old images are not reused. A custom
+`~/.config/42tui/testers.toml` entry with the same ID overrides the bundled definition.

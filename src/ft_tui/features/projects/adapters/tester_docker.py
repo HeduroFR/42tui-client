@@ -331,7 +331,7 @@ class TesterDocker:
             return
         architecture = self.architecture(tester)
         if tester.recipe:
-            terminal.write("These testers use Linux amd64; ARM hosts require CPU emulation.")
+            terminal.write(f"Building the tester for Linux {architecture}.")
         context = PurePosixPath(tester.context)
         if context.is_absolute() or ".." in context.parts:
             raise TesterError("Docker build context must be inside the tester repository.")

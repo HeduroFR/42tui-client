@@ -115,8 +115,8 @@ def _entries(content: str) -> dict[str, Tester | None]:
                 or any(not isinstance(item, str) or item not in {"amd64", "arm64"} for item in architectures)
                 or len(set(architectures)) != len(architectures)):
             raise ValueError(f"{identifier}: architectures must list amd64 and/or arm64 without duplicates")
-        if recipe and (architectures != ["amd64"] or entry["context"] != "."):
-            raise ValueError(f"{identifier}: Supra recipes require amd64 and the repository root")
+        if recipe and entry["context"] != ".":
+            raise ValueError(f"{identifier}: Supra recipes require the repository root")
         if not re.fullmatch(r"[0-9a-fA-F]{40}", entry["ref"]):
             raise ValueError(f"{identifier}: ref must be a full Git commit SHA")
         url = urlparse(entry["repository"])
