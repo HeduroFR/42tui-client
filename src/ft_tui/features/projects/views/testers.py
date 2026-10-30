@@ -105,6 +105,16 @@ class TesterRemoveButton(Button):
         self.tester = tester
         self.tooltip = translate(tooltip, language)
 
+    def _sync_square_size(self):
+        super()._sync_square_size()
+        if self.square and self.is_mounted and self.styles.width is not None:
+            width = round(self.styles.width.value)
+            if width > 1 and width % 2 == 0:
+                # An odd cell count lets a single-cell icon occupy the exact center.
+                self.styles.width = width + 1
+                self.styles.min_width = width + 1
+                self.styles.max_width = width + 1
+
 
 class TesterLogButton(Button):
     def __init__(self, log_path=None):

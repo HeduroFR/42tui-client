@@ -344,6 +344,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             self.assertEqual(remove.variant, "danger")
             run = widget.query_one(TesterAction)
+            self.assertEqual(remove.region.width % 2, 1)
             self.assertEqual(remove.region.y, run.region.y)
             self.assertEqual(remove.region.height, run.region.height)
             self.assertGreaterEqual(remove.region.x - run.region.right, 2)

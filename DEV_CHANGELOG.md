@@ -16,6 +16,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Center the tester removal icon by using an odd number of terminal
+  cells for its square-style button. The width may differ from a physical square
+  by up to one cell. Patch UI improvement within the planned 0.6.0 minor;
+  focused removal UI test and whitespace check passed. No live terminal font
+  check, release or deployment. PR #47.
+
 - 2026-10-30: Hide input for the non-interactive printf tester and after any run;
   add a validated `interactive_input` catalog option defaulting to true for
   compatibility with custom testers. Hide input for setup/removal operations.

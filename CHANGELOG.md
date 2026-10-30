@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Center the tester removal icon within its button.
+
 - Hide tester input for non-interactive runs and after completion; custom testers can configure it.
 
 - Use a trash icon for tester removal, with a readable Remove label in text mode.
