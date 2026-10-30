@@ -387,8 +387,15 @@ Status: **scope agreed; implementation and release validation pending**.
 - [ ] Add a Discord button in Settings opening the project's Discord invite, plus
   a one-time reminder to join the community, remembered across app restarts.
   Confirm the official invite URL before implementation.
-- [ ] Improve friend-profile, project/evaluation detail loading; measure remaining
-  delays rather than treating the caching shipped in 0.3.0 as completion.
+- [ ] Rework information loading and caching across projects, friends and the
+  dashboard, including project/evaluation details and friend profiles. Measure
+  startup, navigation and refresh delays before and after the rework; investigate
+  redundant requests and make the interface responsive while data loads.
+  Review cache freshness, invalidation, account/curriculum isolation and storage;
+  show stale or unavailable data accurately and preserve useful cached data on
+  network failures. Do not treat the caching shipped in 0.3.0 as completion.
+  Assess backend/API changes and compatibility if needed, and validate loading,
+  refresh, account switching and offline/error behavior before release.
 
 ## 0.8.0 — Notifications, presence and pokes
 
