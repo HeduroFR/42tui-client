@@ -406,9 +406,9 @@ editor time tracking.
   without duplicate time or disruptive errors. Preserve local tracking without
   reading file contents or retaining file paths. Validate fresh installation,
   upgrade/removal and time attribution on Linux/macOS for each supported editor.
-- [ ] Add a GitHub button in Settings opening the project repository, plus a
+- [x] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
-- [ ] Add a Discord button in Settings opening the project's Discord invite, plus
+- [x] Add a Discord button in Settings opening the project's Discord invite, plus
   a one-time reminder to join the community, remembered across app restarts.
   Confirm the official invite URL before implementation.
 - [ ] Rework information loading and caching across projects, friends and the

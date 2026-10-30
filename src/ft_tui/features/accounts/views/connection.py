@@ -150,7 +150,14 @@ class AccountConnectionScreen(AppModal[str | None]):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "account-copy-link":
             if self._authorization_url:
-                self.app.copy_to_clipboard(self._authorization_url)
+                from ft_tui.features.accounts.adapters.clipboard import copy_login_link
+                link = self._authorization_url
+                self.app.copy_to_clipboard(link)
+                copied = await asyncio.to_thread(copy_login_link, link)
+                if self.is_mounted and self._authorization_url == link:
+                    self.query_one("#account-connection-status", Static).update(
+                        "Login link copied." if copied else
+                        "Clipboard not confirmed. Select and copy the link below if needed.")
         elif event.button.id == "account-connection-cancel":
             self._stop_polling()
             await self._restore_previous_store()

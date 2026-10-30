@@ -86,6 +86,50 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 factory.kw['bind'].dispose()
 
+    async def test_community_links_and_reminders_persist_independently(self):
+        from unittest.mock import patch
+        from ft_tui.features.settings.views.workspace import SettingsWorkspace
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true"})
+            try:
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    workspace = app.query_one(SettingsWorkspace)
+                    workspace.show_category(len(SETTINGS_CATEGORIES) - 1)
+                    await pilot.pause()
+                    self.assertTrue(app.query_one('#community-github-reminder').display)
+                    self.assertTrue(app.query_one('#community-discord-reminder').display)
+                    with patch('ft_tui.features.settings.views.workspace.webbrowser.open', return_value=True) as browser:
+                        app.query_one('#community-github').press()
+                        await pilot.pause()
+                        browser.assert_called_with('https://github.com/HeduroFR/42tui-client')
+                        app.query_one('#community-discord').press()
+                        await pilot.pause()
+                        browser.assert_called_with('https://tui.42wip.in/discord')
+                    app.query_one('#community-github-dismiss').press()
+                    await pilot.pause()
+                    self.assertFalse(app.query_one('#community-github-reminder').display)
+                    self.assertTrue(app.query_one('#community-discord-reminder').display)
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'community_github_reminder_seen'), 'true')
+                        self.assertNotEqual(get_setting(session, 'community_discord_reminder_seen'), 'true')
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    await pilot.resize_terminal(64, 24)
+                    app.query_one(SettingsWorkspace).show_category(len(SETTINGS_CATEGORIES) - 1)
+                    await pilot.pause()
+                    self.assertFalse(app.query_one('#community-github-reminder').display)
+                    self.assertTrue(app.query_one('#community-discord-reminder').display)
+                    app.query_one('#community-discord-dismiss').press()
+                    await pilot.pause()
+                    self.assertFalse(app.query_one('#community-discord-reminder').display)
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_categories_edit_save_and_return_with_keyboard(self):
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
@@ -109,7 +153,7 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(visible, [f"settings-panel-{key}"])
                         self.assertEqual(str(app.query_one('#settings-category-title', Static).render()), SETTINGS_CATEGORIES[index][1])
                         self.assertTrue(str(app.query_one('#settings-category-description', Static).render()))
-                    await pilot.press("up", "up", "enter")
+                    await pilot.press(*(["up"] * (len(SETTINGS_CATEGORIES) - 3)), "enter")
                     field = app.query_one("#projects-root", Input)
                     self.assertIs(app.focused, field)
                     field.value = str(Path(directory) / "projects")

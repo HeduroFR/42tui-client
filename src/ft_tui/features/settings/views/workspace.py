@@ -1,6 +1,7 @@
 """Settings UI composition and behavior."""
 
 import asyncio
+import webbrowser
 from collections.abc import Iterable
 from ft_tui.ui.username import USERNAME_GRADIENTS, username_text
 
@@ -36,6 +37,7 @@ SETTINGS_CATEGORIES = (
     ("workspace", "Workspace"),
     ("subjects", "Subjects"),
     ("appearance", "Appearance"),
+    ("community", "Community"),
 )
 
 SETTINGS_DESCRIPTIONS = {
@@ -44,6 +46,7 @@ SETTINGS_DESCRIPTIONS = {
     "workspace": "Choose project folders, your editor and updates.",
     "subjects": "Configure subject downloads and the PDF viewer.",
     "appearance": "Personalize the interface and terminal display.",
+    "community": "Visit the project and its community.",
 }
 
 
@@ -65,6 +68,9 @@ class SettingsWorkspace(Vertical):
         from ft_tui.ui.theme_preview import watch_theme_preview
         watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
+        for name in ('github', 'discord'):
+            self.query_one(f'#community-{name}-reminder').display = (
+                self.app._settings_operations().get(f'community_{name}_reminder_seen') != 'true')
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
@@ -140,6 +146,28 @@ class SettingsWorkspace(Vertical):
                     with self.prevent(Select.Changed):
                         selector.value = current
                 button.disabled = selector.disabled = False
+
+    @on(Button.Pressed, '#community-github, #community-discord, #community-github-dismiss, #community-discord-dismiss')
+    async def community_action(self, event):
+        event.stop()
+        name = 'github' if 'github' in event.button.id else 'discord'
+        status = self.query_one('#community-status', Static)
+        if event.button.id.endswith('-dismiss'):
+            try:
+                self.app._settings_operations().save_values({f'community_{name}_reminder_seen': 'true'})
+            except Exception:
+                status.update('Could not save the reminder. Please try again.')
+                return
+            self.query_one(f'#community-{name}-reminder').display = False
+            status.update('Reminder dismissed.')
+            return
+        url = ('https://github.com/HeduroFR/42tui-client' if name == 'github'
+               else 'https://tui.42wip.in/discord')
+        try:
+            opened = await asyncio.to_thread(webbrowser.open, url)
+        except Exception:
+            opened = False
+        status.update('Opened in your browser.' if opened else 'Could not open a browser. Use the displayed link.')
 
     @on(Select.Changed, '#favorite-theme')
     def theme_preview_changed(self, event):
@@ -356,8 +384,24 @@ class SettingsMixin:
                                 "Uses the terminal bell. Enable audible bell in your terminal settings.",
                                 classes="field-help",
                             )
+                    with Vertical(id="settings-panel-community", classes="settings-panel"):
+                        with Vertical(classes="settings-section"):
+                            yield Static("GitHub", classes="section-kicker")
+                            yield Static("https://github.com/HeduroFR/42tui-client", markup=False, localize=False, classes="field-help")
+                            yield Button("Open GitHub", id="community-github")
+                            with Vertical(id="community-github-reminder"):
+                                yield Static("Enjoy 42TUI? Consider starring the project on GitHub.", classes="field-help")
+                                yield Button("Dismiss reminder", id="community-github-dismiss")
+                        with Vertical(classes="settings-section"):
+                            yield Static("Discord", classes="section-kicker")
+                            yield Static("https://tui.42wip.in/discord", markup=False, localize=False, classes="field-help")
+                            yield Button("Open Discord", id="community-discord")
+                            with Vertical(id="community-discord-reminder"):
+                                yield Static("Join the 42TUI community on Discord.", classes="field-help")
+                                yield Button("Dismiss reminder", id="community-discord-dismiss")
+                        yield Static("", id="community-status")
             with Horizontal(id="settings-actions"):
-                yield Static("Changes are saved on this device.", id="settings-status")
+                yield Static("Save to keep preference changes.", id="settings-status")
                 yield Button("Save settings", variant="primary", id="save-settings")
             yield Static("↑ ↓ Categories · Enter Edit · Tab Next field · Esc Categories · Ctrl+S Save", id="settings-help")
 

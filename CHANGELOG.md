@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Open GitHub and Discord from Settings and dismiss each community reminder once.
+- Copy the login link using the local desktop clipboard when available; the link remains visible if copying cannot be confirmed.
+
 - Preview themes while moving through the selector and place the session-move action beside its selector.
 
 - Preview themes immediately when choosing them in Settings or onboarding.
