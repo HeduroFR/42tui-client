@@ -15,6 +15,7 @@ from ft_tui.ui.components import (
     Vertical,
 )
 from textual.containers import VerticalScroll
+from ft_tui.features.dashboard.views.progress import ProgressLegend, ProgressSegment
 from ft_tui.features.corrections.views import CorrectionSlotsWorkspace
 from ft_tui.features.friends.views.workspace import FriendsWorkspace
 from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
@@ -58,14 +59,20 @@ class MainLayoutMixin:
                                     yield portrait
                                     with Vertical(id="dashboard-identity-text"):
                                         yield Static("Local profile", id="dashboard-login", markup=False, localize=False)
-                                        yield Static("Unavailable", id="dashboard-workstation", markup=False, localize=False)
+                                        yield Static("", id="dashboard-level", markup=False, localize=False)
+                                        yield Static("", id="dashboard-grade", markup=False, localize=False)
+                                        yield Static("", id="dashboard-campus", markup=False, localize=False)
                                 with Horizontal(id="dashboard-balances"):
-                                    with Vertical(classes="dashboard-stat", id="dashboard-wallet-stat") as wallet:
-                                        wallet.tooltip = 'Wallet'
-                                        yield Static("Unavailable", id="dashboard-wallet", classes="dashboard-stat-value")
-                                    with Vertical(classes="dashboard-stat", id="dashboard-correction-stat") as points:
-                                        points.tooltip = 'Correction points'
-                                        yield Static("Unavailable", id="dashboard-correction-points", classes="dashboard-stat-value")
+                                    with Vertical(classes="dashboard-stat-column"):
+                                        with Vertical(classes="dashboard-stat", id="dashboard-wallet-stat") as wallet:
+                                            wallet.tooltip = 'Wallet'
+                                            yield Static("Unavailable", id="dashboard-wallet", classes="dashboard-stat-value")
+                                        with Vertical(classes="dashboard-stat", id="dashboard-correction-stat") as points:
+                                            points.tooltip = 'Correction points'
+                                            yield Static("Unavailable", id="dashboard-correction-points", classes="dashboard-stat-value")
+                                    with Vertical(classes="dashboard-stat-column", id="dashboard-coalition-stats"):
+                                        yield Static("", id="dashboard-coalition-score", classes="dashboard-stat-value", markup=False, localize=False)
+                                        yield Static("", id="dashboard-coalition-rank", classes="dashboard-stat-value", markup=False, localize=False)
                         with Vertical(classes="dashboard-card", id="dashboard-activity-card"):
                             yield Static(
                                 "WEEKLY CODING",
@@ -124,20 +131,23 @@ class MainLayoutMixin:
                         with Horizontal(id="dashboard-progress-heading"):
                             yield Static("0 / 0", id="dashboard-progress-value")
                             yield Static("projects completed · 0%", id="dashboard-progress-caption")
-                        yield Static("", id="dashboard-progress-bar")
+                        with Horizontal(id="dashboard-progress-bar"):
+                            for status in ("done", "active", "available", "locked"):
+                                yield ProgressSegment("", id=f"dashboard-progress-segment-{status}")
+                            yield Static("", id="dashboard-progress-unknown", markup=False, localize=False)
                         with Horizontal(id="dashboard-progress-legend"):
-                            yield Static("● DONE 0", id="dashboard-progress-done", classes="dashboard-progress-stat")
-                            yield Static(
+                            yield ProgressLegend("● DONE 0", id="dashboard-progress-done", classes="dashboard-progress-stat")
+                            yield ProgressLegend(
                                 "● ACTIVE 0",
                                 id="dashboard-progress-active",
                                 classes="dashboard-progress-stat",
                             )
-                            yield Static(
+                            yield ProgressLegend(
                                 "● AVAILABLE 0",
                                 id="dashboard-progress-available",
                                 classes="dashboard-progress-stat",
                             )
-                            yield Static(
+                            yield ProgressLegend(
                                 "● LOCKED 0",
                                 id="dashboard-progress-locked",
                                 classes="dashboard-progress-stat",

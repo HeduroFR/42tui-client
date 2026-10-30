@@ -370,7 +370,7 @@ editor time tracking.
   sessions. Distinguish reported zero from missing, unavailable or stale data.
   Assess API compatibility and deploy the required backend before a dependent
   client release.
-- [ ] Show project names for each progress-bar status on hover, including Done,
+- [x] Show project names for each progress-bar status on hover, including Done,
   Active, Available and Locked; provide keyboard access to the same information.
 - [x] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.

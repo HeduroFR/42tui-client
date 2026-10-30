@@ -13,6 +13,19 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Add hover previews and keyboard-accessible, scrollable project
+  lists to dashboard progress statuses, respecting the selected curriculum. Make
+  segments resize proportionally, color tooltip headers by status and focus the
+  list when opened. Patch impact;
+  focused dashboard checks and small-terminal interaction checks passed.
+  Full release CI and candidate validation remain pending.
+
+- 2026-10-30: Replace the duplicated profile-card workstation with the selected
+  cursus grade, level and primary campus, and arrange profile statistics in two
+  columns. Coalition values require the pending backend integration. Patch impact; dashboard UI
+  checks cover cursus selection, unavailable values and French/Spanish labels.
+  Full release CI and candidate validation remain pending.
+
 - 2026-10-30: Combine dashboard label cleanup and friend project preview
   layout and details changes. Patch impact; 23 focused UI and locale checks
   passed on the combined branch. Release CI and candidate validation remain pending.

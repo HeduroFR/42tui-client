@@ -67,13 +67,12 @@ class DashboardService:
         week_seconds = {week: sum(days[week+timedelta(days=i)] for i in range(7)) for week in weeks}
         journey_scope = 'specialization' if goals.get('status') == 'available' and goals.get('cc_validated') is True else 'all'
         selected = curriculum_projects(rows, curriculum=curriculum, scope=journey_scope)
-        counts = {name: sum(p.status.casefold() == name for p in selected)
-                  for name in ('completed', 'done', 'in_progress', 'available', 'locked')}
+        groups = tuple(tuple(p.name for p in selected if p.status.casefold() in statuses) for statuses in
+                       (('completed', 'done'), ('in_progress',), ('available',), ('locked',)))
         next_project = next((p for p in self.sorted_projects(selected, activity, active_project_id)
                              if p.status.casefold() in {'in_progress', 'available'}), None)
-        journey = Journey(len(selected), counts['completed']+counts['done'], counts['in_progress'],
-                          counts['available'], counts['locked'],
-                          next_project.name if next_project else 'All catalog projects completed')
+        journey = Journey(len(selected), *(len(group) for group in groups),
+                          next_project.name if next_project else 'All catalog projects completed', groups)
         deadline = self.deadline_summary(curriculum, ordered)
         stats = ProfileStats(
             profile.get('wallet') if type(profile.get('wallet')) is int and profile['wallet'] >= 0 else None,

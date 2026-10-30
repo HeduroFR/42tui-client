@@ -36,6 +36,7 @@ class Journey:
     available: int
     locked: int
     next_name: str
+    groups: tuple[tuple[str, ...], ...]
 
 
 @dataclass(frozen=True)

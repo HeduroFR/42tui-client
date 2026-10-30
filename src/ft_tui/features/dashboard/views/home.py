@@ -1,5 +1,7 @@
 """Dashboard UI composition and behavior."""
 
+import math
+
 from textual.css.query import NoMatches
 
 from rich.markup import escape
@@ -126,10 +128,27 @@ class DashboardMixin:
         self.query_one('#dashboard-wallet-stat').tooltip = translate('Wallet', self.language)
         self.query_one('#dashboard-correction-stat').tooltip = translate('Correction points', self.language)
         location = model.stats.location
-        self.query_one('#dashboard-workstation', Static).update(Text(
-            location.strip() if isinstance(location, str) and location.strip()
-            else translate('Unavailable', self.language),
-        ))
+        memberships = profile.get('cursus_users', [])
+        cursus_id = self.profile_service.cursus_id()
+        membership = next((item for item in memberships if isinstance(item, dict)
+                           and item.get('cursus_id') == cursus_id), {}) if isinstance(memberships, list) else {}
+        grade = membership.get('grade')
+        grade = grade.strip() if isinstance(grade, str) and grade.strip() else translate('Unavailable', self.language)
+        details = f"{translate('Grade', self.language)}: {grade}"
+        level = membership.get('level')
+        level_value = (f'{level:.2f}' if type(level) in (int, float) and math.isfinite(level) and level >= 0
+                       else translate('Unavailable', self.language))
+        level_text = f"{translate('Level', self.language)}: {level_value}"
+        campuses = profile.get('campuses', [])
+        campus = next((item for item in campuses if isinstance(item, dict) and item.get('is_primary') is True
+                       and isinstance(item.get('name'), str) and item['name'].strip()), {}) if isinstance(campuses, list) else {}
+        campus_name = campus.get('name', '').strip() or translate('Unavailable', self.language)
+        campus_text = f"{translate('Campus', self.language)}: {campus_name}"
+        for selector, value in (('#dashboard-level', level_text), ('#dashboard-grade', details),
+                                ('#dashboard-campus', campus_text)):
+            widget = self.query_one(selector, Static)
+            widget.update(value)
+            widget.tooltip = value
         self.query_one("#dashboard-cluster-status", Static).update(
             Panel(Align.center(Text(location, style="bold"), vertical="middle"),
                   height=5, border_style="bold cyan", padding=(1, 2))
@@ -142,6 +161,14 @@ class DashboardMixin:
             value = model.stats.wallet if field == 'wallet' else model.stats.correction_points
             label = f"{value}{suffix}" if type(value) is int and value >= 0 else "Unavailable"
             self.query_one(selector, Static).update(label)
+        coalition = profile.get('coalition')
+        coalition = coalition if isinstance(coalition, dict) else {}
+        for field, label in (('score', 'Score'), ('rank', 'Rank')):
+            value = coalition.get(field)
+            text = f"{translate(label, self.language)}: {value}" if type(value) is int and value >= (1 if field == 'rank' else 0) else ''
+            widget = self.query_one(f'#dashboard-coalition-{field}', Static)
+            widget.update(text)
+            widget.tooltip = text or None
         continue_project = model.resume
         active_project = continue_project if model.active_now else None
         recent_project = continue_project if model.recent_activity else None
@@ -288,28 +315,34 @@ class DashboardMixin:
         self.query_one("#dashboard-progress-caption", Static).update(
             f"projects completed · {percent}%"
         )
-        self.query_one("#dashboard-progress-done", Static).update(f"[green]●[/] DONE {completed}")
-        self.query_one("#dashboard-progress-active", Static).update(f"[#15d3c1]●[/] ACTIVE {journey.active}")
+        self.query_one("#dashboard-progress-done", Static).update(f"[green]●[/] {translate('Done', self.language).upper()} {completed}")
+        self.query_one("#dashboard-progress-active", Static).update(f"[#15d3c1]●[/] {translate('Active', self.language).upper()} {journey.active}")
         self.query_one("#dashboard-progress-available", Static).update(
-            f"[#e6b450]●[/] AVAILABLE {journey.available}"
+            f"[#e6b450]●[/] {translate('Available', self.language).upper()} {journey.available}"
         )
-        self.query_one("#dashboard-progress-locked", Static).update(f"[#59636e]●[/] LOCKED {journey.locked}")
-        bar_width = max(1, self.size.width - 16)
+        self.query_one("#dashboard-progress-locked", Static).update(f"[#59636e]●[/] {translate('Locked', self.language).upper()} {journey.locked}")
         segments = [
             (journey.completed, "green"),
             (journey.active, "#15d3c1"),
             (journey.available, "#e6b450"),
             (journey.locked, "#59636e"),
         ]
-        remaining_width = bar_width
-        bar_parts: list[str] = []
-        for index, (count, color) in enumerate(segments):
-            width = remaining_width if index == len(segments) - 1 else round(bar_width * count / total) if total else 0
-            width = min(remaining_width, width)
-            bar_parts.append(f"[{color}]{'█' * width}[/]")
-            remaining_width -= width
-        bar_line = "".join(bar_parts)
-        self.query_one("#dashboard-progress-bar", Static).update(f"{bar_line}\n{bar_line}")
+        labels = (('done', 'Completed'), ('active', 'In progress'), ('available', 'Available'), ('locked', 'Locked'))
+        for (count, color), (status, label), names in zip(segments, labels, journey.groups):
+            segment = self.query_one(f'#dashboard-progress-segment-{status}')
+            segment.display = count > 0
+            if count:
+                segment.styles.width = f'{count}fr'
+                segment.styles.background = color
+            title = translate(label, self.language)
+            tooltip_color = '#98a6b5' if status == 'locked' else color
+            segment.set_projects(title, names, tooltip_color)
+            self.query_one(f'#dashboard-progress-{status}').set_projects(title, names, tooltip_color)
+        unknown = max(0, total - sum(count for count, _ in segments))
+        unclassified = self.query_one('#dashboard-progress-unknown')
+        unclassified.display = unknown > 0
+        if unknown:
+            unclassified.styles.width = f'{unknown}fr'
         self.query_one("#dashboard-progress-next-name", Static).update(journey.next_name)
 
     def _load_project_activity(self, session=None) -> None:

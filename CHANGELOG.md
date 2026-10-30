@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Inspect the projects behind each dashboard progress status by hovering or using the keyboard.
+
+- Show the selected cursus grade and level and primary campus on the dashboard profile card, with wallet and evaluation points stacked together; workstation status remains in Cluster Radar.
+
 - Remove the account and local-projects label from the dashboard heading.
 - Place the friend project preview action below the project list.
 - Show project facts once in the friend project preview, omitting the redundant member count for solo projects.

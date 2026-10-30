@@ -71,6 +71,7 @@ class DashboardServiceTests(unittest.TestCase):
                 project(4, 'available', section='specialization')]
         model = self.compose(rows)
         self.assertEqual((model.journey.total, model.journey.completed, model.journey.next_name), (2, 1, 'Project 2'))
+        self.assertEqual(model.journey.groups, (('Project 1',), ('Project 2',), (), ()))
         model = self.compose(rows, goals={'status': 'available', 'cc_validated': True})
         self.assertEqual((model.journey.total, model.journey.next_name), (1, 'Project 4'))
 
