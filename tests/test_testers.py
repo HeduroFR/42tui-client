@@ -278,6 +278,7 @@ class TesterDockerTests(unittest.TestCase):
         self.assertEqual(len(observed), 1)
         self.assertFalse(observed[0].exists())
         runtime = self.service._runtime_arguments(tester)
+        self.assertIn("/tmp:rw,exec,nosuid,nodev,size=256m", runtime)
         self.assertIn("--read-only", runtime)
         self.assertIn("none", runtime)
         self.assertIn("no-new-privileges=true", runtime)

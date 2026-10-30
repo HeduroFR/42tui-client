@@ -30,7 +30,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   results: tester scope 98 passed (101.587 seconds), release-tooling 96,
   adapter 70, architecture 9 and locale 2 passed; clean tracked-file wheel/sdist,
   recipe-resource presence and installer hashes/syntax passed. Real container CI
-  and Mac/ARM emulation remain pending. Minor impact within planned 0.6.0;
+  and Mac/ARM emulation remain pending. Initial CI built both images but exposed
+  noexec temporary mounts preventing dlopen of generated libraries; explicitly
+  permit execution only in the bounded temporary mount, retaining the other
+  restrictions. Extend real checks to an ARM runner with a pinned QEMU helper.
+  Minor impact within planned 0.6.0;
   PR #47 on `feat/tester-workspace-0.6.0`. No version bump/publication/deployment.
 
 - 2026-10-30: Add preparation/build/run stages and a source-hash-guarded

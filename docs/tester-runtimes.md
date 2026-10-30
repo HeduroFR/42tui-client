@@ -73,7 +73,8 @@ Install directly through Meson, avoiding upstream install.sh's user-level pip
 fallback. Install binaries without a `.git` sibling so background `git pull` and
 self-rebuild cannot run. Execution disables networking, drops capabilities, denies
 privilege elevation and makes the root filesystem read-only; only the disposable
-project mount and bounded `/tmp` are writable. This limits host exposure, but is
+project mount and bounded `/tmp` are writable. Temporary storage permits execution
+because the testers compile and load shared libraries there. This limits host exposure, but is
 not evidence that one tester finds more bugs or has stronger memory checks.
 
 The sources lack a validated machine-readable summary integration here. Keep
@@ -84,7 +85,7 @@ Supra is an additional choice. No upstream code is vendored in the Python packag
 `python tests/manual/supra_tester_smoke.py ft_printf` (or `libft`) builds and runs
 the actual pinned tester against an incomplete synthetic C fixture, checks the
 expected diagnostics and unchanged original files, and reports image size. PR CI
-runs both Linux amd64 cases and retains logs. These checks do not establish all
+runs both cases on amd64 and ARM Linux runners (amd64 emulation) and retains logs. These checks do not establish all
 passing/failing cases, memory-check equivalence, or Mac/ARM emulation support.
 Local Docker Desktop could not start in this session; live container validation
 must be established through CI and later Mac/ARM runs before release claims.

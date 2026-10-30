@@ -416,7 +416,8 @@ class TesterDocker:
     def _runtime_arguments(tester):
         if not tester.recipe:
             return []
-        return ["--network", "none", "--read-only", "--tmpfs", "/tmp:rw,nosuid,nodev,size=256m",
+        # The testers dlopen shared libraries built in their temporary directory.
+        return ["--network", "none", "--read-only", "--tmpfs", "/tmp:rw,exec,nosuid,nodev,size=256m",
                 "--cap-drop", "ALL", "--security-opt", "no-new-privileges=true", "--pids-limit", "512"]
 
     def _user_arguments(self, docker):
