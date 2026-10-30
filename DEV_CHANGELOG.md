@@ -12,6 +12,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Remove the danger-button item from the 0.7.0 roadmap following
+  its inclusion in 0.6.2. Documentation only; no release required. Roadmap diff
+  checked; 0.6.2 release validation remains pending.
+
 - 2026-10-30: Add the agreed 0.6.2 tester results and interface fixes to the
   roadmap. Documentation only; no release required. Reviewed the roadmap diff;
   implementation and release validation remain pending.

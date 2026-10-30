@@ -381,9 +381,6 @@ Status: **scope agreed; implementation and release validation pending**.
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
   changes/cancellations consistently across the agenda and dashboard.
-- [ ] Standardize danger-button styling and hover, including the tester removal
-  control. One-button tester setup is already implemented for 0.6.0; do not
-  duplicate it here or assume its removal styling is complete.
 - [ ] Rework the full Settings interface: review category grouping, navigation,
   labels and layout, including simplifying Curriculum and Appearance. Preserve
   existing preferences, account/curriculum scope and validation; make save state
