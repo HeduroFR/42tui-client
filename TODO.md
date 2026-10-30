@@ -333,6 +333,21 @@ authorize publication; confirm the release number against the final scope.
   local encrypted storage. Complete focused account/storage/UI regressions,
   security review and exact-candidate release gates before claiming support.
 
+## 0.6.2 — Tester results and interface fixes
+
+Status: **planned; implementation and release validation pending**.
+
+- [ ] Include `feat/push-swap-structured-results`, showing reported checks and
+  leaving unavailable memory checks unverified. Validate passing and failing
+  projects, setup, retries, cancellation and logs on supported platforms.
+- [ ] Hide past correction slots in the correction slots tab without deleting
+  availability or bookings. Keep ongoing and future slots visible and booked
+  corrections read-only; check timezone and midnight boundaries.
+- [ ] Rework the shared Danger AppButton display for clear, consistent
+  destructive actions, including readable focus and disabled states.
+- [ ] Review the integrated candidate and run focused regressions, release CI,
+  package, update-path and applicable compatibility checks before publication.
+
 ## 0.7.0 — Dashboard and interface cleanup
 
 Status: **scope agreed; implementation and release validation pending**.

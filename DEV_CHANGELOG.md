@@ -12,6 +12,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Add the agreed 0.6.2 tester results and interface fixes to the
+  roadmap. Documentation only; no release required. Reviewed the roadmap diff;
+  implementation and release validation remain pending.
+
 - 2026-10-30: Serialize pairing with credential refresh and reject an approved
   pairing if its installation key changed; restore the selected keyring after
   a failed session-only attempt. Put the shared session lock beside the vault
