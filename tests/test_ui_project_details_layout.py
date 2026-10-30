@@ -136,6 +136,8 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn('Snapshot', overview)
                     self.assertNotIn('Classification', overview)
                     await pilot.pause()
+                    self.assertFalse(app.query('#my-evaluations'))
+                    self.assertTrue(app.query('#agenda'))
                     registration = app.query_one('#project-registration')
                     activity = app.query_one('#show-project-activity')
                     slots = app.query_one('#show-project-slots')

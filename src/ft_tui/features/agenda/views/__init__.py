@@ -10,7 +10,7 @@ from ft_tui.features.corrections.model import Slot, timestamp, local_zone, local
 from ft_tui.features.corrections.calendar import SlotsCalendar
 from ft_tui.features.corrections.views import SlotPicker
 from ft_tui.i18n import translate
-from ..models import snapshot
+from ..models import snapshot, timeline_cells
 from ft_tui.app.read_cache import account_scope, app_cache, ReadInvalidated
 
 LABELS = {'event': 'Campus event', 'evaluating': 'I evaluate', 'evaluated': 'I am evaluated', 'available': 'Available'}
@@ -33,6 +33,16 @@ class AgendaWorkspace(Vertical):
     AgendaWorkspace .project-slot-nav { grid-size: 3; grid-columns: 1fr 2fr 1fr; }
     AgendaWorkspace .project-slot-hours { content-align: center middle; height: 3; }
 
+    AgendaWorkspace.week-agenda .agenda-toolbar { grid-size: 4; grid-columns: 1fr 2fr 1fr 2fr; }
+    AgendaWorkspace .agenda-main { layout: horizontal; height: 1fr; min-height: 8; }
+    AgendaWorkspace .agenda-main > DataTable { width: 2fr; }
+    AgendaWorkspace .agenda-sidebar { width: 1fr; min-width: 24; height: 1fr; border-left: solid $primary; padding-left: 1; margin-left: 1; }
+    AgendaWorkspace .agenda-sidebar ListView { height: 1fr; }
+    AgendaWorkspace .agenda-sidebar .agenda-detail { height: 1fr; max-height: 100%; }
+    AgendaWorkspace .agenda-sidebar Button { width: 1fr; }
+    AgendaWorkspace.agenda-narrow .agenda-main { layout: vertical; }
+    AgendaWorkspace.agenda-narrow .agenda-main > DataTable { width: 1fr; height: 2fr; }
+    AgendaWorkspace.agenda-narrow .agenda-sidebar { width: 1fr; min-width: 0; height: 1fr; border-left: none; border-top: solid $primary; padding: 0; margin: 1 0 0 0; }
     AgendaWorkspace .agenda-detail { height: auto; max-height: 6; display: none; }
     """
     def __init__(self, *, project_id=None, project_url=None, evaluations_only=False, **kwargs):
@@ -47,7 +57,8 @@ class AgendaWorkspace(Vertical):
         self.epoch = 0
         self.loading = False
         self.needs_read = True
-        self.calendar = bool(project_id)
+        self.timeline = not project_id and not evaluations_only
+        self.calendar = bool(project_id) or self.timeline
         self.project_not_ready = False
         self._slot_window = None
         self.selected = None
@@ -67,30 +78,44 @@ class AgendaWorkspace(Vertical):
         yield Select([(self.t(label), value) for label, value in options], value='all', allow_blank=False, id='agenda-filter')
         yield Static('', classes='agenda-period', markup=False, localize=False)
         yield Static('', classes='agenda-status', markup=False, localize=False)
-        yield ListView(id='agenda-items')
-        yield DataTable(id='agenda-calendar', cursor_type='cell')
-        if self.project_id:
-            with Horizontal(classes='project-slot-nav'):
-                yield Button('Previous day', id='agenda-day-prev')
-                yield Static('', classes='project-slot-hours', localize=False, markup=False)
-                yield Button('Next day', id='agenda-day-next')
-            yield Static('', classes='project-slot-headings', localize=False)
-            yield SlotsCalendar(self.week, self.zone, id='project-slot-timeline')
-        with VerticalScroll(classes='agenda-detail'):
-            yield Static('', id='agenda-detail', markup=False, localize=False)
-        if self.project_id:
-            with Horizontal(classes='agenda-actions'):
-                yield Button('Open on Intra', id='agenda-intra', disabled=True)
-                yield Button('Close', id='project-slots-close')
+        if self.timeline:
+            with Horizontal(classes='agenda-main'):
+                yield DataTable(id='agenda-calendar', cursor_type='cell')
+                with Vertical(classes='agenda-sidebar'):
+                    yield Static('This week', classes='agenda-sidebar-title')
+                    yield ListView(id='agenda-items')
+                    with VerticalScroll(classes='agenda-detail'):
+                        yield Static('', id='agenda-detail', markup=False, localize=False)
+                    yield Button('Open on Intra', id='agenda-intra', disabled=True)
         else:
-            yield Button('Open on Intra', id='agenda-intra', disabled=True)
+            yield ListView(id='agenda-items')
+            yield DataTable(id='agenda-calendar', cursor_type='cell')
+            if self.project_id:
+                with Horizontal(classes='project-slot-nav'):
+                    yield Button('Previous day', id='agenda-day-prev')
+                    yield Static('', classes='project-slot-hours', localize=False, markup=False)
+                    yield Button('Next day', id='agenda-day-next')
+                yield Static('', classes='project-slot-headings', localize=False)
+                yield SlotsCalendar(self.week, self.zone, id='project-slot-timeline')
+            with VerticalScroll(classes='agenda-detail'):
+                yield Static('', id='agenda-detail', markup=False, localize=False)
+            if self.project_id:
+                with Horizontal(classes='agenda-actions'):
+                    yield Button('Open on Intra', id='agenda-intra', disabled=True)
+                    yield Button('Close', id='project-slots-close')
+            else:
+                yield Button('Open on Intra', id='agenda-intra', disabled=True)
 
     def identity(self):
         scope = getattr(self.app, '_catalog_scope', lambda: None)()
         return (getattr(self.app, 'provider', None), getattr(self.app, 'account_id', None), getattr(self.app, 'account_generation', None), getattr(scope, 'campus_id', None))
 
     def on_mount(self):
-        self.query_one(DataTable).display = False
+        self.query_one(DataTable).display = self.timeline
+        if self.timeline:
+            self.add_class('week-agenda')
+            self.query_one('#agenda-view').display = False
+            self.set_class(self.size.width < 90, 'agenda-narrow')
         if self.project_id:
             self.query_one(Select).display = False
             self.query_one(ListView).display = False
@@ -102,11 +127,15 @@ class AgendaWorkspace(Vertical):
         self.set_interval(60, self.refresh_visible)
         self.check_context()
 
+    def on_resize(self, event):
+        if self.timeline:
+            self.set_class(event.size.width < 90, 'agenda-narrow')
+
     def active(self):
         tabs = self.app.query('#main-tabs')
         if self.project_id or not tabs:
             return True
-        target = 'dashboard' if isinstance(self, UpcomingEvaluations) else 'my-evaluations' if self.evaluations_only else 'agenda'
+        target = 'dashboard' if isinstance(self, UpcomingEvaluations) else 'agenda'
         return tabs.first().active == target
 
     def refresh_visible(self):
@@ -120,6 +149,11 @@ class AgendaWorkspace(Vertical):
             self.epoch += 1
             self.loading = False
             self.rows, self.sources = [], {}
+            self.shown, self.cells = [], {}
+            self.query_one(ListView).clear()
+            self.query_one(DataTable).clear(columns=True)
+            if self.project_id:
+                self.query_one(SlotsCalendar).set_slots(())
             self.selected = None
             self.query_one('#agenda-detail', Static).update('')
             self.query_one('#agenda-intra', Button).disabled = True
@@ -210,11 +244,32 @@ class AgendaWorkspace(Vertical):
         await listing.extend(items)
         table = self.query_one(DataTable)
         table.clear(columns=True)
-        table.add_columns(*(f'{self.week + timedelta(days=i):%a %d}' for i in range(7)))
-        days = [[row for row in self.shown if datetime.fromisoformat(row['begin_at']).astimezone(self.zone).date() == self.week + timedelta(days=i)] for i in range(7)]
-        for index in range(max((len(day) for day in days), default=0)):
-            table.add_row(*(self.cell(day[index]) if index < len(day) else '' for day in days))
-        self.days = days
+        if self.timeline:
+            from rich.text import Text
+            self.cells = timeline_cells(self.shown, self.week, self.zone)
+            table.add_column(self.t('Time'), width=5)
+            width = max(8, (table.size.width - 8) // 7)
+            for day in range(7):
+                table.add_column(f'{self.week + timedelta(days=day):%a %d}', width=width)
+            colors = {'event': 'cyan', 'evaluating': 'green', 'evaluated': 'magenta'}
+            for half in range(48):
+                values = []
+                for day in range(7):
+                    items = self.cells.get((half, day), [])
+                    value = Text()
+                    for index, item in enumerate(items):
+                        if index:
+                            value.append(' / ')
+                        value.append(f"{self.t(LABELS[item['kind']])}: {item['title']}", style=colors[item['kind']])
+                    values.append(value)
+                table.add_row(f'{half // 2:02d}:{half % 2 * 30:02d}', *values)
+            table.move_cursor(row=min(47, datetime.now(self.zone).hour * 2), column=1)
+        else:
+            table.add_columns(*(f'{self.week + timedelta(days=i):%a %d}' for i in range(7)))
+            days = [[row for row in self.shown if datetime.fromisoformat(row['begin_at']).astimezone(self.zone).date() == self.week + timedelta(days=i)] for i in range(7)]
+            for index in range(max((len(day) for day in days), default=0)):
+                table.add_row(*(self.cell(day[index]) if index < len(day) else '' for day in days))
+            self.days = days
         if self.project_id:
             calendar = self.query_one(SlotsCalendar)
             calendar.set_week(self.week)
@@ -282,7 +337,19 @@ class AgendaWorkspace(Vertical):
     def on_data_table_cell_selected(self, event):
         event.stop()
         row, col = event.coordinate
-        if col < len(self.days) and row < len(self.days[col]):
+        if self.timeline:
+            matches = self.cells.get((row, col - 1), [])
+            if matches:
+                self.select_row(matches[0])
+                self.query_one(ListView).index = self.shown.index(matches[0])
+                if len(matches) > 1:
+                    self.query_one('#agenda-detail', Static).update('\n'.join((self.t('Overlapping items · Select an item in the list.'), *(f"{self.t(LABELS[item['kind']])} · {item['title']}" for item in matches))))
+            else:
+                self.selected = None
+                self.query_one('#agenda-detail', Static).update(self.t('No items at this time.'))
+                self.query_one('.agenda-detail').display = True
+                self.query_one('#agenda-intra', Button).disabled = True
+        elif col < len(self.days) and row < len(self.days[col]):
             self.select_row(self.days[col][row])
 
     async def on_select_changed(self, event):

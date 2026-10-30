@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove the separate My evaluations tab. Agenda now opens as a weekly half-hour timeline with role filters, an event list and a detail panel; narrow terminals show details below the timeline.
+
 - Add bottom spacing below the Attempts & evaluations actions and highlight Set as finished with the primary button color.
 
 - Show Set as finished only for an in-progress project and Subscribe to defense only while waiting for correction. Hide calendar navigation when the project is not ready.

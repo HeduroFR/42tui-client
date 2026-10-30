@@ -30,3 +30,24 @@ def snapshot(value, account_id, kind):
             if url.scheme != 'https' or url.netloc not in {'profile.intra.42.fr', 'projects.intra.42.fr'} or url.query or url.fragment:
                 raise ValueError('Invalid agenda link')
     return value['items']
+
+
+def timeline_cells(rows, week, zone):
+    """Map local half-hour cells to overlapping items, including midnight spans."""
+    from datetime import timedelta, timezone
+    cells = {}
+    for item in rows:
+        begin = datetime.fromisoformat(item['begin_at']).astimezone(zone)
+        end = datetime.fromisoformat(item['end_at']).astimezone(zone) if item['end_at'] else begin + timedelta(minutes=1)
+        for day in range(7):
+            date = week + timedelta(days=day)
+            for half in range(48):
+                wall = datetime.combine(date, datetime.min.time()) + timedelta(minutes=half * 30)
+                for fold in (0, 1):
+                    cell = wall.replace(tzinfo=zone, fold=fold).astimezone(timezone.utc)
+                    if cell.astimezone(zone).replace(tzinfo=None) != wall:
+                        continue
+                    if begin.astimezone(timezone.utc) < cell + timedelta(minutes=30) and end.astimezone(timezone.utc) > cell:
+                        cells.setdefault((half, day), []).append(item)
+                        break
+    return cells

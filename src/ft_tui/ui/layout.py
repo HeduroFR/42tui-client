@@ -227,8 +227,6 @@ class MainLayoutMixin:
                         yield Static("o Editor · e Configure · d Details · t Testers · F4 Refresh Git", id="project-details-help")
             with TabPane("Agenda", icon="\uf073", id="agenda"):
                 yield AgendaWorkspace()
-            with TabPane("My evaluations", icon="\uf073", id="my-evaluations"):
-                yield AgendaWorkspace(evaluations_only=True)
             with TabPane("Correction Slots", icon="\uf073", id="correction-slots"):
                 yield CorrectionSlotsWorkspace()
             with TabPane("Friends", icon="\uf0c0", id="friends"):

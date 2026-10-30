@@ -27,12 +27,12 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
             ws = app.query_one(AgendaWorkspace)
             self.assertEqual(len(ws.shown), 3)
             self.assertEqual(len(app.query_one(ListView).children), 3)
-            await pilot.click('#agenda-view')
             self.assertTrue(app.query_one(DataTable).display)
             ws.select_row(ws.shown[0])
             self.assertEqual(ws.selected['description'], 'Details')
             app.account_id = None
             ws.check_context()
+            self.assertEqual(app.query_one(DataTable).row_count,0)
             await pilot.pause()
             self.assertEqual(ws.rows, [])
             self.assertIsNone(ws.selected)
@@ -56,9 +56,8 @@ class AgendaSmallTerminalTests(unittest.IsolatedAsyncioTestCase):
             await ws.reload()
             self.assertEqual(len(app.provider.calls), count)
             await pilot.pause()
-            await pilot.click('#agenda-view')
             self.assertTrue(app.query_one(DataTable).display)
-            self.assertEqual(len(app.query_one(DataTable).columns), 7)
+            self.assertEqual(len(app.query_one(DataTable).columns), 8)
 
 class ProjectHandoffTests(unittest.IsolatedAsyncioTestCase):
     async def test_finish_only_opens_mine_page(self):
@@ -151,3 +150,54 @@ class ProjectSlotsModalTests(unittest.IsolatedAsyncioTestCase):
                 self.assertLessEqual(abs((button.region.x+close.region.right)-(dialog.content_region.x*2+dialog.content_region.width)),1)
                 await pilot.click('#project-slots-close')
                 self.assertNotIsInstance(app.screen,ProjectSlotsScreen)
+
+class WeekTimelineTests(unittest.TestCase):
+    def test_overlap_midnight_and_non_rounded_times_keep_every_item(self):
+        from datetime import date, timezone
+        from ft_tui.features.agenda.models import timeline_cells
+        rows = [
+            {'id':1,'begin_at':'2026-10-26T23:45:00Z','end_at':'2026-10-27T00:20:00Z'},
+            {'id':2,'begin_at':'2026-10-27T00:05:00Z','end_at':None},
+        ]
+        cells = timeline_cells(rows,date(2026,10,26),timezone.utc)
+        self.assertEqual([row['id'] for row in cells[47,0]],[1])
+        self.assertEqual([row['id'] for row in cells[0,1]],[1,2])
+        self.assertNotIn((1,1),cells)
+
+    def test_repeated_dst_hour_keeps_both_evaluations(self):
+        from datetime import date
+        from zoneinfo import ZoneInfo
+        from ft_tui.features.agenda.models import timeline_cells
+        rows = [
+            {'id':1,'begin_at':'2026-10-25T00:15:00Z','end_at':'2026-10-25T00:45:00Z'},
+            {'id':2,'begin_at':'2026-10-25T01:15:00Z','end_at':'2026-10-25T01:45:00Z'},
+        ]
+        cells=timeline_cells(rows,date(2026,10,19),ZoneInfo('Europe/Paris'))
+        self.assertEqual([row['id'] for row in cells[4,6]],[1,2])
+
+class WeekDetailPanelTests(unittest.IsolatedAsyncioTestCase):
+    async def test_timeline_selection_and_filter_update_detail_panel(self):
+        from ft_tui.ui.components import Static, Select
+        app=Harness()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            workspace=app.query_one(AgendaWorkspace)
+            table=workspace.query_one(DataTable)
+            self.assertEqual(table.row_count,48)
+            self.assertEqual(len(table.columns),8)
+            self.assertFalse(workspace.query_one('#agenda-view').display)
+            table.focus();table.move_cursor(row=24,column=1)
+            await pilot.press('enter');await pilot.pause()
+            self.assertIsNotNone(workspace.selected)
+            self.assertIn('Overlapping items',str(workspace.query_one('#agenda-detail',Static).render()))
+            workspace.query_one(Select).value='event';await pilot.pause()
+            self.assertEqual(len(workspace.shown),1)
+            table.focus();table.move_cursor(row=24,column=1)
+            await pilot.press('enter');await pilot.pause()
+            self.assertEqual(workspace.selected['kind'],'event')
+            table.move_cursor(row=0,column=1)
+            await pilot.press('enter');await pilot.pause()
+            self.assertIsNone(workspace.selected)
+            await pilot.resize_terminal(40,25);await pilot.pause()
+            self.assertTrue(workspace.has_class('agenda-narrow'))
+            self.assertGreaterEqual(workspace.query_one('.agenda-sidebar').region.y,table.region.bottom)

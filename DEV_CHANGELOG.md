@@ -13,6 +13,8 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-31: Remove My evaluations from tab composition and localization routing. Rework Agenda into a half-hour week timeline with a shared event/evaluation detail panel, role filters, overlap selection and narrow-terminal stacking. Clear visible rows immediately on account changes and retain dashboard/project-slot views. Minor impact toward 0.7.0; 10 agenda tests, nine architecture checks, four navigation tests and the focused full-app layout test passed in separate runs after correcting the navigation fixture for Agenda and scrollable tabs. Covers overlaps, midnight spans, DST folds, filtering and account clearing. Full suite and live Intra validation not rerun; no backend change or separate release needed for this UI iteration.
+
 - 2026-10-31: Add a bottom margin to the project activity footer and use the primary variant for Set as finished. Patch impact within 0.7.0; nine project-activity UI tests and the focused project-layout test passed, covering footer space at wide/narrow sizes and the primary variant. Full suite not rerun; no separate release warranted.
 
 - 2026-10-31: Gate project evaluation actions on fresh account/campus/project registration state, rename slot browsing to Subscribe to defense, and hide the fallback calendar toolbar/date range for unfinished projects. Patch impact within 0.7.0; 36 focused registration, agenda and project-layout tests passed, including state visibility, expiry/isolation and hidden calendar controls. Full suite and live Intra checks not rerun; no separate release warranted.

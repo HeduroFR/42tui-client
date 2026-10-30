@@ -555,7 +555,6 @@ class FortyTwoTuiApp(
             "friends": "Friends",
             "correction-slots": "Correction Slots",
             "agenda": "Agenda",
-            "my-evaluations": "My evaluations",
             "clubs": "Clubs",
             "dev-log": "Dev Log / Notes",
             "cluster-map": "Cluster Map",
