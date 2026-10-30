@@ -179,6 +179,14 @@ class WorkspaceSession:
                     pass
                 ready, _, _ = select.select([master], [], [], .1)
                 if not ready:
+                    if process.poll() is not None:
+                        # A background child must not keep the tester's PTY open forever.
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        completed = True
+                        break
                     continue
                 try:
                     data = os.read(master, 65536)

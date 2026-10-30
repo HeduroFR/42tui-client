@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Run a pinned push_swap tester without Docker, using a private Python environment
+  and a disposable project copy. Native execution requires confirmation; Git and
+  project build tools must already be installed. Custom tester definitions can
+  select native execution and preparation commands.
+
 - Distinguish reported test failures from tester process failures, unreadable
   reports and unverified results. Show exit codes and available test counts in
   the workspace and saved log, with French/Spanish translations. Custom testers

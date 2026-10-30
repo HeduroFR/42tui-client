@@ -34,3 +34,17 @@ with tempfile.TemporaryDirectory(prefix="francinette-") as directory:
     sys.path.insert(0, str(root))
     runpy.run_path(str(root / "main.py"), run_name="__main__")
 ''']
+
+
+[[testers]]
+id = "ft-ps-tester"
+name = "Push_swap tester"
+projects = ["push_swap"]
+platforms = ["linux", "darwin"]
+architectures = ["amd64", "arm64"]
+runtime = "native"
+repository = "https://github.com/italoalmeida0/ft_ps_tester.git"
+ref = "49cf9c702812ec3fc1f9d5a1d34bb8d87c073214"
+context = "."
+prepare = [["make"]]
+command = ["{python}", "{source}/ft_ps_tester/cli.py", "{project}/push_swap"]

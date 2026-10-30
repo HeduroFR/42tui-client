@@ -16,6 +16,29 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Add definition-driven native testers, preparation commands and
+  source/project/Python placeholders. Bundle ft_ps_tester at commit 49cf9c7 for
+  push_swap, using Git, a temporary venv without pip and disposable project
+  copies. Require consent for initial/repeated native execution, reject external
+  project symlinks, skip Docker inspection/setup, and reuse global locking,
+  PTY cancellation, logs and structured report validation. Stop background
+  children holding the PTY after the tester exits; add a real-process regression.
+  Retain unverified status for upstream testers without a validated report reader. Refresh roadmap
+  status and document prerequisites/network/permissions. Minor impact for 0.6.0;
+  branch `feat/tester-workspace-0.6.0`, uncommitted. Checks: native adapter tests
+  exercise setup/results/cancellation/error paths with real Git/venv/PTY commands;
+  architecture 9 and locale 2 passed, plus 16 native-message translation assertions.
+  Wheel/sdist, installer hashes/syntax and whitespace passed. Initial tester scope
+  94 passed; a subsequent run exposed a 300-ms test-start assumption, replaced
+  with an event wait. Final tester scope: 95 passed (84.331 seconds). Live macOS arm64 pinned
+  upstream basic suite correctly rejected an intentionally incorrect Python
+  executable fixture (exit 1, 61 failures), preserving the original project.
+  Upstream leaks checks timed out and nevertheless printed a memory PASS; do not
+  count that as memory validation. Initial live run was cancelled after a PTY held
+  by descendants; the completed rerun used the cleanup fix. Full default push_swap
+  suite, real C-project build, Linux/Intel platform matrix, Francinette summaries
+  and final release gates remain open. No backend/API change, version bump or publication.
+
 - 2026-10-29: Add portable tester outcomes and opt-in TOML `result_file` JSON
   summaries, read before disposable-copy cleanup. Distinguish test failures,
   process failures, unreadable reports and unverified results; require consistent

@@ -13,10 +13,11 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 
 from ft_tui.i18n import translate
 from ft_tui.features.projects.adapters.tester_catalog import Tester
-from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, TesterError
+from ft_tui.features.projects.adapters.tester_docker import DockerInstallation, DockerStatus, TesterError
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
 from ft_tui.features.projects.tester_results import TesterRunResult
+from ft_tui.features.projects.adapters.tester_native import run_native
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -56,6 +57,35 @@ class DockerInstallScreen(AppModal[bool]):
     def on_button_pressed(self, event: Button.Pressed):
         event.stop()
         self.dismiss(event.button.id == "confirm-docker-install")
+
+
+class NativeTesterConsent(AppModal[bool]):
+    BINDINGS = [("escape", "cancel", "Cancel")]
+    DEFAULT_CSS = """
+    #native-tester-consent { width: 80; max-width: 94%; height: auto; border: round $primary; padding: 1 2; }
+    #native-tester-consent Static { height: auto; margin-bottom: 1; }
+    #native-tester-consent Button { margin: 1 1; }
+    """
+
+    def __init__(self, tester):
+        super().__init__()
+        self.tester = tester
+
+    def compose(self):
+        with Vertical(id="native-tester-consent"):
+            yield Static(self.tester.name, markup=False, localize=False)
+            yield Static("Native testers run code on your computer. A disposable copy and virtual environment do not sandbox it.")
+            yield Static(f"{self.tester.repository}\n{self.tester.ref}", markup=False, localize=False)
+            yield Static("Requires Git, Python and any build tools used by the project. No system packages are installed.")
+            yield Button("Continue and run", id="confirm-native-tester")
+            yield Button("Cancel", id="cancel-native-tester")
+
+    def action_cancel(self):
+        self.dismiss(False)
+
+    def on_button_pressed(self, event):
+        event.stop()
+        self.dismiss(event.button.id == "confirm-native-tester")
 
 
 class TesterAction(Button):
@@ -153,7 +183,8 @@ class ProjectTesters(Vertical):
             button = self.query_one("#tester-workspace-open", Button)
             button.display = True
             button.disabled = False
-        self.query_one("#tester-status", Static).update("Checking Docker…" if testers else (
+        self.query_one("#tester-status", Static).update(
+            ("Checking Docker…" if any(tester.runtime == "docker" for tester in testers) else "Checking testers…") if testers else (
             "No tester is configured for this project on this platform." if project
             else "Select a project to see testers."
         ))
@@ -167,20 +198,22 @@ class ProjectTesters(Vertical):
         await asyncio.sleep(0.12)
         if not self._inspection_current(generation):
             return
-        status = await asyncio.to_thread(service.status)
+        docker_testers = tuple(tester for tester in testers if tester.runtime == "docker")
+        status = await asyncio.to_thread(service.status) if docker_testers else DockerStatus("native")
         if not self._inspection_current(generation):
             return
-        setup_plan = await asyncio.to_thread(service.setup_plan, status)
+        setup_plan = await asyncio.to_thread(service.setup_plan, status) if docker_testers else None
         if not self._inspection_current(generation):
             return
         self._setup_plan = setup_plan
-        removable = await asyncio.to_thread(lambda: {tester.id for tester in testers if service.has_images(tester)}) if (
+        removable = await asyncio.to_thread(lambda: {tester.id for tester in docker_testers if service.has_images(tester)}) if (
             status.state == "ready"
         ) else set()
         if not self._inspection_current(generation):
             return
         self._docker_state = status.state
         messages = {
+            "native": "Native testers are available. Execution requires your confirmation; Docker is not used.",
             "ready": "Docker is ready. Container execution and folder access are checked before each run.",
             "incompatible": "A Linux Docker engine is required.",
             "missing": "Docker is not installed. Run the tester to set it up.",
@@ -237,7 +270,10 @@ class ProjectTesters(Vertical):
             tester = event.button.tester
             project_path = self.project.local_path if self.project else None
             plan = self._setup_plan
-            if plan:
+            if tester.runtime == "native":
+                self.app.push_screen(NativeTesterConsent(tester),
+                    lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+            elif plan:
                 self.app.push_screen(
                     DockerInstallScreen(plan),
                     lambda approved: self._start("run", tester, plan=plan, project_path=project_path)
@@ -247,6 +283,13 @@ class ProjectTesters(Vertical):
                 self._start("run", tester, project_path=project_path)
         elif isinstance(event.button, TesterRemoveButton):
             self._start("remove", event.button.tester)
+
+    def _rerun(self, tester, project_path, plan):
+        if tester.runtime == "native":
+            self.app.push_screen(NativeTesterConsent(tester),
+                lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+        else:
+            self._start("run", tester, plan=plan, project_path=project_path)
 
     def _start(self, action, tester=None, *, plan=None, project_path=None):
         if self._operating or self.app.tester_docker.busy:
@@ -274,7 +317,7 @@ class ProjectTesters(Vertical):
                 self.app.uninstall_screen("tester-workspace")
             workspace = self._workspace = TesterWorkspace(
                 f"{tester.name if tester else 'Docker'} · {project_path or action}", log_path,
-                rerun=partial(self._start, action, tester, plan=plan, project_path=project_path) if action == "run" else None)
+                rerun=partial(self._rerun, tester, project_path, plan) if action == "run" else None)
             self.app.install_screen(workspace, "tester-workspace")
             await self.app.push_screen("tester-workspace")
             button = self.query_one("#tester-workspace-open", Button)
@@ -287,7 +330,8 @@ class ProjectTesters(Vertical):
                     try:
                         with service.operation():
                             if action == "run":
-                                result = service.prepare_and_run(tester, project_path, terminal, plan=plan)
+                                result = (run_native(tester, project_path, terminal) if tester.runtime == "native"
+                                          else service.prepare_and_run(tester, project_path, terminal, plan=plan))
                             elif action == "remove":
                                 service.remove(tester, terminal)
                             terminal.check_cancelled()

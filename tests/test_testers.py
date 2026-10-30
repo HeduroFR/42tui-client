@@ -54,10 +54,10 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         self.assertEqual(len(catalog.for_project("libft", "linux")), 2)
         self.assertEqual(len(catalog.for_project("libft", "darwin")), 1)
         catalog = self.write(self.entry("francinette"))
-        self.assertEqual(len(catalog.testers), 1)
+        self.assertEqual(len(catalog.testers), len(self.catalog.testers))
         self.assertEqual(catalog.testers[0].name, "Custom tester")
         self.assertFalse(catalog.for_project("ft_printf", "linux"))
-        self.assertFalse(self.write('[[testers]]\nid="francinette"\nenabled=false').testers)
+        self.assertFalse(self.write('[[testers]]\nid="francinette"\nenabled=false').for_project("libft", "linux"))
 
     def test_invalid_override_is_atomic(self):
         invalid = ["bad = [", "testers = 1", self.entry() + self.entry(),
@@ -87,6 +87,16 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
                 catalog = self.write(self.entry() + f'result_file = {value}\n')
                 self.assertTrue(catalog.error)
                 self.assertEqual(catalog.testers, self.catalog.testers)
+
+    def test_native_commands_and_invalid_runtime_fields(self):
+        entry = self.entry() + 'runtime = "native"\nprepare = [["{python}", "-V"]]\n'
+        catalog = self.write(entry)
+        self.assertFalse(catalog.error)
+        self.assertEqual(catalog.testers[-1].runtime, 'native')
+        self.assertEqual(catalog.testers[-1].prepare, (('{python}', '-V'),))
+        for extra in ('runtime="shell"', 'prepare=[[]]', 'runtime="native"\nprepare=["make"]', 'prepare=[["make"]]'):
+            self.assertTrue(self.write(self.entry() + extra).error)
+        self.assertEqual(self.catalog.for_project('push_swap', 'darwin')[0].runtime, 'native')
 
     def test_xdg_and_fallback(self):
         with patch.dict("os.environ", {"XDG_CONFIG_HOME": str(self.path.parent)}):
@@ -1030,3 +1040,62 @@ class TesterUnprivilegedTests(unittest.TestCase):
             self.service.install(self.tester, terminal)
         build = terminal.run.call_args_list[0].args[0]
         self.assertIn('BUILDKIT_CONTEXT_KEEP_GIT_DIR=1', build)
+
+
+class NativeTesterTests(unittest.TestCase):
+    def test_real_native_setup_results_and_project_preservation(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_native import run_native
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source, project = root / 'source', root / 'project'
+            source.mkdir()
+            project.mkdir()
+            (source / 'README').write_text('synthetic tester')
+            def git(*args):
+                return subprocess.check_output(['git', '-C', str(source), *args], stderr=subprocess.DEVNULL, text=True).strip()
+            git('init')
+            git('add', 'README')
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-m', 'fixture')
+            revision = git('rev-parse', 'HEAD')
+            (project / 'main.c').write_text('original')
+            tester = replace(load_catalog(root / 'absent').testers[0], runtime='native', repository=str(source), ref=revision,
+                             prepare=(("{python}", '-c', 'from pathlib import Path; Path("prepared").touch()'),),
+                             command=("{python}", '-c', 'import json; from pathlib import Path; assert Path("prepared").exists(); '
+                                      'Path("main.c").write_text("changed"); '
+                                      'Path("result.json").write_text(json.dumps(dict(version=1,total=1,passed=1,failed=0,errors=0,skipped=0)))'),
+                             result_file='result.json')
+            result = run_native(tester, str(project), WorkspaceSession(io.BytesIO(), lambda data: None))
+            self.assertEqual(result.status, 'passed')
+            self.assertEqual((project / 'main.c').read_text(), 'original')
+            self.assertFalse((project / 'result.json').exists())
+            failing = replace(tester, command=('{python}', '-c', 'raise SystemExit(3)'), result_file=None)
+            self.assertEqual(run_native(failing, str(project), WorkspaceSession(io.BytesIO(), lambda data: None)).status,
+                             'process_failed')
+            unreadable = replace(tester, command=('{python}', '-c', 'print("no report")'))
+            self.assertEqual(run_native(unreadable, str(project), WorkspaceSession(io.BytesIO(), lambda data: None)).status,
+                             'unreadable')
+            cancelled = replace(tester, command=('{python}', '-c', 'import time; print("NATIVE_READY",flush=True); time.sleep(30)'))
+            terminal = WorkspaceSession(io.BytesIO(), lambda data: terminal.cancel() if data.startswith(b'NATIVE_READY') else None)
+            with self.assertRaises(KeyboardInterrupt):
+                run_native(cancelled, str(project), terminal)
+            self.assertEqual((project / 'main.c').read_text(), 'original')
+            broken = replace(tester, prepare=(('{python}', '-c', 'raise SystemExit(4)'),))
+            with self.assertRaises(subprocess.CalledProcessError):
+                run_native(broken, str(project), WorkspaceSession(io.BytesIO(), lambda data: None))
+
+
+    def test_native_rejects_external_links_before_executing(self):
+        from ft_tui.features.projects.adapters.tester_native import run_native
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project = root / 'project'
+            project.mkdir()
+            (root / 'private').write_text('private')
+            (project / 'linked').symlink_to(root / 'private')
+            tester = replace(load_catalog(root / 'absent').testers[0], runtime='native')
+            terminal = Mock()
+            with self.assertRaisesRegex(TesterError, 'links outside'):
+                run_native(tester, str(project), terminal)
+            terminal.run.assert_not_called()

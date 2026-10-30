@@ -132,3 +132,12 @@ class WorkspaceSessionTests(unittest.TestCase):
         lines = console.render().plain.splitlines()
         for expected in ('Preparing tests', 'Second status', 'Third status', 'child one', 'child two'):
             self.assertIn(expected, [line.rstrip() for line in lines])
+
+    def test_exited_tester_does_not_wait_for_background_children_holding_the_pty(self):
+        import io
+        from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
+        session = WorkspaceSession(io.BytesIO(), lambda data: None)
+        started = time.monotonic()
+        session.run([sys.executable, '-c',
+                     'import subprocess,sys; subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); print("done")'])
+        self.assertLess(time.monotonic() - started, 5)

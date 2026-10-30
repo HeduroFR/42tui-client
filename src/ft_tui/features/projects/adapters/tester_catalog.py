@@ -30,6 +30,8 @@ class Tester:
     command: tuple[str, ...]
     architectures: tuple[str, ...] = ("amd64",)
     result_file: str | None = None
+    runtime: str = "docker"
+    prepare: tuple[tuple[str, ...], ...] = ()
 
     @property
     def image(self) -> str:
@@ -64,7 +66,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         raise ValueError("Expected [[testers]] entries")
     result: dict[str, Tester | None] = {}
     fields = {"id", "name", "projects", "platforms", "repository", "ref", "context", "command", "enabled",
-              "architectures", "result_file"}
+              "architectures", "result_file", "runtime", "prepare"}
     for entry in document["testers"]:
         if not isinstance(entry, dict) or set(entry) - fields:
             raise ValueError("Unknown tester field")
@@ -89,6 +91,15 @@ def _entries(content: str) -> dict[str, Tester | None]:
                 raise ValueError(f"{identifier}: {key} must be a nonempty list of strings")
         if set(entry["platforms"]) - {"linux", "darwin"}:
             raise ValueError(f"{identifier}: supported platforms are linux and darwin")
+        runtime = entry.get("runtime", "docker")
+        if runtime not in {"docker", "native"}:
+            raise ValueError(f"{identifier}: runtime must be docker or native")
+        prepare = entry.get("prepare", [])
+        if (not isinstance(prepare, list) or any(not isinstance(command, list) or not command
+                or any(not isinstance(arg, str) or not arg or "\x00" in arg for arg in command) for command in prepare)):
+            raise ValueError(f"{identifier}: prepare must contain nonempty command lists")
+        if runtime == "docker" and prepare:
+            raise ValueError(f"{identifier}: prepare is only supported for native testers")
         architectures = entry.get("architectures", ["amd64"])
         if (not isinstance(architectures, list) or not architectures
                 or any(not isinstance(item, str) or item not in {"amd64", "arm64"} for item in architectures)
@@ -113,7 +124,7 @@ def _entries(content: str) -> dict[str, Tester | None]:
         result[identifier] = Tester(
             identifier, entry["name"], tuple(project_slug(slug) for slug in entry["projects"]),
             tuple(entry["platforms"]), entry["repository"], entry["ref"].lower(),
-            entry["context"], tuple(entry["command"]), tuple(architectures), result_file,
+            entry["context"], tuple(entry["command"]), tuple(architectures), result_file, runtime, tuple(tuple(command) for command in prepare),
         )
     return result
 

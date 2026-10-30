@@ -176,7 +176,26 @@ not a source file: an inherited report is removed from the disposable copy befor
 to prevent stale results. The original project is unchanged. Reported success
 describes that tester's checks, not official project validation.
 
-On Linux, an accessible Docker engine with BuildKit support must already be
+For **push_swap**, choose **Run Push_swap tester**. This uses the pinned
+[ft_ps_tester](https://github.com/italoalmeida0/ft_ps_tester) (MIT) natively,
+without Docker. Git, Python, `make` and your project's compiler/libraries must be
+available already. Review and approve native execution before each run: it can
+access your computer; the private environment and disposable copy are not a
+sandbox. External/absolute symlinks in the project copy are rejected. Setup
+fetches the pinned source and creates a temporary Python virtual environment
+without pip; `make` builds the disposable project, then the tester runs its full
+default suite. Setup needs network access on every run, and all temporary files
+are removed afterward. No system packages are installed. This tester currently
+has no validated structured report, so inspect its log rather than interpreting
+an unverified result as a pass.
+
+Custom native definitions use `runtime = "native"`, optional
+`prepare = [["make"]]`, and the normal `command` list. Arguments can reference
+`{source}` (the pinned source/context), `{project}` (the project copy) and
+`{python}` (the private environment's interpreter). Commands run without a shell,
+from the project copy. Docker remains the default for existing definitions.
+
+For Francinette on Linux, an accessible Docker engine with BuildKit support must already be
 available. Check with `docker info` from your normal account. 42TUI can start an
 existing rootless user service; it does not install system packages, start system
 services, change socket permissions or use `sudo`. If Docker is missing or access

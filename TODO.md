@@ -156,14 +156,14 @@ Git push success never changes academic status by itself.
 
 ## 0.6.0 — Testers and update reliability
 
-Status: **reworked scope agreed; implementation and release validation pending**.
-Latest published stable release is 0.5.1. This roadmap does not bump the package
+Status: **workspace and result infrastructure implemented; tester/runtime expansion and release validation ongoing**.
+Latest published stable release is 0.5.2. This roadmap does not bump the package
 version or authorize publication.
 
 | Item | Integration status | 0.6.0 scope |
 | --- | --- | --- |
 | One-button Francinette setup/run on Linux and macOS | Published in 0.5.0 (PR #13, #38) | Main feature |
-| Modular testers with lighter setup and an in-TUI workspace | Agreed; implementation pending | Rework the existing tester feature |
+| Modular testers with lighter setup and an in-TUI workspace | Workspace/results implemented; native push_swap added, platform validation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
 | Backend storage, backup and connection encryption | Planned; implementation and deployment verification pending | Priority security work alongside 0.6.0 |
@@ -195,9 +195,15 @@ version or authorize publication.
   Preserve full logs and distinguish test failures, setup failures, cancellation
   and unreadable results. Do not equate a successful process exit with all tests
   passing; show percentages only when progress is measurable.
-- [ ] Use a disposable project copy by default so tester builds/cleanup preserve
-  the working folder. Make native execution permissions clear: a private directory
-  or virtual environment does not sandbox executed code.
+- [x] Use a disposable project copy by default so tester builds/cleanup preserve
+  the working folder. Native runs require explicit confirmation explaining that
+  a private directory or virtual environment does not sandbox executed code.
+
+Current implementation: pinned Francinette (Docker) and ft_ps_tester for push_swap
+(native Python environment with definition-driven build/run commands). The native
+adapter has synthetic PTY/result/cancellation tests. Full Linux/macOS platform
+validation, a Francinette summary reader, dedicated stage indicators and the
+headless-container/runtime evaluation remain pending.
 - [ ] Prove the complete flow with Francinette and one contrasting tester
   (push_swap or a Python module tester), including setup/retry, cancellation,
   output capture, result handling and French/Spanish interface coverage.

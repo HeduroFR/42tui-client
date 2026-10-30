@@ -1273,5 +1273,13 @@
   "Process exit code: {code}": "Code de sortie du processus : {code}",
   "Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}": "Tests : {total} · réussis : {passed} · échoués : {failed} · erreurs : {errors} · ignorés : {skipped}",
   "Open log folder": "Ouvrir le dossier des journaux",
-  "Could not open log folder: {error}": "Impossible d’ouvrir le dossier des journaux : {error}"
+  "Could not open log folder: {error}": "Impossible d’ouvrir le dossier des journaux : {error}",
+  "Native testers run code on your computer. A disposable copy and virtual environment do not sandbox it.": "Les testeurs natifs exécutent du code sur votre ordinateur. Une copie temporaire et un environnement virtuel ne constituent pas un bac à sable.",
+  "Requires Git, Python and any build tools used by the project. No system packages are installed.": "Git, Python et les outils de compilation du projet sont nécessaires. Aucun paquet système n’est installé.",
+  "Native testers are available. Execution requires your confirmation; Docker is not used.": "Des testeurs natifs sont disponibles. Leur exécution nécessite votre confirmation ; Docker n’est pas utilisé.",
+  "Checking testers…": "Vérification des testeurs…",
+  "Preparing the native tester…": "Préparation du testeur natif…",
+  "Git is required for native tester setup.": "Git est nécessaire pour préparer le testeur natif.",
+  "Native tester copies cannot contain links outside the copy.": "Les copies des testeurs natifs ne peuvent pas contenir de liens vers l’extérieur de la copie.",
+  "Native tester context must stay inside the repository.": "Le contexte du testeur natif doit rester dans le dépôt."
 }

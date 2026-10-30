@@ -79,6 +79,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(buttons[0].disabled)
 
     async def test_workspace_keeps_output_and_run_when_closed_and_cancels(self):
+        import asyncio
         import threading
         from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
         async with self.workspace() as (app, widget, service, projects, pilot, root):
@@ -94,8 +95,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             service.prepare_and_run = Mock(side_effect=run)
             widget._start("run", app.tester_catalog.testers[0])
             widget._start("run", app.tester_catalog.testers[0])
-            await pilot.pause(.3)
-            self.assertTrue(entered.is_set())
+            self.assertTrue(await asyncio.to_thread(entered.wait, 3))
+            await pilot.pause()
             self.assertIsInstance(app.screen, TesterWorkspace)
             workspace = app.screen
             await pilot.resize_terminal(80, 24)
@@ -236,6 +237,32 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             self.assertEqual(app.query_one("#main-tabs").active, "settings")
             self.assertNotIsInstance(app.focused, TesterAction)
+
+    async def test_native_tester_needs_consent_and_never_probes_docker(self):
+        from dataclasses import replace
+        from ft_tui.features.projects.views.testers import NativeTesterConsent
+        from ft_tui.features.projects.tester_results import TesterRunResult
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            tester = replace(app.tester_catalog.testers[0], runtime='native')
+            app.tester_catalog = replace(app.tester_catalog, testers=(tester,))
+            service.status.reset_mock()
+            projects['libft'].local_path = str(root)
+            await self.select(widget, projects['libft'], pilot)
+            service.status.assert_not_called()
+            with patch('ft_tui.features.projects.views.testers.run_native', return_value=TesterRunResult(0)) as run:
+                widget.query_one(TesterAction).press()
+                await pilot.pause()
+                self.assertIsInstance(app.screen, NativeTesterConsent)
+                await pilot.press('escape')
+                run.assert_not_called()
+                widget.query_one(TesterAction).press()
+                await pilot.pause()
+                app.screen.query_one('#confirm-native-tester', Button).press()
+                await pilot.pause(.3)
+                await widget.workers.wait_for_complete()
+                run.assert_called_once()
+                self.assertEqual(run.call_args.args[1], str(root))
+                self.assertIn('unverified', widget._messages['francinette'])
 
     async def test_multiple_testers(self):
         from dataclasses import replace

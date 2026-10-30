@@ -1256,5 +1256,13 @@
   "Process exit code: {code}": "Código de salida del proceso: {code}",
   "Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}": "Pruebas: {total} · superadas: {passed} · fallidas: {failed} · errores: {errors} · omitidas: {skipped}",
   "Open log folder": "Abrir carpeta de registros",
-  "Could not open log folder: {error}": "No se pudo abrir la carpeta de registros: {error}"
+  "Could not open log folder: {error}": "No se pudo abrir la carpeta de registros: {error}",
+  "Native testers run code on your computer. A disposable copy and virtual environment do not sandbox it.": "Los testers nativos ejecutan código en tu ordenador. Una copia temporal y un entorno virtual no son un entorno aislado de seguridad.",
+  "Requires Git, Python and any build tools used by the project. No system packages are installed.": "Requiere Git, Python y las herramientas de compilación del proyecto. No se instalan paquetes del sistema.",
+  "Native testers are available. Execution requires your confirmation; Docker is not used.": "Hay testers nativos disponibles. Su ejecución requiere confirmación; no se usa Docker.",
+  "Checking testers…": "Comprobando testers…",
+  "Preparing the native tester…": "Preparando el tester nativo…",
+  "Git is required for native tester setup.": "Se requiere Git para preparar el tester nativo.",
+  "Native tester copies cannot contain links outside the copy.": "Las copias de testers nativos no pueden contener enlaces fuera de la copia.",
+  "Native tester context must stay inside the repository.": "El contexto del tester nativo debe permanecer dentro del repositorio."
 }
