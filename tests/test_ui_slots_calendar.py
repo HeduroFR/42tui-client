@@ -78,6 +78,33 @@ class CalendarTests(unittest.IsolatedAsyncioTestCase):
             cal.set_slots((slot,)); cal.set_week(date(2026, 11, 2))
             self.assertEqual(cal.slots_at(0, 36), ())
 
+    async def test_expired_slots_disappear_without_removing_ongoing_or_future_slots(self):
+        self.clock.now.return_value = datetime(2026, 10, 26, 10, 0, tzinfo=timezone.utc)
+        app = Harness()
+        async with app.run_test(size=(110, 26)) as pilot:
+            cal = app.query_one(SlotsCalendar)
+            ended = Slot(('1',), *interval(DAY, 38, 39, timezone.utc), True)
+            ongoing = Slot(('2',), *interval(DAY, 39, 40, timezone.utc))
+            future = Slot(('3',), *interval(DAY, 41, 42, timezone.utc))
+            cal.set_slots((ended, ongoing, future)); cal.show_time(38); await pilot.pause()
+            self.assertEqual(cal.slots_at(0, 38), ())
+            self.assertEqual(cal.slots_at(0, 39), (ongoing,))
+            self.assertEqual(cal.slots_at(0, 41), (future,))
+            self.assertNotIn('09:30–10:00', cal.render_line(0).text)
+            self.clock.now.return_value = datetime(2026, 10, 26, 10, 15, tzinfo=timezone.utc)
+            cal.refresh_time()
+            self.assertEqual(cal.slots_at(0, 39), ())
+            self.assertEqual(cal.slots, (ended, ongoing, future))
+
+            cal.zone = ZoneInfo('Europe/Paris')
+            crossing = Slot(('4',), datetime(2026, 10, 26, 22, 45, tzinfo=timezone.utc),
+                            datetime(2026, 10, 26, 23, 15, tzinfo=timezone.utc))
+            cal.set_slots((crossing,))
+            self.clock.now.return_value = datetime(2026, 10, 26, 23, 0, tzinfo=timezone.utc)
+            self.assertEqual(cal.slots_at(1, 0), (crossing,))
+            self.clock.now.return_value = crossing.end
+            self.assertEqual(cal.slots_at(1, 0), ())
+
     async def test_week_uses_one_time_axis_after_scrolling(self):
         app = Harness()
         async with app.run_test(size=(166, 26)) as p:

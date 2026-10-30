@@ -213,7 +213,8 @@ class SlotsCalendar(ScrollView, can_focus=True):
                 end = datetime.combine(date + timedelta(days=1), time(), self.zone).astimezone(UTC)
                 self._day_slots[day] = tuple(s for s in self.slots if s.begin < end and s.end > begin)
             self._slot_cells[key] = tuple(s for s in self._day_slots[day] if any(s.begin < b and s.end > a for a, b in spans))
-        return self._slot_cells[key]
+        now = datetime.now(UTC)
+        return tuple(slot for slot in self._slot_cells[key] if slot.end > now)
 
     def request_edit(self, day, row):
         candidates = self.slots_at(day, row)
@@ -263,7 +264,7 @@ class SlotsCalendar(ScrollView, can_focus=True):
                 existing = self.slots_at(*origin)
                 if existing and cell[1] != origin[1] and any(not s.booked for s in existing):
                     deleting = tuple(s for s in self._day_slots[origin[0]]
-                                     if not s.booked and s.begin < end and s.end > begin)
+                                     if not s.booked and s.end > datetime.now(UTC) and s.begin < end and s.end > begin)
                 elif not existing:
                     preview = (begin, end)
             except ValueError:

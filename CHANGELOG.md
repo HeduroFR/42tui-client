@@ -9,6 +9,8 @@
 
 - Give danger buttons the same raised appearance as primary buttons, in red.
 
+- Hide expired correction slots from the calendar while keeping ongoing slots visible.
+
 ## 0.6.1
 
 ### ✨ New features
