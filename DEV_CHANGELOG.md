@@ -16,6 +16,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Guard the cluster workstation close callback when its grid was
+  removed during teardown, fixing the `NoMatches` failure in PR #47 CI.
+  Patch fix within planned 0.6.0; the targeted grid-removal and account-change
+  regressions passed locally. Full hosted cluster regression must pass again.
+
 - 2026-10-30: Add pinned Germinette Docker integration for Python modules 00–10,
   05/06 bis and A-Maze-ing, sharing one image across project definitions; update
   GNL/printf fork URLs and preserve unverified status for incomplete reports.

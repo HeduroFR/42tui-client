@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Avoid a cluster-map error when a workstation view closes while its grid is being removed.
+
 - Offer Germinette for Python modules 00–10, 05 bis, 06 bis and A-Maze-ing
   through a shared Docker image. Bis testers show reported checks; the other
   modules report recorded failures but remain unverified when none are recorded. A report with
