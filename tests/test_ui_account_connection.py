@@ -56,6 +56,348 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_keyring_selection_restores_store_after_session_pairing_failure(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        class FailingClient(FakeOAuthClient):
+            def create_pairing(self, **kwargs):
+                self.pairing_calls += 1
+                raise RuntimeError('synthetic failure')
+
+        client = FailingClient()
+        original = object()
+        client.store, client._credentials = original, None
+        app = App()
+        async with app.run_test(size=(100, 35)) as pilot:
+            screen = AccountConnectionScreen(client)
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one('#account-storage').value = 'session'
+            await pilot.click('#account-connect')
+            self.assertIsInstance(client.store, SessionCredentialStore)
+            await pilot.pause(0.4)
+            screen.query_one('#account-storage').value = 'keyring'
+            await pilot.click('#account-connect')
+            self.assertEqual(client.pairing_calls, 2)
+            self.assertIs(client.store, original)
+
+    async def test_passphrase_inputs_and_actions_are_spaced_and_centered(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
+
+        for size in ((80, 24), (45, 24)):
+            app = App()
+            async with app.run_test(size=size) as pilot:
+                screen = VaultPassphraseScreen(False)
+                app.push_screen(screen)
+                await pilot.pause()
+                password = screen.query_one('#vault-passphrase')
+                confirmation = screen.query_one('#vault-confirm')
+                actions = screen.query_one('#vault-actions')
+                proceed = screen.query_one('#vault-continue')
+                cancel = screen.query_one('#vault-cancel')
+                self.assertGreater(confirmation.region.y, password.region.bottom)
+                self.assertEqual(proceed.region.y, cancel.region.y)
+                self.assertGreater(cancel.region.x, proceed.region.right)
+                self.assertLessEqual(abs((proceed.region.x - actions.content_region.x) - (actions.content_region.right - cancel.region.right)), 1)
+
+    async def test_storage_dropdown_hides_connect_but_keeps_quit_visible(self):
+        from textual.app import App
+        from textual.widgets._select import SelectOverlay
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.store = SessionCredentialStore()
+        client._credentials = None
+        app = App()
+        async with app.run_test(size=(80, 24)) as pilot:
+            screen = AccountConnectionScreen(client, required=True)
+            app.push_screen(screen)
+            await pilot.pause()
+            await pilot.click('#account-storage')
+            await pilot.pause()
+            overlay = screen.query_one(SelectOverlay)
+            connect = screen.query_one('#account-connect')
+            quit_button = screen.query_one('#account-connection-cancel')
+            self.assertEqual(connect.styles.visibility, 'hidden')
+            self.assertTrue(quit_button.visible)
+            self.assertFalse(quit_button.is_disabled)
+            await pilot.click(None, offset=(overlay.region.x + 5, overlay.region.y + 3))
+            await pilot.pause()
+            self.assertEqual(screen.query_one('#account-storage').value, 'vault')
+            self.assertEqual(connect.styles.visibility, 'visible')
+            self.assertEqual(client.pairing_calls, 0)
+            self.assertIs(app.screen, screen)
+            await pilot.click('#account-storage')
+            self.assertEqual(connect.styles.visibility, 'hidden')
+            await pilot.press('escape')
+            await pilot.pause()
+            self.assertEqual(connect.styles.visibility, 'visible')
+            from unittest.mock import patch
+            await pilot.click('#account-storage')
+            with patch.object(app, 'exit') as quit_app:
+                await pilot.click('#account-connection-cancel')
+                await pilot.pause()
+                quit_app.assert_called_once_with()
+
+    async def test_storage_selector_opens_passphrase_flow(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen, VaultPassphraseScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.store = SessionCredentialStore()
+        client._credentials = None
+        app = App()
+        with tempfile.TemporaryDirectory() as directory, patch(
+            'ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=Path(directory) / 'vault'
+        ):
+            async with app.run_test(size=(100, 35)) as pilot:
+                screen = AccountConnectionScreen(client)
+                app.push_screen(screen)
+                await pilot.pause()
+                self.assertFalse(screen.query_one('#account-disconnect').display)
+                screen.query_one('#account-storage').value = 'vault'
+                await pilot.pause()
+                self.assertIn('passphrase', str(screen.query_one('#account-storage-help').render()))
+                self.assertEqual(screen.query_one('#account-storage').region.x, screen.query_one('#account-connect').region.x)
+                await pilot.click('#account-connect')
+                self.assertIsInstance(app.screen, VaultPassphraseScreen)
+
+    async def test_existing_installation_requires_connection_until_quit_or_pairing(self):
+        from unittest.mock import patch
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.features.settings.adapters.storage import save_settings
+
+        factory = make_session_factory('sqlite:///:memory:')
+        with factory() as session:
+            save_settings(session, {'onboarding_completed': 'true'})
+        client = FakeOAuthClient()
+        app = FortyTwoTuiApp(factory, None, oauth_client=client)
+        async with app.run_test(size=(120, 45)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            self.assertIsInstance(screen, AccountConnectionScreen)
+            self.assertTrue(screen.required)
+            self.assertEqual(str(screen.query_one('#account-connection-cancel').label), 'Quit TUI')
+            await pilot.press('escape')
+            self.assertIs(app.screen, screen)
+            with patch.object(app, 'exit') as quit_app:
+                await pilot.click('#account-connection-cancel')
+                quit_app.assert_called_once_with()
+            self.assertIs(app.screen, screen)
+            await screen._start_pairing()
+            await screen._poll_pairing()
+            await pilot.pause()
+            self.assertTrue(app.account_connected)
+            self.assertIsNot(app.screen, screen)
+
+    async def test_account_actions_have_spacing_at_narrow_and_wide_sizes(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import CredentialStore
+
+        for size in ((80, 24), (120, 45)):
+            client = FakeOAuthClient()
+            client.store = CredentialStore(keyring_backend=object())
+            client._credentials = None
+            app = App()
+            async with app.run_test(size=size) as pilot:
+                screen = AccountConnectionScreen(client, connected=True, connected_login='student')
+                app.push_screen(screen)
+                await pilot.pause()
+                actions = [screen.query_one('#' + name) for name in
+                           ('account-connect', 'account-disconnect', 'account-vault-migrate', 'account-connection-cancel')]
+                for first, second in zip(actions, actions[1:]):
+                    self.assertGreater(second.region.y, first.region.bottom)
+                    self.assertEqual(first.region.width, second.region.width)
+                self.assertLessEqual(actions[0].region.right, size[0])
+
+    async def test_locked_vault_is_offered_on_startup_and_cancel_preserves_it(self):
+        from unittest.mock import patch
+        from ft_tui.api.oauth_client import OAuthClient
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
+        from ft_tui.infrastructure.security.session_vault import LockedSessionStore, SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'access_token': 'secret'})
+            original = path.read_bytes()
+            client = OAuthClient('https://example.org', credential_store=LockedSessionStore(), lock_directory=Path(directory) / 'locks')
+            factory = make_session_factory('sqlite:///:memory:')
+            app = FortyTwoTuiApp(factory, None, oauth_client=client)
+            with patch('ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=path):
+                async with app.run_test(size=(120, 45)) as pilot:
+                    for _ in range(20):
+                        await pilot.pause(0.1)
+                        if isinstance(app.screen, VaultPassphraseScreen):
+                            break
+                    self.assertIsInstance(app.screen, VaultPassphraseScreen)
+                    await pilot.press('escape')
+                    await pilot.pause()
+                    self.assertEqual(path.read_bytes(), original)
+                    self.assertIsInstance(client.store, LockedSessionStore)
+
+    async def test_vault_passphrase_confirmation_and_cancel(self):
+        from textual.app import App
+        from textual.widgets import Input
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
+
+        app = App()
+        async with app.run_test(size=(100, 35)) as pilot:
+            screen = VaultPassphraseScreen(False)
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one('#vault-passphrase', Input).value = 'long passphrase'
+            screen.query_one('#vault-confirm', Input).value = 'different passphrase'
+            await pilot.click('#vault-continue')
+            self.assertIn('matching', str(screen.query_one('#vault-error').render()))
+            await pilot.press('escape')
+            self.assertIsNot(app.screen, screen)
+
+    async def test_keyring_migration_verifies_before_deleting_and_reset_is_local(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.api.oauth_client import OAuthClient
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import CredentialStore
+        from ft_tui.infrastructure.security.session_vault import SessionVault, discard_locked_vault
+        from test_keychain import FakeKeyring
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'credentials' / 'vault'
+            keyring = FakeKeyring()
+            old = CredentialStore(keyring_backend=keyring)
+            credentials = {'access_token': 'a', 'refresh_token': 'r', 'expires_at': '2030-01-01T00:00:00Z', 'private_key_pem': 'key'}
+            old.save(credentials)
+            client = OAuthClient('https://example.org', credential_store=old, lock_directory=Path(directory) / 'locks')
+            app = App()
+            with patch('ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=path):
+                async with app.run_test(size=(120, 45)) as pilot:
+                    screen = AccountConnectionScreen(client, connected=True)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._migrate_vault('a long test passphrase')
+                    self.assertIsNone(old.load())
+                    self.assertEqual(SessionVault.unlock(path, 'a long test passphrase').load(), credentials)
+                    self.assertIsInstance(client.store, SessionVault)
+                    discard_locked_vault(path)
+                    self.assertFalse(path.exists())
+
+    async def test_keyring_migration_keeps_original_when_directory_sync_fails(self):
+        import os
+        import stat
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.api.oauth_client import OAuthClient
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import CredentialStore
+        from test_keychain import FakeKeyring
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'credentials' / 'vault'
+            old = CredentialStore(keyring_backend=FakeKeyring())
+            credentials = {'access_token': 'a', 'refresh_token': 'r', 'expires_at': '2030-01-01T00:00:00Z', 'private_key_pem': 'key'}
+            old.save(credentials)
+            client = OAuthClient('https://example.org', credential_store=old, lock_directory=root / 'locks')
+            original_fsync = os.fsync
+            def fail_directory_sync(fd):
+                if stat.S_ISDIR(os.fstat(fd).st_mode):
+                    raise OSError('simulated directory sync failure')
+                return original_fsync(fd)
+            app = App()
+            with patch('ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=path), patch('ft_tui.infrastructure.security.session_vault.os.fsync', side_effect=fail_directory_sync):
+                async with app.run_test(size=(120, 45)) as pilot:
+                    screen = AccountConnectionScreen(client, connected=True)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._migrate_vault('a long test passphrase')
+                    self.assertEqual(old.load(), credentials)
+                    self.assertIs(client.store, old)
+                    self.assertIn('could not be completed', str(screen.query_one('#account-connection-status').render()))
+
+    async def test_vault_creation_and_unlock_reuse_saved_credentials(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'credentials' / 'session.json'
+            client = FakeOAuthClient()
+            client.store = object()
+            client._credentials = None
+            client.pairing_status = 'pending'
+            app = App()
+            with patch('ft_tui.infrastructure.security.session_vault.session_vault_path', return_value=path):
+                async with app.run_test(size=(120, 45)) as pilot:
+                    screen = AccountConnectionScreen(client)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._open_vault('a long test passphrase')
+                    self.assertIsInstance(client.store, SessionVault)
+                    self.assertEqual(client.pairing_calls, 1)
+                    client.store.save({'access_token': 'access', 'refresh_token': 'refresh', 'expires_at': '2030-01-01T00:00:00Z', 'private_key_pem': 'key'})
+                    await pilot.click('#account-connection-cancel')
+                    self.assertEqual(SessionVault.unlock(path, 'a long test passphrase').load()['refresh_token'], 'refresh')
+
+                    screen = AccountConnectionScreen(client)
+                    app.push_screen(screen)
+                    await pilot.pause()
+                    await screen._open_vault('wrong passphrase')
+                    self.assertIn('Could not open', str(screen.query_one('#account-connection-status').render()))
+                    self.assertTrue(path.exists())
+                    await screen._open_vault('a long test passphrase')
+                    await pilot.pause()
+                    self.assertIsInstance(client.store, SessionVault)
+
+    async def test_session_only_approved_pairing_keeps_memory_store(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.store = object()
+        client._credentials = None
+        app = App()
+        async with app.run_test(size=(120, 45)) as pilot:
+            screen = AccountConnectionScreen(client)
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one("#account-storage").value = "session"
+            await pilot.click("#account-connect")
+            await screen._poll_pairing()
+            await pilot.pause()
+            self.assertIsInstance(client.store, SessionCredentialStore)
+
+    async def test_session_only_pairing_cancellation_restores_existing_store(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import SessionCredentialStore
+
+        client = FakeOAuthClient()
+        client.pairing_status = "pending"
+        original = object()
+        client.store = original
+        client._credentials = None
+        app = App()
+        async with app.run_test(size=(120, 45)) as pilot:
+            screen = AccountConnectionScreen(client)
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one("#account-storage").value = "session"
+            await pilot.click("#account-connect")
+            self.assertIsInstance(client.store, SessionCredentialStore)
+            self.assertEqual(client.pairing_calls, 1)
+            await pilot.click("#account-connection-cancel")
+            self.assertIs(client.store, original)
+
     async def test_pairing_uses_resolved_active_theme_for_light_and_dark_apps(self):
         from textual.app import App
         from textual.color import Color
@@ -94,8 +436,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(get_setting(session, "onboarding_completed"), "true")
 
             app.account_connected = True
+            await pilot.pause(0.3)
             await pilot.click("#onboarding-next")
-            await pilot.pause()
+            await pilot.pause(0.3)
             await pilot.click("#onboarding-next")
             await pilot.pause()
             self.assertEqual(onboarding.step, 2)
@@ -166,9 +509,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 quit_button = app.screen.query_one('#session-quit')
                 self.assertEqual(str(quit_button.label), 'Quit TUI')
                 self.assertNotIn('?', str(app.screen.query_one('#session-expired-message').render()))
-                left_gap = reconnect.region.x - actions.content_region.x
-                right_gap = actions.content_region.right - quit_button.region.right
-                self.assertLessEqual(abs(left_gap - right_gap), 1)
+                self.assertLessEqual(abs((reconnect.region.x - actions.content_region.x) - (actions.content_region.right - reconnect.region.right)), 1)
+                self.assertEqual(reconnect.region.width, quit_button.region.width)
+                self.assertGreater(quit_button.region.y, reconnect.region.bottom)
                 with patch.object(app, 'exit') as quit_app:
                     await pilot.click("#session-quit")
                     await pilot.pause()
@@ -361,6 +704,8 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             await screen._poll_pairing()
             await pilot.pause()  # Allow the manual-link section to finish layout before clicking.
             self.assertFalse(screen.query_one("#account-connection-cancel").disabled)
+            screen.query_one("#account-connection-cancel").scroll_visible()
+            await pilot.pause()
             await pilot.click("#account-connection-cancel")
             await pilot.pause()
             self.assertIs(app.screen, onboarding)
@@ -677,6 +1022,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(client.disconnect_calls, 1)
             self.assertFalse(app.account_connected)
             self.assertIsNone(app.provider)
+            from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+            self.assertIsInstance(app.screen, AccountConnectionScreen)
+            self.assertTrue(app.screen.required)
 
 
 class CursusPersistenceTests(unittest.TestCase):

@@ -390,6 +390,10 @@ class FortyTwoTuiApp(
                 self._finish_onboarding,
             )
         self.set_interval(60, self._start_session_check)
+        from ft_tui.infrastructure.security.session_vault import LockedSessionStore
+        locked_vault = isinstance(getattr(self.oauth_client, "store", None), LockedSessionStore)
+        if not self.account_connected and (locked_vault or not onboarding_pending):
+            self.call_after_refresh(lambda: self.open_account_connection(start_vault=locked_vault, required=not onboarding_pending))
         self.call_after_refresh(self._start_updates)
         if self.account_connected:
             self.run_worker(

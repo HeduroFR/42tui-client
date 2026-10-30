@@ -6,6 +6,17 @@ from ft_tui.i18n import translate
 
 
 ACCOUNT_COPY = (
+    "Connect for this session only",
+    "Remember with a passphrase",
+    "Move keyring session to passphrase",
+    "Unlock your saved session",
+    "Choose a separate 42TUI passphrase",
+    "A copied vault can be attacked offline. A forgotten passphrase cannot be recovered.",
+    "Use matching passphrases of at least 12 characters.",
+    "Discard saved session",
+    "Discard the saved session on this device? This does not revoke the server session or delete projects.",
+    "The local saved session was discarded. The old server session was not revoked.",
+    "Could not securely access session credentials. Your saved data remains unchanged.",
     "No browser opened. Open the login link below to continue.",
     "If no browser opens, copy this link into an available browser (another device works too).",
     "Copy login link",

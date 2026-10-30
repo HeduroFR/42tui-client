@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 0.6.1
+
+### ✨ New features
+
+- Protect remembered sessions against stale pairing writes and retain keyring credentials if vault migration cannot be durably saved. Close older 42TUI versions before using the same session on another machine.
+
+- Space passphrase fields and place the dialog actions together for easier account setup.
+
+- Hide overlapping connection actions while the session-storage dropdown is open, while keeping Quit or Cancel available.
+
+- Choose account session storage from a compact connection dialog with guidance for the selected option.
+
+- Require an account connection after setup and after disconnecting; reconnect or quit from the connection screen.
+
+- Space and stack the account connection and session reconnect actions so their buttons are easier to distinguish and use.
+
+- Connect without an OS keyring for the current app session, or protect a remembered session with a separate passphrase. Unlock it after restarting; see [remembered sessions](docs/remembered-sessions.md) for migration and recovery.
+
+### 📦 Update
+
+- Run `42tui update` for a standard installation; use your existing method for pinned or development installations.
+
 ## 0.6.0
 
 ### ✨ New features

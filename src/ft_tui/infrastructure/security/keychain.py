@@ -1,4 +1,4 @@
-"""OS-keychain-only storage for device credentials and the installation key."""
+"""Credential stores for device credentials and the installation key."""
 
 import json
 from typing import Any, Protocol
@@ -12,6 +12,22 @@ class CredentialStoreProtocol(Protocol):
     def load(self) -> dict[str, Any] | None: ...
     def save(self, credentials: dict[str, Any]) -> None: ...
     def delete(self) -> None: ...
+
+
+class SessionCredentialStore:
+    """Keep credentials in this process only, without using an OS keyring."""
+
+    def __init__(self) -> None:
+        self._credentials: dict[str, Any] | None = None
+
+    def load(self) -> dict[str, Any] | None:
+        return self._credentials.copy() if self._credentials is not None else None
+
+    def save(self, credentials: dict[str, Any]) -> None:
+        self._credentials = credentials.copy()
+
+    def delete(self) -> None:
+        self._credentials = None
 
 
 # Accepted OS vaults: macOS Keychain, Windows Credential Manager, and Linux Secret

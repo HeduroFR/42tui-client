@@ -302,7 +302,7 @@ class PrelaunchProcessTests(unittest.TestCase):
                         for name in ('ft_tui.api.client_factory','ft_tui.api.oauth_client','ft_tui.ui.app'):
                             sys.modules[name] = ModuleType(name)
                         sys.modules['ft_tui.api.client_factory'].provider_for_device = lambda client: None
-                        sys.modules['ft_tui.api.oauth_client'].OAuthClient = lambda url: None
+                        sys.modules['ft_tui.api.oauth_client'].OAuthClient = lambda url, **kwargs: None
                         sys.modules['ft_tui.ui.app'].FortyTwoTuiApp = lambda *a, **kw: SimpleNamespace(run=lambda: record('old UI'))
                     else:
                         sys.meta_path.insert(0, Guard())

@@ -103,13 +103,8 @@ def open_authorization_browser(url: str) -> bool:
 
 
 def _default_refresh_lock_directory() -> Path:
-    if os.name == "nt":
-        cache_root = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    elif sys.platform == "darwin":
-        cache_root = Path.home() / "Library" / "Caches"
-    else:
-        cache_root = Path(os.environ.get("XDG_RUNTIME_DIR", Path.home() / ".cache"))
-    return cache_root / "42tui" / "oauth-locks"
+    from ft_tui.config.settings import data_dir
+    return data_dir() / "credentials"
 
 
 @contextmanager
@@ -117,8 +112,9 @@ def _interprocess_refresh_lock(path: Path) -> Iterator[None]:
     """Serialize per-user refreshes with an OS lock; the file stores no credentials."""
     try:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if path.parent.is_symlink():
-            raise OSError("Refresh lock directory must not be a symlink")
+        directory = path.parent.lstat()
+        if not stat.S_ISDIR(directory.st_mode) or (os.name != "nt" and (directory.st_uid != os.getuid() or directory.st_mode & 0o077)):
+            raise OSError("Refresh lock directory must be private and owned by the current user")
         descriptor_flags = os.O_CREAT | os.O_RDWR
         if hasattr(os, "O_NOFOLLOW"):
             descriptor_flags |= os.O_NOFOLLOW
@@ -256,29 +252,41 @@ class OAuthClient:
         self.id_factory = id_factory or (lambda: secrets.token_urlsafe(24))
         self._credentials: DeviceCredentials | None = None
         self._refresh_lock = Lock()
+        self._pairing_keys: dict[str, str] = {}
         self.lock_directory = Path(lock_directory) if lock_directory is not None else _default_refresh_lock_directory()
 
     @property
     def credentials(self) -> DeviceCredentials | None:
         return self._load_credentials()
 
+    def replace_credential_store(self, store: CredentialStoreProtocol) -> tuple[CredentialStoreProtocol, DeviceCredentials | None]:
+        """Switch stores while excluding concurrent refreshes and clear cached credentials."""
+        with self._credential_lock():
+            previous = self.store, self._credentials
+            self.store = store
+            self._credentials = None
+            return previous
+
     def create_pairing(self, *, theme: dict[str, str] | None = None) -> PairingStart:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import ec
-        current = self._load_credentials()
-        private_key = self._private_key(current.private_key_pem) if current else ec.generate_private_key(ec.SECP256R1())
-        pem = private_key.private_bytes(
-            serialization.Encoding.PEM,
-            serialization.PrivateFormat.PKCS8,
-            serialization.NoEncryption(),
-        ).decode("ascii")
-        # Save the key before sending its public half so restarts can continue polling.
-        saved = (
-            DeviceCredentials(current.access_token, current.refresh_token, current.expires_at, pem)
-            if current
-            else DeviceCredentials("", "", "", pem)
-        )
-        self.store.save(asdict(saved))
+        with self._credential_lock():
+            self._credentials = None
+            current = self._load_credentials()
+            private_key = self._private_key(current.private_key_pem) if current else ec.generate_private_key(ec.SECP256R1())
+            pem = private_key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption(),
+            ).decode("ascii")
+            # Save the key before sending its public half so restarts can continue polling.
+            saved = (
+                DeviceCredentials(current.access_token, current.refresh_token, current.expires_at, pem)
+                if current
+                else DeviceCredentials("", "", "", pem)
+            )
+            self.store.save(asdict(saved))
+            self._credentials = saved
         response = self.http.request(
             "POST",
             self._url("/v1/pairings"),
@@ -295,6 +303,7 @@ class OAuthClient:
         except (KeyError, TypeError) as error:
             raise OAuthClientError("Invalid pairing response from OAuth service") from error
         self._validate_authorization_url(start.authorization_url, start.handle)
+        self._pairing_keys[start.handle] = pem
         # Add cosmetic hints only after validating the server's original URL.
         # Older backends ignore the optional query field.
         colors = [(theme or {}).get(key, "") for key in ("background", "surface", "foreground", "primary", "success")]
@@ -318,22 +327,27 @@ class OAuthClient:
         if status != "approved":
             if status not in {"pending", "expired", "denied", "consumed"}:
                 raise OAuthClientError("Invalid pairing state from OAuth service")
+            if status != "pending":
+                self._pairing_keys.pop(handle, None)
             return PairingResult(status)
         raw = payload.get("credentials")
         if not isinstance(raw, dict):
             raise OAuthClientError("Invalid pairing credentials from OAuth service")
-        current = self._load_credentials()
-        if current is None or not current.private_key_pem:
-            raise OAuthClientError("Installation key is missing from the OS keychain")
-        credentials = DeviceCredentials(
-            str(raw.get("access_token", "")),
-            str(raw.get("refresh_token", "")),
-            str(raw.get("expires_at", "")),
-            current.private_key_pem,
-        )
-        if not credentials.access_token or not credentials.refresh_token or not credentials.expires_at:
-            raise OAuthClientError("Incomplete pairing credentials from OAuth service")
-        self._save_credentials(credentials)
+        with self._credential_lock():
+            self._credentials = None
+            current = self._load_credentials()
+            expected_key = self._pairing_keys.pop(handle, None)
+            if current is None or not current.private_key_pem or (expected_key is not None and current.private_key_pem != expected_key):
+                raise OAuthClientError("Installation key changed during pairing")
+            credentials = DeviceCredentials(
+                str(raw.get("access_token", "")),
+                str(raw.get("refresh_token", "")),
+                str(raw.get("expires_at", "")),
+                current.private_key_pem,
+            )
+            if not credentials.access_token or not credentials.refresh_token or not credentials.expires_at:
+                raise OAuthClientError("Incomplete pairing credentials from OAuth service")
+            self._save_credentials(credentials)
         return PairingResult(status, credentials)
 
     def event_stream(self, stop):
@@ -546,11 +560,7 @@ class OAuthClient:
                 yield
 
     def _refresh_lock_path(self) -> Path:
-        service = getattr(self.store, "service", "42tui.oauth")
-        username = getattr(self.store, "username", "device")
-        identity = f"{service}\0{username}".encode("utf-8")
-        digest = hashlib.sha256(identity).hexdigest()
-        return self.lock_directory / f"refresh-{digest}.lock"
+        return self.lock_directory / "session.lock"
 
     def _reload_credentials(self) -> DeviceCredentials:
         # The credential store is the shared source of truth across client instances.

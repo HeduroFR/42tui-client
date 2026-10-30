@@ -92,7 +92,10 @@ def main() -> None:
     from ft_tui.api.oauth_client import OAuthClient
     from ft_tui.ui.app import FortyTwoTuiApp
 
-    oauth_client = OAuthClient(oauth_api_url())
+    from ft_tui.infrastructure.security.session_vault import LockedSessionStore, session_vault_path
+    vault_path = session_vault_path()
+    store = LockedSessionStore() if vault_path.exists() or vault_path.is_symlink() else None
+    oauth_client = OAuthClient(oauth_api_url(), credential_store=store)
     provider = provider_for_device(oauth_client)
     app = FortyTwoTuiApp(session_factory, provider, oauth_client=oauth_client,
                         update_service=updates, installation_service=policy)
