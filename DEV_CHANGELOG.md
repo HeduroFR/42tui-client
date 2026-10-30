@@ -16,6 +16,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Remove the client `docs/superpowers` planning directory, ignore
+  future files at that path, and replace its obsolete TODO link with the tester
+  runtime assessment. Internal documentation cleanup; no release required.
+  Verified ignore matching, the replacement link and whitespace; no tests run.
+  Existing 0.6.0 release gates remain unchanged. PR #47.
+
 - 2026-10-30: Add acknowledgements for bundled testers, direct libraries and
   principal tools; move detailed tester instructions into a linked guide and
   shorten the README. Documentation only; no separate release required.

@@ -214,7 +214,7 @@ Native push_swap exits zero despite printed failures, so its results remain unve
   output capture, result handling and French/Spanish interface coverage.
 
 Existing tester implementation checks and remaining native-validation gates are
-recorded in the [tester validation tracker](docs/superpowers/plans/2026-10-28-release-0.5.0.md).
+documented in the [tester runtime assessment](docs/tester-runtimes.md).
 These checks do not validate the pending 0.6.0 rework.
 
 ### Priority backend data protection — target 0.6.0
