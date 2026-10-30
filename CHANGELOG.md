@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add project acknowledgements and shorten the README tester section, with a
+  separate guide for setup and results.
+
 - Add Tripouille get_next_line mandatory testing in a Linux container, with
   verified test counts from the maintained fork. Docker builds the image on
   first use; project files remain untouched.

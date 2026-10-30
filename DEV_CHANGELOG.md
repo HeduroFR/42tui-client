@@ -16,6 +16,22 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Add acknowledgements for bundled testers, direct libraries and
+  principal tools; move detailed tester instructions into a linked guide and
+  shorten the README. Documentation only; no separate release required.
+  Checks: documentation diff, local relative-link targets and whitespace passed;
+  runtime tests skipped for this documentation-only change. Uncommitted on
+  feat/tester-workspace-0.6.0, PR #47;
+  accumulated tester features still warrant preparing 0.6.0 (minor), subject
+  to runtime/platform and release gates.
+
+- 2026-10-30: Add a prominent README warning explaining the primary 42 Angoulême
+  focus and possible bugs or unavailable features on other campuses. Documentation
+  only; no separate release required. Reviewed the warning and changelog wording;
+  task diff/whitespace passed. Runtime tests skipped for this text-only change.
+  Uncommitted on feat/tester-workspace-0.6.0; PR #47. Accumulated tester features
+  still warrant preparing 0.6.0 (minor); runtime/platform and release gates remain.
+
 - 2026-10-30: Add the pinned 42TUI Tripouille get_next_line fork, native amd64/arm64
   Docker recipe and disposable mandatory-suite runner with Valgrind. Parse its
   version-1 report through the existing result reader; skip upstream self-update.
