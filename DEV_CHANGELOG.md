@@ -12,6 +12,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Update the prelaunch update-process fixture for the credential-store
+  constructor argument after 0.6.1 PR CI exposed its outdated mock. Test-only;
+  no release impact. Full candidate CI must pass on the updated commit.
+
 - 2026-10-30: Prepare package version 0.6.1 and release notes at the maintainer’s
   direction. Release checks, security review and campus validation remain pending.
 
