@@ -352,18 +352,30 @@ Status: **planned; implementation and release validation pending**.
 
 Status: **scope agreed; implementation and release validation pending**.
 
-- [ ] Rework the dashboard student-profile card.
-- [ ] Replace the dashboard Cluster Map card with a log-time heatmap showing
-  time connected to campus workstations, not editor coding time. Confirm source
-  coverage and reuse existing session data where available; define local-day
-  boundaries, sessions crossing midnight and ongoing sessions. Show daily totals
-  and distinguish missing/stale data from zero time. Preserve access to the
-  dedicated Cluster Map view and keep coding-time statistics clearly labelled.
-- [ ] Add hover information to the progress bar and details below weekly coding.
+Priority: evaluations and agenda, dashboard, Settings, loading and caching, then
+editor time tracking.
+
+- [ ] Rework the student-profile card: keep portrait, login, wallet and correction
+  points, remove the workstation duplicated in Cluster Radar, and consider campus,
+  curriculum and level where reliable data is available. Avoid repeating project
+  completion counts; handle missing or stale values and narrow terminals.
+- [ ] Let the activity card switch between coding time and campus workstation log
+  time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
+  worker endpoint for the connected user's own Intra `locations_stats.json`,
+  The user reports that an authenticated account can request other users' data;
+  restrict the dashboard endpoint to the connected user's own login and verify
+  permissions and account isolation. An observed response maps dates to
+  `HH:MM:SS` daily durations; validate both fields and sum days for weekly totals.
+  Verify date coverage, timezone and whether today's total includes ongoing
+  sessions. Distinguish reported zero from missing, unavailable or stale data.
+  Assess API compatibility and deploy the required backend before a dependent
+  client release.
+- [ ] Show project names for each progress-bar status on hover, including Done,
+  Active, Available and Locked; provide keyboard access to the same information.
 - [ ] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
-- [ ] Polish project details beyond the 0.5.0 Git/interface work and move
-  View project away from the list's top edge.
+- [ ] Review project details and the View project action before deciding what
+  interface changes are needed beyond the 0.5.0 Git work.
 - [ ] Book a correction/evaluation slot for an eligible project from its details:
   show available times, review the selected slot and confirm the booking. Reuse
   existing project/evaluation context; handle unavailable slots and uncertain
@@ -381,9 +393,6 @@ Status: **scope agreed; implementation and release validation pending**.
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
   changes/cancellations consistently across the agenda and dashboard.
-- [ ] Standardize danger-button styling and hover, including the tester removal
-  control. One-button tester setup is already implemented for 0.6.0; do not
-  duplicate it here or assume its removal styling is complete.
 - [ ] Rework the full Settings interface: review category grouping, navigation,
   labels and layout, including simplifying Curriculum and Appearance. Preserve
   existing preferences, account/curriculum scope and validation; make save state
