@@ -1,10 +1,11 @@
 # Development changelog
 
 Latest release: **0.6.0** ([`v0.6.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.6.0)).
-Package version: **0.6.1** (release candidate).
-Suggested next release: **0.6.1** at the maintainer’s direction, for optional
-encrypted and session-only account storage and connection requirements. Security
-review, campus validation and release checks remain outstanding.
+Package version: **0.6.2** (release candidate).
+Suggested next release: **0.6.2**, for structured push_swap results and interface
+fixes. Exact-candidate release checks, compatibility and remaining platform
+validation are outstanding. GitHub and PyPI list 0.6.1, with matching package
+hashes; complete publication verification before advancing the baseline.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
@@ -16,6 +17,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   agreed priorities, dashboard details and the observed log-time response format.
   Documentation only; no release required. Roadmap diff checked; endpoint
   feasibility and 0.6.2 release validation remain pending.
+
+- 2026-10-30: Prepare version 0.6.2 and its release notes. Patch impact; version,
+  regression scope ownership, wheel and sdist checks passed locally. Release CI,
+  compatibility and exact-candidate checks remain pending. Preserve pending
+  entries until publication is fully verified.
 
 - 2026-10-30: Add the agreed 0.6.2 tester results and interface fixes to the
   roadmap. Documentation only; no release required. Reviewed the roadmap diff;
