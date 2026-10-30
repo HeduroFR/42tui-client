@@ -1,11 +1,12 @@
 """Settings UI composition and behavior."""
 
+import asyncio
 from collections.abc import Iterable
 from ft_tui.ui.username import USERNAME_GRADIENTS, username_text
 
 from ft_tui.api.client_interface import CursusSnapshot
 from ft_tui.ui.terminal_capabilities import (
-    IMAGE_MODES, ICON_MODES, image_mode, icon_mode, icon_prefix, valid_mode,
+    IMAGE_MODES, ICON_MODES, valid_mode,
 )
 from ft_tui.ui.components import (
     Button,
@@ -37,6 +38,14 @@ SETTINGS_CATEGORIES = (
     ("appearance", "Appearance"),
 )
 
+SETTINGS_DESCRIPTIONS = {
+    "account": "Manage your 42 connection and data source.",
+    "curriculum": "Choose the cursus, campus and catalog used for projects.",
+    "workspace": "Choose project folders, your editor and updates.",
+    "subjects": "Configure subject downloads and the PDF viewer.",
+    "appearance": "Personalize the interface and terminal display.",
+}
+
 
 class SettingsCategories(ListView):
     """Category selection follows the cursor; Enter opens its controls."""
@@ -61,6 +70,9 @@ class SettingsWorkspace(Vertical):
     def show_category(self, index: int) -> None:
         for position, (key, _) in enumerate(SETTINGS_CATEGORIES):
             self.query_one(f"#settings-panel-{key}").display = position == index
+        key, label = SETTINGS_CATEGORIES[index]
+        self.query_one("#settings-category-title", Static).update(label)
+        self.query_one("#settings-category-description", Static).update(SETTINGS_DESCRIPTIONS[key])
         self.query_one("#settings-content", VerticalScroll).scroll_home(animate=False)
         self.app._refresh_username_preview()
 
@@ -86,11 +98,51 @@ class SettingsWorkspace(Vertical):
     async def action_save(self) -> None:
         await self.app._save_settings_and_refresh_projects()
 
-    @on(Select.Changed, '#terminal-images')
-    @on(Select.Changed, '#terminal-icons')
-    def terminal_preview_changed(self, event):
+    @on(Button.Pressed, '#settings-storage-apply')
+    def change_session_storage(self, event):
+        from ft_tui.features.accounts.adapters.storage_transfer import storage_kind
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
         event.stop()
-        self.app._refresh_terminal_preview()
+        client = self.app.oauth_client
+        kind = self.query_one('#settings-storage', Select).value
+        if not self.app.account_connected or client is None or kind == storage_kind(client.store):
+            return
+        self._storage_source = client.store
+        if kind == 'vault':
+            self.app.push_screen(VaultPassphraseScreen(False), self._storage_passphrase)
+        else:
+            self.run_worker(self._move_storage(kind), group='settings-session-storage', exclusive=True)
+
+    def _storage_passphrase(self, value):
+        if value is not None and self.is_mounted:
+            self.run_worker(self._move_storage('vault', value), group='settings-session-storage', exclusive=True)
+
+    async def _move_storage(self, kind, passphrase=None):
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session, storage_kind
+        button = self.query_one('#settings-storage-apply', Button)
+        selector = self.query_one('#settings-storage', Select)
+        status = self.query_one('#settings-storage-status', Static)
+        button.disabled = selector.disabled = True
+        client = self.app.oauth_client
+        try:
+            await asyncio.to_thread(move_session, client, kind, passphrase, self._storage_source)
+        except Exception:
+            status.update('Could not move the session. Check both stores before retrying.')
+        else:
+            status.update('Session storage updated.')
+        finally:
+            if self.is_mounted:
+                current = storage_kind(client.store)
+                if current:
+                    with self.prevent(Select.Changed):
+                        selector.value = current
+                button.disabled = selector.disabled = False
+
+    @on(Select.Changed, '#favorite-theme')
+    def theme_preview_changed(self, event):
+        if event.value in self.app.available_themes:
+            self.app.theme = event.value
+        event.stop()
 
     @on(Select.Changed, '#username-gradient')
     def username_preview_changed(self, event):
@@ -109,16 +161,18 @@ class SettingsMixin:
     def compose_settings(self):
         """Keep every field mounted so drafts survive category changes."""
         with SettingsWorkspace(id="settings-workspace"):
-            yield Static("SETTINGS", id="settings-heading")
-            yield Static("Make this workspace yours.", id="settings-intro")
+            with Horizontal(id="settings-topbar"):
+                yield Static("SETTINGS", id="settings-heading")
             with Horizontal(id="settings-body"):
                 with Vertical(id="settings-sidebar"):
-                    yield Static("CATEGORIES", classes="section-kicker")
+                    yield Static("CATEGORIES", id="settings-nav-heading", classes="section-kicker")
                     yield SettingsCategories(
                         *(ListItem(Static(label), id=f"settings-nav-{key}") for key, label in SETTINGS_CATEGORIES),
                         id="settings-categories",
                     )
                 with VerticalScroll(id="settings-content"):
+                    yield Static("Account", id="settings-category-title")
+                    yield Static(SETTINGS_DESCRIPTIONS["account"], id="settings-category-description")
                     with Vertical(id="settings-panel-account", classes="settings-panel"):
                         with Vertical(id="settings-profile-card", classes="settings-section"):
                             yield Static("PROFILE", classes="section-kicker")
@@ -129,6 +183,14 @@ class SettingsMixin:
                                 "Connect securely in your browser. Your password and OAuth code stay with 42.",
                                 classes="field-help",
                             )
+                        with Vertical(id="settings-storage-card", classes="settings-section"):
+                            yield Static("Session storage", classes="section-kicker")
+                            yield Select([("OS keyring", "keyring"), ("This session only", "session"),
+                                          ("Remember with a passphrase", "vault")],
+                                         value="keyring", allow_blank=False, id="settings-storage")
+                            yield Button("Move session", id="settings-storage-apply")
+                            yield Static("Moving to this session only removes the saved session from this device.", classes="field-help")
+                            yield Static("", id="settings-storage-status")
                         with Vertical(id="provider-card"):
                             yield Static("DATA SOURCE", classes="section-kicker")
                             yield Static("42 account not connected", id="provider-title")
@@ -166,6 +228,8 @@ class SettingsMixin:
                             yield Static("Loading cursus list…", id="default-cursus-status")
                             yield Static("Campus", classes="settings-label")
                             yield Select([], prompt="Select campus", localize_options=False, id="catalog-campus")
+                        with Vertical(id="settings-catalog-card", classes="settings-section"):
+                            yield Static("Catalog", classes="section-kicker")
                             yield Static("Common Core fallback", classes="settings-label")
                             yield Select([("Automatic evidence", "auto"), ("Old", "old"), ("New", "new")], value="auto", allow_blank=False, id="cc-default-track")
                             yield Static("", id="cc-context-status")
@@ -263,7 +327,9 @@ class SettingsMixin:
                                 value=self.username_gradient, allow_blank=False, id='username-gradient',
                             )
                             yield Static('', id='username-gradient-preview', markup=False, localize=False)
-                            yield Static('Preview your dashboard username. Save settings to apply.', classes='field-help')
+                            yield Static('Preview your dashboard username. Save settings to apply.', id='username-gradient-help', classes='field-help')
+                        with Vertical(id="settings-terminal-card", classes="settings-section"):
+                            yield Static("Terminal display", classes="section-kicker")
                             yield Static('Images', classes='settings-label')
                             yield Select([
                                 ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
@@ -274,12 +340,8 @@ class SettingsMixin:
                                 ('Automatic', 'auto'), ('Nerd Font', 'nerd'),
                                 ('Simple Unicode', 'unicode'), ('Text only', 'text'),
                             ], value=self.icon_mode, id='terminal-icons')
-                            yield Static('', id='terminal-icon-preview', markup=False, localize=False, classes='field-help')
-                            yield Static('', id='terminal-capabilities', markup=False, localize=False, classes='field-help')
-                            yield Static(
-                                'Font support is estimated. Choose another icon mode if symbols look wrong.',
-                                classes='field-help',
-                            )
+                        with Vertical(id="settings-sound-card", classes="settings-section"):
+                            yield Static("Notifications", classes="section-kicker")
                             yield Static("Notification sound", classes="settings-label")
                             yield Select(
                                 [("On", "true"), ("Off", "false")],
@@ -444,7 +506,7 @@ class SettingsMixin:
         self._start_due_subject_checks()
         self.theme = favorite_theme
         self._apply_language()
-        self._refresh_terminal_preview()
+        self._refresh_username_preview()
         self._update_editor_button()
         self.query_one("#projects-root", Input).value = self.projects_root
         status.update("Settings saved locally.")
@@ -458,31 +520,6 @@ class SettingsMixin:
         self.query_one('#username-gradient-preview', Static).update(username_text(
             self.account_login or 'username', self.query_one('#username-gradient', Select).value,
         ))
-
-    def _refresh_terminal_preview(self):
-        self._refresh_username_preview()
-        from types import SimpleNamespace
-        from ft_tui.i18n import translate
-        def t(value):
-            return translate(value, self.language)
-        draft = SimpleNamespace(
-            icon_mode=self.query_one('#terminal-icons', Select).value,
-            terminal_capabilities=self.terminal_capabilities,
-        )
-        mode = icon_mode(draft)
-        labels = [('\uf07b', 'Projects'), ('\uf0c0', 'Friends'), ('\uf013', 'Settings')]
-        preview = '   '.join(icon_prefix(glyph, mode) + t(label) for glyph, label in labels)
-        self.query_one('#terminal-icon-preview', Static).update(preview)
-        names = {
-            'sixel': 'Sixel', 'tgp': 'Kitty graphics', 'halfcell': 'Colored blocks',
-            'nerd': 'Nerd Font', 'unicode': 'Simple Unicode',
-        }
-        automatic_icons = icon_mode(SimpleNamespace(terminal_capabilities=self.terminal_capabilities))
-        self.query_one('#terminal-capabilities', Static).update(
-            t('Automatic images: {images} · Automatic icons: {icons}').format(
-                images=t(names[image_mode(None)]), icons=t(names[automatic_icons]))
-            + '\n' + t(self.terminal_capabilities.icon_source)
-        )
 
     def _load_curriculum_setting_widgets(self):
         if not self.is_mounted:

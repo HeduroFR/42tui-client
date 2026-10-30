@@ -349,7 +349,7 @@ class FortyTwoTuiApp(
         self.query_one("#favorite-theme", Select).value = favorite_theme
         self.query_one("#interface-language", Select).value = self.language
         self._apply_language()
-        self._refresh_terminal_preview()
+        self._refresh_username_preview()
         self._configure_markdown_editor()
 
         project_select = self.query_one("#dev-log-project", Select)

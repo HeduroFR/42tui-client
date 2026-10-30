@@ -28,6 +28,46 @@ class FakeTerminalImage(Static):
 
 
 class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_theme_selection_previews_before_save_and_persists_on_save(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "theme.db"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'favorite_theme': 'textual-dark'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    choice = next(name for name in app.available_themes if name != app.theme)
+                    app.query_one('#favorite-theme', Select).value = choice
+                    await pilot.pause()
+                    self.assertEqual(app.theme, choice)
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'favorite_theme'), 'textual-dark')
+                    await pilot.press('ctrl+s')
+                    await pilot.pause()
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'favorite_theme'), choice)
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_onboarding_theme_preview_is_restored_if_dismissed(self):
+        from ft_tui.ui.onboarding import OnboardingScreen
+        from ft_tui.ui.select import Select as OnboardingSelect
+        app = App()
+        async with app.run_test(size=(100, 36)) as pilot:
+            initial = app.theme
+            choice = next(name for name in app.available_themes if name != initial)
+            screen = OnboardingScreen(projects_root='/tmp', favorite_editor='vim',
+                                      favorite_theme=initial, language='en', themes=list(app.available_themes))
+            app.push_screen(screen)
+            await pilot.pause()
+            screen.query_one('#onboarding-theme', OnboardingSelect).value = choice
+            await pilot.pause()
+            self.assertEqual(app.theme, choice)
+            screen.dismiss(None)
+            await pilot.pause()
+            self.assertEqual(app.theme, initial)
+
     async def test_username_gradient_preview_is_draft_then_saved_and_restored(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "gradient.db"}')
@@ -81,7 +121,7 @@ class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.press('ctrl+s')
                     await pilot.pause()
                     self.assertEqual(str(button.label), '\uf067')
-                    self.assertIn('Nerd Font', str(app.query_one('#terminal-capabilities').render()))
+                    self.assertFalse(app.query('#terminal-capabilities, #terminal-icon-preview'))
             finally:
                 factory.kw['bind'].dispose()
 
@@ -122,7 +162,7 @@ class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
                     app.query_one('#terminal-icons', Select).value = 'text'
                     app.query_one('#terminal-images', Select).value = 'off'
                     await pilot.pause()
-                    self.assertEqual(str(app.query_one('#terminal-icon-preview').render()), 'Projects   Friends   Settings')
+                    self.assertFalse(app.query('#terminal-capabilities, #terminal-icon-preview'))
                     self.assertEqual(str(button.label), '\uf067')  # Draft only.
                     await pilot.press('ctrl+s')
                     await pilot.pause()

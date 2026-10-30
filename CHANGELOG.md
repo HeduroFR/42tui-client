@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Preview themes immediately when choosing them in Settings or onboarding.
+
+- Move an active account session between OS keyring, passphrase-protected and session-only storage in Settings.
+
+- Simplify terminal display settings by removing the icon preview and capability notes.
+
+- Navigate Settings with a redesigned category rail, clearer sections and a fixed save area.
+
 - Inspect the projects behind each dashboard progress status by hovering or using the keyboard.
 
 - Show the selected cursus grade and level and primary campus on the dashboard profile card, with wallet and evaluation points stacked together; workstation status remains in Cluster Radar.

@@ -162,6 +162,14 @@ class AccountControllerMixin:
         for selector in ("#account-connection-state", "#onboarding-account-state"):
             for widget in [widget for screen in self.screen_stack for widget in screen.query(selector)]:
                 widget.update(state)
+        from ft_tui.features.accounts.adapters.storage_transfer import storage_kind
+        store = getattr(getattr(self, 'oauth_client', None), 'store', None)
+        kind = storage_kind(store)
+        for widget in self.query('#settings-storage-card'):
+            widget.display = bool(self.account_connected and kind)
+        if self.query('#settings-storage') and kind:
+            with self.prevent(Select.Changed):
+                self.query_one('#settings-storage', Select).value = kind
         connect_label = "Manage 42 account" if self.account_connected else "Connect 42 account"
         for selector in ("#settings-connect-account", "#onboarding-connect-account"):
             for button in [widget for screen in self.screen_stack for widget in screen.query(selector)]:

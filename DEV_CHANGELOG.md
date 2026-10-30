@@ -13,6 +13,26 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Preview selected themes immediately in Settings and onboarding;
+  Settings still persists the choice on save. Patch impact within 0.7.0.
+  Focused theme UI checks run; full CI and release validation remain pending.
+
+- 2026-10-30: Add active session storage selection in Account settings, verifying
+  the destination before removing the previous copy and rejecting existing
+  destinations. Minor impact toward 0.7.0. Focused credential-store and Settings
+  checks run; security review, cross-process filesystem and release checks pending.
+
+- 2026-10-30: Remove the terminal icon preview and capability notes from Settings
+  while preserving image and icon mode selection, and align the username preview.
+  Patch impact; focused terminal
+  and Settings navigation tests passed. Full CI and release validation pending.
+
+- 2026-10-30: Redesign Settings navigation, category context and sections, and
+  group catalog, terminal display and notification controls. Retain existing
+  preferences, validation and keyboard navigation. Minor impact toward 0.7.0;
+  Settings, curriculum and terminal UI checks passed. Full CI, manual terminal
+  review and release validation remain pending.
+
 - 2026-10-30: Add hover previews and keyboard-accessible, scrollable project
   lists to dashboard progress statuses, respecting the selected curriculum. Make
   segments resize proportionally, color tooltip headers by status and focus the
