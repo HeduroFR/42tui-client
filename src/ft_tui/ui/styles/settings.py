@@ -25,6 +25,11 @@ SETTINGS_CSS = r"""
     .settings-label { height: auto; margin-top: 1; color: $text; text-style: bold; }
     .field-help { height: auto; color: $text-muted; }
     #username-gradient-preview, #username-gradient-help { padding-left: 1; }
+    #settings-storage-row { height: 3; }
+    #settings-storage { width: 1fr; }
+    #settings-storage-apply { width: auto; min-width: 0; margin-left: 2; }
+    .narrow-storage #settings-storage-row { height: 6; layout: vertical; }
+    .narrow-storage #settings-storage-apply { margin-left: 0; }
     #settings-actions { height: 3; padding: 0 1; background: $surface; }
     #save-settings { width: auto; min-width: 0; }
     #settings-status { width: 1fr; height: 3; content-align: left middle; color: $text-muted; }

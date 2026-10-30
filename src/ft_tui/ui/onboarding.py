@@ -162,6 +162,8 @@ class OnboardingScreen(AppModal[dict[str, str]]):
                     yield Button(self._t("Finish setup"), variant="primary", id="onboarding-finish")
 
     def on_mount(self) -> None:
+        from ft_tui.ui.theme_preview import watch_theme_preview
+        watch_theme_preview(self, self.query_one('#onboarding-theme', Select))
         self._initial_theme = self.app.theme
         self._show_step()
         self.query_one("#onboarding-connect-account", Button).focus()

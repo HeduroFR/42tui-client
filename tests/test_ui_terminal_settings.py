@@ -37,8 +37,17 @@ class TerminalSettingsTests(unittest.IsolatedAsyncioTestCase):
                 app = FortyTwoTuiApp(factory, None)
                 async with app.run_test(size=(100, 36)) as pilot:
                     await pilot.press('f5')
+                    selector = app.query_one('#favorite-theme', Select)
+                    original = app.theme
+                    selector.focus()
+                    await pilot.press('enter', 'down')
+                    await pilot.pause()
+                    self.assertNotEqual(app.theme, original)
+                    await pilot.press('escape')
+                    await pilot.pause()
+                    self.assertEqual(app.theme, original)
                     choice = next(name for name in app.available_themes if name != app.theme)
-                    app.query_one('#favorite-theme', Select).value = choice
+                    selector.value = choice
                     await pilot.pause()
                     self.assertEqual(app.theme, choice)
                     with factory() as session:

@@ -60,6 +60,10 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                     app._update_account_connection_widgets()
                     self.assertTrue(app.query_one('#settings-storage-card').display)
                     selector = app.query_one('#settings-storage', Select)
+                    await pilot.pause()
+                    button = app.query_one('#settings-storage-apply')
+                    self.assertEqual(selector.region.y, button.region.y)
+                    self.assertGreater(button.region.x - selector.region.right, 0)
                     self.assertEqual(selector.value, 'session')
                     selector.value = 'keyring'
                     backend = FakeKeyring()
@@ -72,6 +76,13 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                         self.assertIsInstance(app.oauth_client.store, CredentialStore)
                         self.assertEqual(app.oauth_client.store.load(), {'access_token': 'synthetic'})
                         self.assertIn('updated', str(app.query_one('#settings-storage-status', Static).render()))
+                        await pilot.resize_terminal(64, 24)
+                        await pilot.pause()
+                        self.assertEqual(selector.region.y, button.region.y)
+                        self.assertGreater(button.region.x - selector.region.right, 0)
+                        await pilot.resize_terminal(45, 24)
+                        await pilot.pause()
+                        self.assertGreaterEqual(button.region.y, selector.region.bottom)
             finally:
                 factory.kw['bind'].dispose()
 

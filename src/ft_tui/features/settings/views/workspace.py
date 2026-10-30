@@ -62,10 +62,13 @@ class SettingsWorkspace(Vertical):
     ]
 
     def on_mount(self) -> None:
+        from ft_tui.ui.theme_preview import watch_theme_preview
+        watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
+        self.set_class(self.size.width < 52, "narrow-storage")
 
     def show_category(self, index: int) -> None:
         for position, (key, _) in enumerate(SETTINGS_CATEGORIES):
@@ -185,10 +188,11 @@ class SettingsMixin:
                             )
                         with Vertical(id="settings-storage-card", classes="settings-section"):
                             yield Static("Session storage", classes="section-kicker")
-                            yield Select([("OS keyring", "keyring"), ("This session only", "session"),
-                                          ("Remember with a passphrase", "vault")],
-                                         value="keyring", allow_blank=False, id="settings-storage")
-                            yield Button("Move session", id="settings-storage-apply")
+                            with Horizontal(id="settings-storage-row"):
+                                yield Select([("OS keyring", "keyring"), ("This session only", "session"),
+                                              ("Remember with a passphrase", "vault")],
+                                             value="keyring", allow_blank=False, id="settings-storage")
+                                yield Button("Move session", id="settings-storage-apply")
                             yield Static("Moving to this session only removes the saved session from this device.", classes="field-help")
                             yield Static("", id="settings-storage-status")
                         with Vertical(id="provider-card"):

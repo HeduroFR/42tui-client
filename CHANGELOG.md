@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preview themes while moving through the selector and place the session-move action beside its selector.
+
 - Preview themes immediately when choosing them in Settings or onboarding.
 
 - Move an active account session between OS keyring, passphrase-protected and session-only storage in Settings.

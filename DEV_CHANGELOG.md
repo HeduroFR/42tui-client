@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Preview highlighted themes in the open selector and restore the
+  selected theme when dismissed; place the session move action beside its
+  selector. Patch impact within 0.7.0; focused Settings checks run.
+
 - 2026-10-30: Preview selected themes immediately in Settings and onboarding;
   Settings still persists the choice on save. Patch impact within 0.7.0.
   Focused theme UI checks run; full CI and release validation remain pending.
