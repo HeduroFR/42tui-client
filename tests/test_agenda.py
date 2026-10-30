@@ -130,8 +130,8 @@ class ProjectSlotsModalTests(unittest.IsolatedAsyncioTestCase):
             def get_agenda(self, *args):
                 response = httpx.Response(409, json={'error':'project_not_ready'}, request=httpx.Request('GET','https://example.test/v1/me/agenda'))
                 raise httpx.HTTPStatusError('not ready',request=response.request,response=response)
-        for size in ((40,25),(120,45)):
-            app=Harness();app.provider=NotReady()
+        for size, language in (((40,25),'en'),((40,25),'fr'),((40,25),'es'),((120,45),'en')):
+            app=Harness();app.provider=NotReady();app.language=language
             async with app.run_test(size=size) as pilot:
                 app.push_screen(ProjectSlotsScreen(5,'https://projects.intra.42.fr/ft_printf/mine','ft_printf'))
                 await pilot.pause()
@@ -140,6 +140,8 @@ class ProjectSlotsModalTests(unittest.IsolatedAsyncioTestCase):
                 self.assertLess(dialog.region.width,size[0])
                 self.assertGreater(button.region.width,0)
                 self.assertLessEqual(button.region.bottom,dialog.region.bottom)
+                self.assertEqual(str(button.label), {'en':'Open Intra','fr':'Ouvrir Intra','es':'Abrir Intra'}[language])
+                self.assertEqual(button.get_content_height(button.container_size, app.size, button.content_region.width),1)
                 close=app.screen.query_one('#project-slots-close')
                 self.assertEqual(button.region.y,close.region.y)
                 self.assertLessEqual(abs(button.region.width-close.region.width),1)

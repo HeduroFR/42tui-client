@@ -135,6 +135,16 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn('Libft completed', overview)
                     self.assertNotIn('Snapshot', overview)
                     self.assertNotIn('Classification', overview)
+                    await pilot.pause()
+                    registration = app.query_one('#project-registration')
+                    actions = [app.query_one('#' + key) for key in ('show-project-activity', 'show-project-slots', 'finish-project-intra')]
+                    for button in actions:
+                        self.assertIs(button.parent, registration)
+                        self.assertEqual(button.region.width, actions[0].region.width)
+                        self.assertEqual(button.region.x, actions[0].region.x)
+                    for before, after in zip(actions, actions[1:]):
+                        self.assertGreater(after.region.y, before.region.bottom)
+
                     self.assertNotIn('Local path', overview)
                     await pilot.pause()
                     self.assertGreater(app.query_one('#project-workspace').region.x,

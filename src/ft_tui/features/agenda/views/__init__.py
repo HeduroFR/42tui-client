@@ -22,7 +22,7 @@ class AgendaWorkspace(Vertical):
     AgendaWorkspace Horizontal > Button { width: 1fr; min-width: 0; padding: 0; }
     AgendaWorkspace Button { width: auto; min-width: 5; }
     AgendaWorkspace .agenda-actions { layout: horizontal; align: center middle; margin-top: 1; }
-    AgendaWorkspace .agenda-actions > Button { width: 20; max-width: 45%; margin: 0; }
+    AgendaWorkspace .agenda-actions > Button { width: 20; max-width: 50%; margin: 0; padding: 0; text-wrap: nowrap; }
     AgendaWorkspace .agenda-actions #agenda-intra { margin-right: 2; }
     AgendaWorkspace Select { width: 1fr; }
     AgendaWorkspace ListView { height: 1fr; min-height: 3; }
@@ -95,7 +95,9 @@ class AgendaWorkspace(Vertical):
             self.query_one(Select).display = False
             self.query_one(ListView).display = False
             self.query_one('#agenda-view', Button).set_source_label('List view')
-            self.query_one('#agenda-intra', Button).set_source_label('Continue on Intra')
+            self.query_one('#agenda-intra', Button).set_source_label('Open Intra')
+            for button in self.query('.agenda-actions Button'):
+                button.styles.line_pad = 0
         self.set_interval(1, self.check_context)
         self.set_interval(60, self.refresh_visible)
         self.check_context()

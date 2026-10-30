@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the project dialog’s Open Intra label on one line and align evaluation actions with the Registration controls.
+
 - Center the project evaluation dialog’s Intra and Close buttons on one row with consistent spacing.
 
 - Show evaluation slots only after the project is waiting for correction, and scope them to the selected campus. Use the correction timeline in a bounded project dialog, with clear time ranges and an Intra handoff.
