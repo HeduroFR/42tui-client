@@ -161,12 +161,12 @@ class AppButton(TextualButton):
             }
         }
         &.-error {
-            border-top: hkey $error-lighten-2;
+            border-top: hkey $error-lighten-3;
             border-bottom: hkey $error-darken-3;
             &:hover { border-top: hkey $error; }
             &.-active {
-                border-top: hkey $error-darken-2;
-                border-bottom: hkey $error-lighten-2;
+                border-top: hkey $error-darken-3;
+                border-bottom: hkey $error-lighten-3;
             }
         }
     }
@@ -201,21 +201,8 @@ class AppButton(TextualButton):
     }
     AppButton.-error:focus,
     AppButton:ansi.-error:focus.-active {
-        border: blank $error-muted !important;
-        background-tint: $error 8%;
-    }
-    /* Theme-blended red keeps destructive actions distinct without a vivid fill. */
-    AppButton.-style-default.-error, AppButton.-style-flat.-error {
-        background: $error-muted;
-        color: $foreground;
-    }
-    AppButton.-style-default.-error:hover, AppButton.-style-flat.-error:hover { background: $error-muted; tint: transparent; background-tint: $error 8%; }
-    AppButton.-style-default.-error.-active, AppButton.-style-flat.-error.-active { background: $error-muted; tint: transparent; background-tint: $background 15%; }
-    AppButton.-style-default.-error:blur {
-        border-top: hkey $error-muted;
-        border-bottom: hkey $error-muted;
-        &:hover { border-top: hkey $error-muted; }
-        &.-active { border-top: hkey $error-muted; border-bottom: hkey $error-muted; }
+        border: blank $error !important;
+        background-tint: $error 15%;
     }
     /* Compact buttons must stay one row, including flat and ANSI press states. */
     AppButton.-textual-compact,

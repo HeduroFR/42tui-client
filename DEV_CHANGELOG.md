@@ -23,6 +23,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   a macOS ARM full-suite failing fixture passed. Intel/AMD, release CI and a
   passing student implementation remain unverified.
 
+- 2026-10-30: Restore primary-style bevels and focus styling to red danger
+  buttons. Patch impact toward 0.6.2; all 16 shared button tests passed. Release
+  CI and final candidate validation remain pending.
+
 - 2026-10-30: Serialize pairing with credential refresh and reject an approved
   pairing if its installation key changed; restore the selected keyring after
   a failed session-only attempt. Put the shared session lock beside the vault

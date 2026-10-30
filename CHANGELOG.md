@@ -5,6 +5,10 @@
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
 
+### Fixed
+
+- Give danger buttons the same raised appearance as primary buttons, in red.
+
 ## 0.6.1
 
 ### ✨ New features
