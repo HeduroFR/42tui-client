@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove the account and local-projects label from the dashboard heading.
+
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
 

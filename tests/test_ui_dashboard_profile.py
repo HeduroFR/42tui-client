@@ -24,6 +24,8 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.account_profile = {'location': 'e1r2p3', 'wallet': 40, 'correction_point': 5}
                     app.icon_mode = 'text'
                     await app._refresh_dashboard()
+                    self.assertFalse(app.query("#dashboard-subtitle"))
+                    self.assertTrue(app.query("Header"))
                     # Exercise both growing and shrinking without restarting the full app.
                     for width in (80, 120, 160, 80):
                         with self.subTest(width=width):

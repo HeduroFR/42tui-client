@@ -48,7 +48,6 @@ class MainLayoutMixin:
                 with Vertical(id="dashboard-page"):
                     with Horizontal(id="dashboard-heading"):
                         yield Static("STUDENT OVERVIEW", id="dashboard-title")
-                        yield Static("LOCAL WORKSPACE · OFFLINE MODE", id="dashboard-subtitle")
                     with Horizontal(id="dashboard-cards"):
                         with DashboardProfileCard(classes="dashboard-card", id="dashboard-profile-card"):
                             yield Static("STUDENT PROFILE", classes="dashboard-kicker")

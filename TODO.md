@@ -360,7 +360,7 @@ Status: **scope agreed; implementation and release validation pending**.
   and distinguish missing/stale data from zero time. Preserve access to the
   dedicated Cluster Map view and keep coding-time statistics clearly labelled.
 - [ ] Add hover information to the progress bar and details below weekly coding.
-- [ ] Remove the dashboard's top-right connected-account/local-projects label;
+- [x] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
 - [ ] Polish project details beyond the 0.5.0 Git/interface work and move
   View project away from the list's top edge.
