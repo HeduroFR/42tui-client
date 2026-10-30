@@ -137,13 +137,20 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn('Classification', overview)
                     await pilot.pause()
                     registration = app.query_one('#project-registration')
-                    actions = [app.query_one('#' + key) for key in ('show-project-activity', 'show-project-slots', 'finish-project-intra')]
-                    for button in actions:
-                        self.assertIs(button.parent, registration)
-                        self.assertEqual(button.region.width, actions[0].region.width)
-                        self.assertEqual(button.region.x, actions[0].region.x)
-                    for before, after in zip(actions, actions[1:]):
-                        self.assertGreater(after.region.y, before.region.bottom)
+                    activity = app.query_one('#show-project-activity')
+                    slots = app.query_one('#show-project-slots')
+                    finish = app.query_one('#finish-project-intra')
+                    row = app.query_one('#project-evaluation-actions')
+                    self.assertIs(activity.parent, registration)
+                    self.assertIs(row.parent, registration)
+                    self.assertIs(slots.parent, row)
+                    self.assertIs(finish.parent, row)
+                    self.assertEqual(slots.region.y, finish.region.y)
+                    self.assertLessEqual(abs(slots.region.width - finish.region.width), 1)
+                    self.assertEqual(finish.region.x - slots.region.right, 2)
+                    self.assertGreater(slots.region.y, activity.region.bottom)
+                    self.assertEqual(str(slots.label), 'Evaluation slots')
+                    self.assertEqual(str(finish.label), 'Set as finished')
 
                     self.assertNotIn('Local path', overview)
                     await pilot.pause()
@@ -171,6 +178,12 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause()
                     self.assertGreaterEqual(app.query_one('#project-workspace').region.y,
                                             app.query_one('#project-overview').region.bottom)
+                    slots = app.query_one('#show-project-slots')
+                    finish = app.query_one('#finish-project-intra')
+                    self.assertEqual(slots.region.y, finish.region.y)
+                    self.assertEqual(finish.region.x - slots.region.right, 2)
+                    self.assertEqual(slots.styles.text_wrap, 'nowrap')
+
             finally:
                 factory.kw['bind'].dispose()
 

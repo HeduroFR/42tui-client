@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Place Evaluation slots and Set as finished side by side, cropping long labels and retaining full descriptions in tooltips.
+
 - Keep the project dialog’s Open Intra label on one line and align evaluation actions with the Registration controls.
 
 - Center the project evaluation dialog’s Intra and Close buttons on one row with consistent spacing.

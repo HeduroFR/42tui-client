@@ -195,8 +195,9 @@ class MainLayoutMixin:
                                             yield Button("Refresh status", id="registration-refresh", disabled=True)
                                         yield Button("Open project on Intra", id="registration-intra-link")
                                         yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
-                                        yield Button("Available evaluation slots", id="show-project-slots", disabled=True)
-                                        yield Button("Set project as finished", id="finish-project-intra", disabled=True)
+                                        with Horizontal(id="project-evaluation-actions"):
+                                            yield Button("Evaluation slots", id="show-project-slots", tooltip="Available evaluation slots", disabled=True)
+                                            yield Button("Set as finished", id="finish-project-intra", tooltip="Set project as finished", disabled=True)
                                     yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):
                                     yield Static("Workspace", classes="panel-title")

@@ -53,6 +53,8 @@ PROJECTS_CSS = r"""#workspace { height: 1fr; }
     #project-registration Button { width: 1fr; min-width: 0; height: 3; margin-top: 1; }
     #registration-actions { height: 4; }
     #registration-actions #registration-action { margin: 1 2 0 0; }
+    #project-evaluation-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-gutter: 0 2; height: 4; }
+    #project-evaluation-actions Button { padding: 0; text-wrap: nowrap; text-overflow: ellipsis; }
     #show-project-activity { width: 1fr; min-width: 0; height: 3; margin-top: 1; }
     #details-content { height: auto; }
     #project-subject-status { height: auto; color: $text-muted; }
