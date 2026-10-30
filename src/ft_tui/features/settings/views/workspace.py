@@ -68,6 +68,7 @@ class SettingsWorkspace(Vertical):
         from ft_tui.ui.theme_preview import watch_theme_preview
         watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
+        self.query_one('#subject-tdf-help').display = self.query_one('#subject-viewer', Select).value == 'tdf'
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
@@ -170,6 +171,11 @@ class SettingsWorkspace(Vertical):
             timer.stop()
         self._community_status_timer = self.set_timer(5, lambda: status.update('') if status.is_mounted else None)
 
+    @on(Select.Changed, '#subject-viewer')
+    def subject_viewer_changed(self, event):
+        self.query_one('#subject-tdf-help').display = event.value == 'tdf'
+        event.stop()
+
     @on(Select.Changed, '#favorite-theme')
     def theme_preview_changed(self, event):
         if event.value in self.app.available_themes:
@@ -257,10 +263,6 @@ class SettingsMixin:
                             yield Static("PROJECT WORKSPACE", classes="section-kicker")
                             yield Static("Default projects folder", classes="settings-label")
                             yield Input(placeholder="/home/user/42", id="projects-root")
-                            yield Static(
-                                "New project setups will suggest this folder.",
-                                classes="field-help",
-                            )
                         with Vertical(id="settings-editor-card", classes="settings-section"):
                             yield Static("EDITOR", classes="section-kicker")
                             yield Static("Favorite code editor", classes="settings-label")
@@ -273,10 +275,6 @@ class SettingsMixin:
                                 ],
                                 value="nvim",
                                 id="favorite-editor",
-                            )
-                            yield Static(
-                                "Used by the Open in editor action in project details.",
-                                classes="field-help",
                             )
                         with Vertical(classes="settings-section"):
                             yield Static("Automatic updates", classes="settings-label")
@@ -304,11 +302,8 @@ class SettingsMixin:
                                 value="system",
                                 id="subject-viewer",
                             )
-                            yield Static(
-                                "TDF must be installed and available on PATH; System default uses "
-                                "your OS PDF application.",
-                                classes="field-help",
-                            )
+                            yield Static("TDF must be installed and available on PATH.",
+                                         id="subject-tdf-help", classes="field-help")
                     with Vertical(id="settings-panel-appearance", classes="settings-panel"):
                         with Vertical(
                             id="settings-appearance-card",
@@ -357,10 +352,6 @@ class SettingsMixin:
                                 [("On", "true"), ("Off", "false")],
                                 value="true" if self.club_notification_sound else "false",
                                 id="club-notification-sound",
-                            )
-                            yield Static(
-                                "Uses the terminal bell. Enable audible bell in your terminal settings.",
-                                classes="field-help",
                             )
                     with Vertical(id="settings-panel-community", classes="settings-panel"):
                         with Horizontal(id="community-links"):

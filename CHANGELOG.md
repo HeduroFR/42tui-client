@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Simplify Workspace and notification settings, and show the TDF installation note only when TDF is selected.
+
 - Simplify the Account settings descriptions while retaining session-only storage guidance when selected.
 
 - Place Refresh catalog beside the Common Core fallback selector in Settings.

@@ -178,6 +178,29 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 factory.kw['bind'].dispose()
 
+    async def test_tdf_help_tracks_viewer_selection(self):
+        from ft_tui.features.settings.views.workspace import SettingsWorkspace
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true", "favorite_subject_viewer": "tdf"})
+            try:
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    app.query_one(SettingsWorkspace).show_category(3)
+                    await pilot.pause()
+                    help_text = app.query_one('#subject-tdf-help')
+                    self.assertTrue(help_text.display)
+                    app.query_one('#subject-viewer', Select).value = 'system'
+                    await pilot.pause()
+                    self.assertFalse(help_text.display)
+                    app.query_one('#subject-viewer', Select).value = 'tdf'
+                    await pilot.pause()
+                    self.assertTrue(help_text.display)
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_categories_edit_save_and_return_with_keyboard(self):
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
