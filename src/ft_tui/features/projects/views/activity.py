@@ -76,7 +76,7 @@ class ProjectActivityScreen(Screen):
     .activity-section { margin-top: 1; margin-bottom: 1; color: $accent; text-style: bold; }
     .activity-muted { color: $text-muted; }
     .activity-comment { margin-bottom: 1; }
-    #activity-controls { height: 3; margin-top: 1; }
+    #activity-controls { height: 3; margin: 1 0; }
     #activity-controls Button { width: 1fr; min-width: 0; margin-right: 1; }
     #activity-body.compact { layout: vertical; }
     #activity-body.compact #activity-sidebar { width: 1fr; height: 10; min-height: 6; margin: 0 0 1 0; }

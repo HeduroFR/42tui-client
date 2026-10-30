@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add bottom spacing below the Attempts & evaluations actions and highlight Set as finished with the primary button color.
+
 - Show Set as finished only for an in-progress project and Subscribe to defense only while waiting for correction. Hide calendar navigation when the project is not ready.
 
 - Place Evaluation slots and Set as finished side by side, cropping long labels and retaining full descriptions in tooltips.

@@ -197,7 +197,7 @@ class MainLayoutMixin:
                                         yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
                                         with Horizontal(id="project-evaluation-actions"):
                                             yield Button("Subscribe to defense", id="show-project-slots", tooltip="Subscribe to defense", disabled=True)
-                                            yield Button("Set as finished", id="finish-project-intra", tooltip="Set project as finished", disabled=True)
+                                            yield Button("Set as finished", id="finish-project-intra", tooltip="Set project as finished", variant="primary", disabled=True)
                                     yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):
                                     yield Static("Workspace", classes="panel-title")

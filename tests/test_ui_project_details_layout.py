@@ -154,6 +154,7 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertGreater(slots.region.y, activity.region.bottom)
                     self.assertEqual(str(slots.label), 'Subscribe to defense')
                     self.assertEqual(str(finish.label), 'Set as finished')
+                    self.assertEqual(finish.variant, 'primary')
 
                     self.assertNotIn('Local path', overview)
                     await pilot.pause()
