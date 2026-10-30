@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.color import Color
 from textual.widgets import Input
 from ft_tui.ui.modal import AppModal
@@ -21,13 +21,13 @@ class AccountConnectionScreen(AppModal[str | None]):
     CSS = """
     AccountConnectionScreen {  background: $background 70%; }
     #account-connection-dialog {
-        width: 72; height: auto; max-height: 90%; padding: 1 2; overflow-y: auto;
+        width: 72; max-width: 94%; height: auto; max-height: 90%; padding: 1 2; overflow-y: auto;
         border: round $primary; background: $surface;
     }
     #account-connection-title { text-style: bold; }
     #account-connection-status { height: auto; min-height: 2; margin: 1 0; color: $text-muted; }
-    #account-connection-actions { height: 3; align-vertical: middle; }
-    #account-connect { margin-right: 1; }
+    #account-connection-actions { height: auto; align-horizontal: center; }
+    #account-connection-actions Button { width: 100%; max-width: 42; margin-bottom: 1; }
     #account-manual-link { height: auto; margin-bottom: 1; }
     #account-authorization-url { height: auto; }
     """
@@ -40,6 +40,7 @@ class AccountConnectionScreen(AppModal[str | None]):
         connected: bool = False,
         start_pairing: bool = False,
         start_vault: bool = False,
+        required: bool = False,
     ) -> None:
         super().__init__()
         self.oauth_client = oauth_client
@@ -47,6 +48,7 @@ class AccountConnectionScreen(AppModal[str | None]):
         self.connected = connected
         self.start_pairing = start_pairing
         self.start_vault = start_vault
+        self.required = required
         self.poll_timer = None
         self.polling = False
         self.poll_count = 0
@@ -75,20 +77,20 @@ class AccountConnectionScreen(AppModal[str | None]):
                 yield Static("If no browser opens, copy this link into an available browser (another device works too).")
                 yield Static("", id="account-authorization-url", markup=False)
                 yield Button("Copy login link", id="account-copy-link")
-            with Horizontal(id="account-connection-actions"):
+            with Vertical(id="account-connection-actions"):
                 yield Button("Connect / reconnect", variant="primary", id="account-connect")
                 yield Button("Disconnect this device", id="account-disconnect", disabled=not self.connected)
-                yield Button("Cancel", id="account-connection-cancel")
-            if not self.connected and hasattr(self.oauth_client, "store"):
-                yield Button("Connect for this session only", id="account-session-only")
-                yield Button("Remember with a passphrase", id="account-vault")
-                from ft_tui.infrastructure.security.session_vault import LockedSessionStore
-                if isinstance(self.oauth_client.store, LockedSessionStore):
-                    yield Button("Discard saved session", variant="danger", id="account-vault-reset")
-            elif self.connected:
-                from ft_tui.infrastructure.security.keychain import CredentialStore
-                if isinstance(getattr(self.oauth_client, "store", None), CredentialStore):
-                    yield Button("Move keyring session to passphrase", id="account-vault-migrate")
+                if not self.connected and hasattr(self.oauth_client, "store"):
+                    yield Button("Connect for this session only", id="account-session-only")
+                    yield Button("Remember with a passphrase", id="account-vault")
+                    from ft_tui.infrastructure.security.session_vault import LockedSessionStore
+                    if isinstance(self.oauth_client.store, LockedSessionStore):
+                        yield Button("Discard saved session", variant="danger", id="account-vault-reset")
+                elif self.connected:
+                    from ft_tui.infrastructure.security.keychain import CredentialStore
+                    if isinstance(getattr(self.oauth_client, "store", None), CredentialStore):
+                        yield Button("Move keyring session to passphrase", id="account-vault-migrate")
+                yield Button("Quit TUI" if self.required else "Cancel", id="account-connection-cancel")
 
     def on_mount(self) -> None:
         self.query_one("#account-manual-link").display = False
@@ -117,7 +119,10 @@ class AccountConnectionScreen(AppModal[str | None]):
         elif event.button.id == "account-connection-cancel":
             self._stop_polling()
             await self._restore_previous_store()
-            self.dismiss(None)
+            if self.required:
+                self.app.exit()
+            else:
+                self.dismiss(None)
         elif event.button.id == "account-connect":
             await self._start_pairing()
         elif event.button.id == "account-disconnect":
@@ -514,19 +519,19 @@ class SessionExpiredScreen(AppModal[bool]):
     CSS = """
     SessionExpiredScreen {  background: $background 70%; }
     #session-expired-dialog {
-        width: 64; height: auto; padding: 2 3;
+        width: 64; max-width: 94%; height: auto; max-height: 90%; padding: 1 2; overflow-y: auto;
         border: round $warning; background: $surface;
     }
     #session-expired-message { height: auto; margin-bottom: 1; }
-    #session-expired-actions { height: 3; align-horizontal: center; }
-    #session-reconnect { margin-right: 1; }
+    #session-expired-actions { height: auto; align-horizontal: center; }
+    #session-expired-actions Button { width: 100%; max-width: 42; margin-bottom: 1; }
     """
     BINDINGS = [("escape", "quit_tui", "Quit TUI")]
 
     def compose(self) -> ComposeResult:
         with Vertical(id="session-expired-dialog"):
             yield Static("Your session has expired. Reconnect your 42 account.", id="session-expired-message")
-            with Horizontal(id="session-expired-actions"):
+            with Vertical(id="session-expired-actions"):
                 yield Button("Reconnect", variant="primary", id="session-reconnect")
                 yield Button("Quit TUI", id="session-quit")
 

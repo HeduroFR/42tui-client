@@ -11,6 +11,19 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Require account connection after completed onboarding and after
+  disconnect, with Quit TUI available and successful pairing returning to the
+  app. Existing unlocked sessions continue normally. Minor impact in pre-1.0;
+  startup, pairing and disconnect UI checks passed. The accounts scope passed
+  114 tests with one skip after stabilizing an onboarding timing assertion.
+  Campus validation pending.
+
+- 2026-10-30: Center and stack account connection and expired-session actions
+  with clear spacing, move Cancel last, and constrain dialogs for narrow
+  terminals. Patch impact within the planned minor release; focused layout
+  checks passed at 80×24 and 120×45. The cancellation flow passed after scrolling
+  to its button when the manual pairing link fills a small terminal.
+
 - 2026-10-30: Expand the 0.7.0 roadmap to cover a substantial projects, friends
   and dashboard loading and cache rework. Documentation only; no release required.
   Checked roadmap placement and diff; implementation and performance validation

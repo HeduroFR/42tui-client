@@ -56,6 +56,55 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_existing_installation_requires_connection_until_quit_or_pairing(self):
+        from unittest.mock import patch
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.features.settings.adapters.storage import save_settings
+
+        factory = make_session_factory('sqlite:///:memory:')
+        with factory() as session:
+            save_settings(session, {'onboarding_completed': 'true'})
+        client = FakeOAuthClient()
+        app = FortyTwoTuiApp(factory, None, oauth_client=client)
+        async with app.run_test(size=(120, 45)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            self.assertIsInstance(screen, AccountConnectionScreen)
+            self.assertTrue(screen.required)
+            self.assertEqual(str(screen.query_one('#account-connection-cancel').label), 'Quit TUI')
+            await pilot.press('escape')
+            self.assertIs(app.screen, screen)
+            with patch.object(app, 'exit') as quit_app:
+                await pilot.click('#account-connection-cancel')
+                quit_app.assert_called_once_with()
+            self.assertIs(app.screen, screen)
+            await screen._start_pairing()
+            await screen._poll_pairing()
+            await pilot.pause()
+            self.assertTrue(app.account_connected)
+            self.assertIsNot(app.screen, screen)
+
+    async def test_account_actions_have_spacing_at_narrow_and_wide_sizes(self):
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.infrastructure.security.keychain import CredentialStore
+
+        for size in ((80, 24), (120, 45)):
+            client = FakeOAuthClient()
+            client.store = CredentialStore(keyring_backend=object())
+            client._credentials = None
+            app = App()
+            async with app.run_test(size=size) as pilot:
+                screen = AccountConnectionScreen(client, connected=True, connected_login='student')
+                app.push_screen(screen)
+                await pilot.pause()
+                actions = [screen.query_one('#' + name) for name in
+                           ('account-connect', 'account-disconnect', 'account-vault-migrate', 'account-connection-cancel')]
+                for first, second in zip(actions, actions[1:]):
+                    self.assertGreater(second.region.y, first.region.bottom)
+                    self.assertEqual(first.region.width, second.region.width)
+                self.assertLessEqual(actions[0].region.right, size[0])
+
     async def test_locked_vault_is_offered_on_startup_and_cancel_preserves_it(self):
         from unittest.mock import patch
         from ft_tui.api.oauth_client import OAuthClient
@@ -240,8 +289,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(get_setting(session, "onboarding_completed"), "true")
 
             app.account_connected = True
+            await pilot.pause(0.3)
             await pilot.click("#onboarding-next")
-            await pilot.pause()
+            await pilot.pause(0.3)
             await pilot.click("#onboarding-next")
             await pilot.pause()
             self.assertEqual(onboarding.step, 2)
@@ -312,9 +362,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
                 quit_button = app.screen.query_one('#session-quit')
                 self.assertEqual(str(quit_button.label), 'Quit TUI')
                 self.assertNotIn('?', str(app.screen.query_one('#session-expired-message').render()))
-                left_gap = reconnect.region.x - actions.content_region.x
-                right_gap = actions.content_region.right - quit_button.region.right
-                self.assertLessEqual(abs(left_gap - right_gap), 1)
+                self.assertLessEqual(abs((reconnect.region.x - actions.content_region.x) - (actions.content_region.right - reconnect.region.right)), 1)
+                self.assertEqual(reconnect.region.width, quit_button.region.width)
+                self.assertGreater(quit_button.region.y, reconnect.region.bottom)
                 with patch.object(app, 'exit') as quit_app:
                     await pilot.click("#session-quit")
                     await pilot.pause()
@@ -507,6 +557,8 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             await screen._poll_pairing()
             await pilot.pause()  # Allow the manual-link section to finish layout before clicking.
             self.assertFalse(screen.query_one("#account-connection-cancel").disabled)
+            screen.query_one("#account-connection-cancel").scroll_visible()
+            await pilot.pause()
             await pilot.click("#account-connection-cancel")
             await pilot.pause()
             self.assertIs(app.screen, onboarding)
@@ -823,6 +875,9 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(client.disconnect_calls, 1)
             self.assertFalse(app.account_connected)
             self.assertIsNone(app.provider)
+            from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+            self.assertIsInstance(app.screen, AccountConnectionScreen)
+            self.assertTrue(app.screen.required)
 
 
 class CursusPersistenceTests(unittest.TestCase):

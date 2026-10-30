@@ -65,11 +65,11 @@ class AccountControllerMixin:
 
     def _finish_session_expiry_prompt(self, reconnect: bool) -> None:
         if reconnect:
-            self.open_account_connection(start_pairing=True)
+            self.open_account_connection(start_pairing=True, required=True)
         else:
             self.exit()
 
-    def open_account_connection(self, source: str = "settings", *, start_pairing: bool = False, start_vault: bool = False) -> None:
+    def open_account_connection(self, source: str = "settings", *, start_pairing: bool = False, start_vault: bool = False, required: bool = False) -> None:
         """Open the shared pairing/disconnect flow from onboarding or Settings."""
         if self.oauth_client is None:
             self.notify("42 account connection is not configured.", severity="warning")
@@ -81,6 +81,7 @@ class AccountControllerMixin:
                 connected=self.account_connected,
                 start_pairing=start_pairing,
                 start_vault=start_vault,
+                required=required,
             ),
             lambda result: self._finish_account_connection(result, source),
         )
@@ -119,7 +120,7 @@ class AccountControllerMixin:
             self.account_id = None
             self.account_campuses = []
             self.run_worker(self._refresh_dashboard(), group="dashboard-refresh", exclusive=True)
-            self.notify("This device is disconnected. Your local projects remain available.")
+            self.notify("This device is disconnected. Connect an account to continue.")
         if result in {"connected", "disconnected"}:
             self.project_curriculum = {}
             self._evidence_owner_unverified = True
@@ -131,6 +132,8 @@ class AccountControllerMixin:
         if self._session_expiry_prompt_pending:
             self._session_expiry_prompt_pending = False
             self.push_screen(SessionExpiredScreen(), self._finish_session_expiry_prompt)
+        elif result == "disconnected":
+            self.call_after_refresh(lambda: self.open_account_connection(required=True))
 
     def _select_default_cursus_if_unset(
         self, cursuses: list[CursusSnapshot], today: date | None = None
