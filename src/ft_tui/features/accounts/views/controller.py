@@ -183,13 +183,6 @@ class AccountControllerMixin:
         )
         for widget in self.query("#provider-title"):
             widget.update(translate(provider_title, self.language))
-        provider_description = (
-            "Your projects sync from the centralized 42 API. The local catalog stays available offline."
-            if self.account_connected
-            else "Your saved projects and activity stay on this device. Connect your 42 account to sync your real projects."
-        )
-        for widget in self.query("#provider-description"):
-            widget.update(translate(provider_description, self.language))
 
     def _configured_cursus_id(self, session=None) -> int | None:
         return AccountControllerMixin._account_shell(self).configured_cursus(session)

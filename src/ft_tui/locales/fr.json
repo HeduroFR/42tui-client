@@ -186,8 +186,6 @@
   "now": "maint.",
   "Stop timer": "Arrêter le chrono",
   "TDF must be installed and available on PATH; System default uses your OS PDF application.": "TDF doit être installé et accessible dans PATH ; l’application par défaut ouvre le PDF avec votre système.",
-  "Your projects sync from the centralized 42 API. The local catalog stays available offline.": "Vos projets sont synchronisés depuis l’API centralisée de 42. Le catalogue local reste disponible hors ligne.",
-  "Your saved projects and activity stay on this device. Connect your 42 account to sync your real projects.": "Vos projets et votre activité restent sur cet appareil. Connectez votre compte 42 pour synchroniser vos vrais projets.",
   "Local path": "Chemin local",
   "Dev remote": "Dépôt de développement",
   "o opens in your editor · F4 refreshes Git status · e configures this project.": "o ouvre dans l’éditeur · F4 actualise Git · e configure ce projet.",

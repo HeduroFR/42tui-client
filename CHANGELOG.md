@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Simplify the Account settings descriptions while retaining session-only storage guidance when selected.
+
 - Place Refresh catalog beside the Common Core fallback selector in Settings.
 
 - Clear Community link feedback automatically after five seconds.

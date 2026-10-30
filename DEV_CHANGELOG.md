@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Remove Account settings helper paragraphs; show the session-only
+  deletion warning when that option is selected. Patch impact; focused Settings
+  and account locale checks run. Full CI and release validation remain pending.
+
 - 2026-10-30: Align catalog refresh with the fallback selector, stacking them
   in narrow terminals, and remove catalog, cursus, automatic-update and subject
   auto-check help text.

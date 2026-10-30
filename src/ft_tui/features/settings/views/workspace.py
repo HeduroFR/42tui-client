@@ -107,6 +107,12 @@ class SettingsWorkspace(Vertical):
     async def action_save(self) -> None:
         await self.app._save_settings_and_refresh_projects()
 
+    @on(Select.Changed, '#settings-storage')
+    def storage_selection_changed(self, event):
+        self.query_one('#settings-storage-status', Static).update(
+            'Moving to this session only removes the saved session from this device.' if event.value == 'session' else '')
+        event.stop()
+
     @on(Button.Pressed, '#settings-storage-apply')
     def change_session_storage(self, event):
         from ft_tui.features.accounts.adapters.storage_transfer import storage_kind
@@ -205,10 +211,6 @@ class SettingsMixin:
                             yield Static("42 account", classes="settings-label")
                             yield Static("Not connected", id="account-connection-state")
                             yield Button("Connect 42 account", id="settings-connect-account", variant="primary")
-                            yield Static(
-                                "Connect securely in your browser. Your password and OAuth code stay with 42.",
-                                classes="field-help",
-                            )
                         with Vertical(id="settings-storage-card", classes="settings-section"):
                             yield Static("Session storage", classes="section-kicker")
                             with Horizontal(id="settings-storage-row"):
@@ -216,17 +218,10 @@ class SettingsMixin:
                                               ("Remember with a passphrase", "vault")],
                                              value="keyring", allow_blank=False, id="settings-storage")
                                 yield Button("Move session", id="settings-storage-apply")
-                            yield Static("Moving to this session only removes the saved session from this device.", classes="field-help")
                             yield Static("", id="settings-storage-status")
                         with Vertical(id="provider-card"):
                             yield Static("DATA SOURCE", classes="section-kicker")
                             yield Static("42 account not connected", id="provider-title")
-                            yield Static(
-                                "Your saved projects and activity stay on this device. Connect your "
-                                "42 account to sync your real projects.",
-                                id="provider-description",
-                                classes="field-help",
-                            )
                     with Vertical(id="settings-panel-curriculum", classes="settings-panel"):
                         with Vertical(id="settings-cursus-card", classes="settings-section"):
                             yield Static("Curriculum", classes="section-kicker")
