@@ -21,6 +21,9 @@ class AgendaWorkspace(Vertical):
     AgendaWorkspace Horizontal { height: 3; layout: grid; grid-size: 5; grid-columns: 1fr 2fr 1fr 2fr 3fr; }
     AgendaWorkspace Horizontal > Button { width: 1fr; min-width: 0; padding: 0; }
     AgendaWorkspace Button { width: auto; min-width: 5; }
+    AgendaWorkspace .agenda-actions { layout: horizontal; align: center middle; margin-top: 1; }
+    AgendaWorkspace .agenda-actions > Button { width: 20; max-width: 45%; margin: 0; }
+    AgendaWorkspace .agenda-actions #agenda-intra { margin-right: 2; }
     AgendaWorkspace Select { width: 1fr; }
     AgendaWorkspace ListView { height: 1fr; min-height: 3; }
     AgendaWorkspace ListItem { height: auto; padding: 0 1; }
@@ -75,7 +78,12 @@ class AgendaWorkspace(Vertical):
             yield SlotsCalendar(self.week, self.zone, id='project-slot-timeline')
         with VerticalScroll(classes='agenda-detail'):
             yield Static('', id='agenda-detail', markup=False, localize=False)
-        yield Button('Open on Intra', id='agenda-intra', disabled=True)
+        if self.project_id:
+            with Horizontal(classes='agenda-actions'):
+                yield Button('Open on Intra', id='agenda-intra', disabled=True)
+                yield Button('Close', id='project-slots-close')
+        else:
+            yield Button('Open on Intra', id='agenda-intra', disabled=True)
 
     def identity(self):
         scope = getattr(self.app, '_catalog_scope', lambda: None)()
@@ -318,7 +326,6 @@ class ProjectSlotsScreen(AppModal):
     DEFAULT_CSS = '''
     #project-slots-dialog { width: 112; max-width: 96%; height: 88%; padding: 1 2; border: round $primary; background: $surface; }
     #project-slots-title { height: 1; text-style: bold; color: $accent; margin-bottom: 1; }
-    #project-slots-close { dock: bottom; width: auto; }
     ProjectSlotsScreen.project-slot-blocked #project-slots-dialog { height: auto; }
     ProjectSlotsScreen.project-slot-blocked AgendaWorkspace { height: auto; }
     '''
@@ -330,7 +337,6 @@ class ProjectSlotsScreen(AppModal):
         with Vertical(id='project-slots-dialog'):
             yield Static(self.project_name or 'Evaluation slots', id='project-slots-title', markup=False, localize=False)
             yield AgendaWorkspace(project_id=self.project_id, project_url=self.url)
-            yield Button('Close', id='project-slots-close')
     def on_button_pressed(self, event):
         if event.button.id == 'project-slots-close':
             self.dismiss()
