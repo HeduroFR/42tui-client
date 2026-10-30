@@ -1,4 +1,11 @@
 {
+  "Remember with a passphrase": "Mémoriser avec une phrase secrète",
+  "Unlock your saved session": "Déverrouiller votre session enregistrée",
+  "Choose a separate 42TUI passphrase": "Choisissez une phrase secrète propre à 42TUI",
+  "A copied vault can be attacked offline. A forgotten passphrase cannot be recovered.": "Une copie du coffre peut être attaquée hors ligne. Une phrase secrète oubliée ne peut pas être récupérée.",
+  "Use matching passphrases of at least 12 characters.": "Utilisez deux phrases secrètes identiques d’au moins 12 caractères.",
+  "Could not open the saved session. Check your passphrase and try again.": "Impossible d’ouvrir la session enregistrée. Vérifiez votre phrase secrète et réessayez.",
+  "Connect for this session only": "Se connecter pour cette session uniquement",
   "No browser opened. Open the login link below to continue.": "Aucun navigateur ne s’est ouvert. Ouvrez le lien de connexion ci-dessous pour continuer.",
   "If no browser opens, copy this link into an available browser (another device works too).": "Si aucun navigateur ne s’ouvre, copiez ce lien dans un navigateur disponible (un autre appareil convient aussi).",
   "Copy login link": "Copier le lien de connexion",
@@ -1293,5 +1300,19 @@
   "Failed tests": "Échoués",
   "View full output": "Voir la sortie complète",
   "Open log": "Ouvrir le journal",
-  "The log file no longer exists.": "Le fichier journal n’existe plus."
+  "The log file no longer exists.": "Le fichier journal n’existe plus.",
+  "Session-only credentials are lost on exit. A passphrase-protected session can be unlocked after restart.": "Les identifiants de session sont perdus à la fermeture. Une session protégée par phrase secrète peut être déverrouillée au redémarrage.",
+  "Discard saved session": "Supprimer la session enregistrée",
+  "Move keyring session to passphrase": "Transférer la session du trousseau vers une phrase secrète",
+  "A saved session already exists; it will not be overwritten.": "Une session enregistrée existe déjà ; elle ne sera pas écrasée.",
+  "Migration could not be completed. Existing credentials were retained when possible.": "La migration a échoué. Les identifiants existants ont été conservés dans la mesure du possible.",
+  "Your session is now protected by your passphrase.": "Votre session est désormais protégée par votre phrase secrète.",
+  "Could not discard the saved session.": "Impossible de supprimer la session enregistrée.",
+  "The local saved session was discarded. The old server session was not revoked.": "La session locale a été supprimée. La session sur le serveur n’a pas été révoquée.",
+  "Discard the saved session on this device? This does not revoke the server session or delete projects.": "Supprimer la session enregistrée sur cet appareil ? Cela ne révoque pas la session sur le serveur et ne supprime pas les projets.",
+  "Could not securely access session credentials. Your saved data remains unchanged.": "Impossible d’accéder aux identifiants de session en toute sécurité. Vos données enregistrées sont inchangées.",
+  "The saved session is incomplete. It has not been changed.": "La session enregistrée est incomplète. Elle n’a pas été modifiée.",
+  "Migration could not be completed. Check both the keyring and saved session before retrying.": "La migration a échoué. Vérifiez le trousseau et la session enregistrée avant de réessayer.",
+  "Passphrase": "Phrase secrète",
+  "Confirm passphrase": "Confirmer la phrase secrète"
 }

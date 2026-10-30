@@ -69,7 +69,7 @@ class AccountControllerMixin:
         else:
             self.exit()
 
-    def open_account_connection(self, source: str = "settings", *, start_pairing: bool = False) -> None:
+    def open_account_connection(self, source: str = "settings", *, start_pairing: bool = False, start_vault: bool = False) -> None:
         """Open the shared pairing/disconnect flow from onboarding or Settings."""
         if self.oauth_client is None:
             self.notify("42 account connection is not configured.", severity="warning")
@@ -80,6 +80,7 @@ class AccountControllerMixin:
                 connected_login=self.account_login,
                 connected=self.account_connected,
                 start_pairing=start_pairing,
+                start_vault=start_vault,
             ),
             lambda result: self._finish_account_connection(result, source),
         )

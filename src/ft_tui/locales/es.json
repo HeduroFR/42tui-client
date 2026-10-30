@@ -1,4 +1,11 @@
 {
+  "Remember with a passphrase": "Recordar con una frase de contraseña",
+  "Unlock your saved session": "Desbloquear la sesión guardada",
+  "Choose a separate 42TUI passphrase": "Elige una frase de contraseña exclusiva para 42TUI",
+  "A copied vault can be attacked offline. A forgotten passphrase cannot be recovered.": "Una copia del almacén puede atacarse sin conexión. Una frase olvidada no se puede recuperar.",
+  "Use matching passphrases of at least 12 characters.": "Usa frases idénticas de al menos 12 caracteres.",
+  "Could not open the saved session. Check your passphrase and try again.": "No se pudo abrir la sesión guardada. Comprueba la frase y vuelve a intentarlo.",
+  "Connect for this session only": "Conectar solo para esta sesión",
   "No browser opened. Open the login link below to continue.": "No se abrió ningún navegador. Abre el enlace de inicio de sesión de abajo para continuar.",
   "If no browser opens, copy this link into an available browser (another device works too).": "Si no se abre ningún navegador, copia este enlace en un navegador disponible (también puedes usar otro dispositivo).",
   "Copy login link": "Copiar enlace de conexión",
@@ -1276,5 +1283,19 @@
   "Failed tests": "Fallidas",
   "View full output": "Ver toda la salida",
   "Open log": "Abrir registro",
-  "The log file no longer exists.": "El archivo de registro ya no existe."
+  "The log file no longer exists.": "El archivo de registro ya no existe.",
+  "Session-only credentials are lost on exit. A passphrase-protected session can be unlocked after restart.": "Las credenciales temporales se pierden al salir. Una sesión protegida se puede desbloquear al reiniciar.",
+  "Discard saved session": "Eliminar la sesión guardada",
+  "Move keyring session to passphrase": "Mover la sesión del llavero a una frase de contraseña",
+  "A saved session already exists; it will not be overwritten.": "Ya existe una sesión guardada; no se sobrescribirá.",
+  "Migration could not be completed. Existing credentials were retained when possible.": "No se pudo completar la migración. Las credenciales existentes se conservaron cuando fue posible.",
+  "Your session is now protected by your passphrase.": "Tu sesión está protegida por tu frase de contraseña.",
+  "Could not discard the saved session.": "No se pudo eliminar la sesión guardada.",
+  "The local saved session was discarded. The old server session was not revoked.": "Se eliminó la sesión local. La sesión anterior del servidor no se revocó.",
+  "Discard the saved session on this device? This does not revoke the server session or delete projects.": "¿Eliminar la sesión guardada en este dispositivo? Esto no revoca la sesión del servidor ni elimina proyectos.",
+  "Could not securely access session credentials. Your saved data remains unchanged.": "No se pudo acceder de forma segura a las credenciales. Los datos guardados no han cambiado.",
+  "The saved session is incomplete. It has not been changed.": "La sesión guardada está incompleta. No se ha modificado.",
+  "Migration could not be completed. Check both the keyring and saved session before retrying.": "No se pudo completar la migración. Comprueba el llavero y la sesión guardada antes de reintentarlo.",
+  "Passphrase": "Frase de contraseña",
+  "Confirm passphrase": "Confirmar frase de contraseña"
 }

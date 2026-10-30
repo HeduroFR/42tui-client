@@ -262,6 +262,14 @@ class OAuthClient:
     def credentials(self) -> DeviceCredentials | None:
         return self._load_credentials()
 
+    def replace_credential_store(self, store: CredentialStoreProtocol) -> tuple[CredentialStoreProtocol, DeviceCredentials | None]:
+        """Switch stores while excluding concurrent refreshes and clear cached credentials."""
+        with self._credential_lock():
+            previous = self.store, self._credentials
+            self.store = store
+            self._credentials = None
+            return previous
+
     def create_pairing(self, *, theme: dict[str, str] | None = None) -> PairingStart:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import ec

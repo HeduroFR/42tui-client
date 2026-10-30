@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Connect without an OS keyring for the current app session, or protect a remembered session with a separate passphrase. Unlock it after restarting; see [remembered sessions](docs/remembered-sessions.md) for migration and recovery.
+
 ## 0.6.0
 
 ### ✨ New features

@@ -3,6 +3,7 @@ from types import ModuleType
 from unittest.mock import patch
 
 from ft_tui.infrastructure.security.keychain import CredentialStore, SecureStoreError, SessionCredentialStore
+from ft_tui.api.oauth_client import DeviceCredentials
 
 
 class SessionCredentialStoreTests(unittest.TestCase):
@@ -19,9 +20,6 @@ class SessionCredentialStoreTests(unittest.TestCase):
         self.assertIsNone(second.load())
         first.delete()
         self.assertIsNone(first.load())
-from ft_tui.api.oauth_client import DeviceCredentials
-
-
 class FakeKeyring:
     def __init__(self):
         self.values = {}
@@ -109,3 +107,129 @@ class CredentialStoreTests(unittest.TestCase):
             store.load()
         with self.assertRaises(SecureStoreError):
             store.save({"access_token": "secret"})
+
+
+class SessionVaultTests(unittest.TestCase):
+    def test_round_trip_wrong_passphrase_and_tampering(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'access_token': 'secret'})
+            self.assertNotIn(b'secret', path.read_bytes())
+            self.assertEqual(SessionVault.unlock(path, 'a long test passphrase').load(), {'access_token': 'secret'})
+            original = path.read_bytes()
+            with self.assertRaises(SecureStoreError):
+                SessionVault.unlock(path, 'incorrect')
+            self.assertEqual(path.read_bytes(), original)
+            path.write_bytes(original[:-3] + b'xxx')
+            with self.assertRaises(SecureStoreError):
+                SessionVault.unlock(path, 'a long test passphrase')
+
+    def test_corrupt_or_missing_existing_vault_cannot_be_overwritten(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'access_token': 'secret'})
+            path.write_bytes(b'corrupt')
+            with self.assertRaises(SecureStoreError):
+                vault.save({'access_token': 'replacement'})
+            self.assertEqual(path.read_bytes(), b'corrupt')
+            path.unlink()
+            with self.assertRaises(SecureStoreError):
+                vault.save({'access_token': 'replacement'})
+            self.assertFalse(path.exists())
+
+    def test_concurrent_creation_never_replaces_an_existing_vault(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            first = SessionVault.create(path, 'first passphrase')
+            second = SessionVault.create(path, 'second passphrase')
+            first.save({'access_token': 'first'})
+            with self.assertRaises(SecureStoreError):
+                second.save({'access_token': 'second'})
+            self.assertEqual(first.load(), {'access_token': 'first'})
+
+    def test_rejects_insecure_or_symlinked_vault_directory(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory) / 'private'
+            parent.mkdir(mode=0o700)
+            path = parent / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'access_token': 'secret'})
+            parent.chmod(0o755)
+            with self.assertRaises(SecureStoreError):
+                SessionVault.unlock(path, 'a long test passphrase')
+            parent.chmod(0o700)
+            link = Path(directory) / 'link'
+            link.symlink_to(parent, target_is_directory=True)
+            with self.assertRaises(SecureStoreError):
+                SessionVault.unlock(link / 'vault', 'a long test passphrase')
+
+    def test_two_unlocked_instances_reload_latest_credentials(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            first = SessionVault.create(path, 'a long test passphrase')
+            first.save({'refresh_token': 'old'})
+            second = SessionVault.unlock(path, 'a long test passphrase')
+            first.save({'refresh_token': 'new'})
+            self.assertEqual(second.load(), {'refresh_token': 'new'})
+
+    def test_oversized_write_preserves_existing_credentials(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'access_token': 'original'})
+            before = path.read_bytes()
+            with self.assertRaises(SecureStoreError):
+                vault.save({'access_token': 'x' * SessionVault.MAX_SIZE})
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(vault.load(), {'access_token': 'original'})
+
+    def test_failed_atomic_replace_preserves_original(self):
+        import tempfile
+        from pathlib import Path
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            vault = SessionVault.create(path, 'a long test passphrase')
+            vault.save({'refresh_token': 'original'})
+            before = path.read_bytes()
+            with patch('ft_tui.infrastructure.security.session_vault.os.replace', side_effect=OSError('disk error')):
+                with self.assertRaises(SecureStoreError):
+                    vault.save({'refresh_token': 'replacement'})
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(vault.load(), {'refresh_token': 'original'})
+            self.assertEqual(list(Path(directory).iterdir()), [path])
+
+    def test_locked_store_never_treats_vault_as_empty(self):
+        from ft_tui.infrastructure.security.session_vault import LockedSessionStore
+
+        store = LockedSessionStore()
+        for operation in (store.load, lambda: store.save({}), store.delete):
+            with self.assertRaises(SecureStoreError):
+                operation()

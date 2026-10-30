@@ -1,4 +1,4 @@
-"""OS-keychain-only storage for device credentials and the installation key."""
+"""Credential stores for device credentials and the installation key."""
 
 import json
 from typing import Any, Protocol
