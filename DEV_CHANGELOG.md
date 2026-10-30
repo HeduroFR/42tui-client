@@ -13,6 +13,8 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-31: Gate project evaluation actions on fresh account/campus/project registration state, rename slot browsing to Subscribe to defense, and hide the fallback calendar toolbar/date range for unfinished projects. Patch impact within 0.7.0; 36 focused registration, agenda and project-layout tests passed, including state visibility, expiry/isolation and hidden calendar controls. Full suite and live Intra checks not rerun; no separate release warranted.
+
 - 2026-10-31: Shorten the project evaluation action labels and place them in an equal-width two-column row with a gap, nowrap/ellipsis overflow and full-label tooltips. Patch impact within 0.7.0; 22 project-layout tests passed and the wide/narrow action-layout test passed again after adding narrow assertions. Full suite not rerun; no separate release warranted.
 
 - 2026-10-31: Shorten the project modal action to Open Intra with single-line sizing in English/French/Spanish, and move evaluation/history/finish actions into Registration to reuse its full-width buttons and vertical spacing. Patch impact within 0.7.0; seven agenda tests and 22 project-layout tests passed, including narrow translated button labels and action alignment. Full client suite not rerun; no separate release warranted.

@@ -87,6 +87,8 @@ class ProjectSlotViewTests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             workspace = app.query_one(AgendaWorkspace)
             self.assertTrue(workspace.project_not_ready)
+            self.assertFalse(workspace.query_one('.agenda-toolbar').display)
+            self.assertFalse(workspace.query_one('.agenda-period').display)
             self.assertFalse(app.query_one(SlotsCalendar).display)
             self.assertEqual(workspace.shown, [])
             from ft_tui.ui.components import Static, Button

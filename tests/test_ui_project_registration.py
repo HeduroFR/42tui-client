@@ -12,6 +12,26 @@ from ft_tui.ui.components import Static,TabbedContent,Button
 from registration_fixtures import registration_state,operation
 
 class RegistrationUITests(unittest.IsolatedAsyncioTestCase):
+ async def test_evaluation_actions_follow_fresh_owned_project_state(self):
+  from types import SimpleNamespace
+  from ft_tui.features.projects.views.registration import ProjectRegistrationMixin
+  widgets={key:SimpleNamespace(display=True,styles=SimpleNamespace(column_span=1)) for key in ('#show-project-slots','#finish-project-intra','#project-evaluation-actions')}
+  owner=SimpleNamespace(query_one=lambda key,*args:widgets[key],_registration_context=lambda:('42',21,31,1001))
+  slots,finish=widgets['#show-project-slots'],widgets['#finish-project-intra']
+  for phase,expected in [('in_progress',(False,True)),('waiting_for_correction',(True,False)),('finished',(False,False)),('creating_group',(False,False)),(None,(False,False))]:
+   state=registration_state();state['relationship']['phase']=phase
+   ProjectRegistrationMixin._render_project_evaluation_actions(owner,state)
+   self.assertEqual((slots.display,finish.display),expected)
+  for change in ('stale','foreign','expired'):
+   state=registration_state();state['relationship']['phase']='waiting_for_correction'
+   if change=='stale':state['sources']['projects']['stale']=True
+   elif change=='foreign':state['account_id']='99'
+   else:state['sources']['projects']['collected_at']=(datetime.now(timezone.utc)-timedelta(minutes=16)).isoformat()
+   ProjectRegistrationMixin._render_project_evaluation_actions(owner,state)
+   self.assertFalse(slots.display);self.assertFalse(finish.display)
+  ProjectRegistrationMixin._render_project_evaluation_actions(owner)
+  self.assertFalse(widgets['#project-evaluation-actions'].display)
+
  async def test_registration_section_actions_and_personal_heading_are_independent_of_setup(self):
   with TemporaryDirectory() as d:
    f=make_session_factory(f'sqlite:///{Path(d)/"ui.sqlite"}')

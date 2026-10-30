@@ -145,11 +145,14 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIs(row.parent, registration)
                     self.assertIs(slots.parent, row)
                     self.assertIs(finish.parent, row)
+                    row.display = slots.display = finish.display = True
+                    slots.styles.column_span = finish.styles.column_span = 1
+                    await pilot.pause()
                     self.assertEqual(slots.region.y, finish.region.y)
                     self.assertLessEqual(abs(slots.region.width - finish.region.width), 1)
                     self.assertEqual(finish.region.x - slots.region.right, 2)
                     self.assertGreater(slots.region.y, activity.region.bottom)
-                    self.assertEqual(str(slots.label), 'Evaluation slots')
+                    self.assertEqual(str(slots.label), 'Subscribe to defense')
                     self.assertEqual(str(finish.label), 'Set as finished')
 
                     self.assertNotIn('Local path', overview)

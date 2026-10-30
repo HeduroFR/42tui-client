@@ -57,7 +57,7 @@ class AgendaWorkspace(Vertical):
 
     def compose(self):
         yield Static('Evaluation slots' if self.project_id else 'My evaluations' if self.evaluations_only else 'Agenda')
-        with Horizontal():
+        with Horizontal(classes='agenda-toolbar'):
             yield Button('‹', id='agenda-prev')
             yield Button('Today', id='agenda-today')
             yield Button('›', id='agenda-next')
@@ -226,6 +226,8 @@ class AgendaWorkspace(Vertical):
                 calendar.show_time(calendar.row)
                 self._slot_window = self.week
             self.screen.set_class(self.project_not_ready, 'project-slot-blocked')
+            self.query_one('.agenda-toolbar').display = not self.project_not_ready
+            self.query_one('.agenda-period').display = not self.project_not_ready
             calendar.display = self.calendar and not self.project_not_ready
             self.query_one(ListView).display = not self.calendar and not self.project_not_ready
             self.query_one('.project-slot-nav').display = calendar.display

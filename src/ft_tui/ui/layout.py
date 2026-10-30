@@ -196,7 +196,7 @@ class MainLayoutMixin:
                                         yield Button("Open project on Intra", id="registration-intra-link")
                                         yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
                                         with Horizontal(id="project-evaluation-actions"):
-                                            yield Button("Evaluation slots", id="show-project-slots", tooltip="Available evaluation slots", disabled=True)
+                                            yield Button("Subscribe to defense", id="show-project-slots", tooltip="Subscribe to defense", disabled=True)
                                             yield Button("Set as finished", id="finish-project-intra", tooltip="Set project as finished", disabled=True)
                                     yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):

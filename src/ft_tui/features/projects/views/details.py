@@ -133,6 +133,7 @@ class ProjectDetailsMixin(SubjectMixin):
             and self.provider is not None and hasattr(self.provider, 'get_project_activity')
             and hasattr(self.provider, 'get_team_evaluations')
         )
+        self._render_project_evaluation_actions()
         self.query_one('#show-project-slots', Button).disabled = not bool(project.official_project_id and self.account_id)
         self.query_one('#finish-project-intra', Button).disabled = not bool(project.slug)
         overview = escape(data.get("description") or translate("No description available.", self.language))
@@ -207,7 +208,10 @@ class ProjectDetailsMixin(SubjectMixin):
                 except Exception:
                     self.notify(translate('Could not open the project page.', self.language), severity='error')
             self.run_worker(open_intra())
-        elif project.official_project_id:
+        elif (project.official_project_id
+              and getattr(self, '_registration_state', None)
+              and self._registration_state['project_id'] == project.official_project_id
+              and self._registration_state['relationship'].get('phase') == 'waiting_for_correction'):
             self.push_screen(ProjectSlotsScreen(project.official_project_id, url, project.name))
 
     def action_project_activity(self) -> None:

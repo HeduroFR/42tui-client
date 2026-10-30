@@ -48,12 +48,34 @@ class ProjectRegistrationMixin:
             self._registration_view=None
         return self._registration_states
 
+    def _render_project_evaluation_actions(self, state=None):
+        slots = self.query_one('#show-project-slots', Button)
+        finish = self.query_one('#finish-project-intra', Button)
+        context = self._registration_context()
+        fresh = False
+        if state and context:
+            identity = (state['account_id'], state['context']['cursus_id'], state['context']['campus_id'], state['project_id'])
+            source = state['sources']['projects']
+            try:
+                collected = datetime.fromisoformat(source['collected_at'].replace('Z', '+00:00'))
+                age = (datetime.now(timezone.utc) - collected).total_seconds()
+                fresh = (identity == context and source['status'] == 'available' and not source['stale']
+                         and not state['relationship']['outdated'] and -30 <= age < 900)
+            except (AttributeError, KeyError, TypeError, ValueError):
+                pass
+        phase = state['relationship'].get('phase') if fresh else None
+        slots.display = phase == 'waiting_for_correction'
+        finish.display = phase == 'in_progress'
+        slots.styles.column_span = finish.styles.column_span = 2
+        self.query_one('#project-evaluation-actions').display = slots.display or finish.display
+
     def _clear_project_registration(self):
         timer=getattr(self,'_registration_expiry',None)
         if timer:
             timer.stop()
         self._registration_state=None
         self._registration_view=None
+        self._render_project_evaluation_actions()
         for selector,text in (('#registration-relationship','Registration status unavailable'),
                               ('#registration-feedback','')):
             self.query_one(selector,Static).update(text)
@@ -85,6 +107,7 @@ class ProjectRegistrationMixin:
         if current and (state['account_id'],state['context']['cursus_id'],state['context']['campus_id'],state['project_id'])!=current:
             return
         self._registration_state=state
+        self._render_project_evaluation_actions(state)
         now=datetime.now(timezone.utc)
         view=registration_view(state,now=now,language=self.language)
         if self._can_manage_project_team(state):
