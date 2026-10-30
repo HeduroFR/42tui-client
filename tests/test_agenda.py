@@ -5,6 +5,7 @@ from textual.app import App
 from textual.widgets import ListView, DataTable
 from ft_tui.features.agenda.models import snapshot
 from ft_tui.features.agenda.views import AgendaWorkspace
+from ft_tui.features.agenda.views.calendar import AgendaCalendar
 
 class Provider:
     def __init__(self): self.calls = []; self.fail = False
@@ -25,14 +26,14 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(100, 40)) as pilot:
             await pilot.pause()
             ws = app.query_one(AgendaWorkspace)
-            self.assertEqual(len(ws.shown), 3)
-            self.assertEqual(len(app.query_one(ListView).children), 3)
-            self.assertTrue(app.query_one(DataTable).display)
+            self.assertEqual(len(ws.shown), 4)
+            self.assertEqual(len(app.query_one(ListView).children), 4)
+            self.assertTrue(app.query_one(AgendaCalendar).display)
             ws.select_row(ws.shown[0])
             self.assertEqual(ws.selected['description'], 'Details')
             app.account_id = None
             ws.check_context()
-            self.assertEqual(app.query_one(DataTable).row_count,0)
+            self.assertEqual(app.query_one(AgendaCalendar).blocks,[])
             await pilot.pause()
             self.assertEqual(ws.rows, [])
             self.assertIsNone(ws.selected)
@@ -56,8 +57,8 @@ class AgendaSmallTerminalTests(unittest.IsolatedAsyncioTestCase):
             await ws.reload()
             self.assertEqual(len(app.provider.calls), count)
             await pilot.pause()
-            self.assertTrue(app.query_one(DataTable).display)
-            self.assertEqual(len(app.query_one(DataTable).columns), 8)
+            self.assertTrue(app.query_one(AgendaCalendar).display)
+            self.assertEqual(len(app.query_one(AgendaCalendar).columns), 1)
 
 class ProjectHandoffTests(unittest.IsolatedAsyncioTestCase):
     async def test_finish_only_opens_mine_page(self):
@@ -182,22 +183,127 @@ class WeekDetailPanelTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(120,40)) as pilot:
             await pilot.pause()
             workspace=app.query_one(AgendaWorkspace)
-            table=workspace.query_one(DataTable)
-            self.assertEqual(table.row_count,48)
-            self.assertEqual(len(table.columns),8)
-            self.assertFalse(workspace.query_one('#agenda-view').display)
-            table.focus();table.move_cursor(row=24,column=1)
+            calendar=workspace.query_one(AgendaCalendar)
+            self.assertEqual(len(calendar.blocks),4)
+            self.assertFalse(workspace.query('#agenda-view'))
+            calendar.focus();calendar.day=0;calendar.row=24
             await pilot.press('enter');await pilot.pause()
             self.assertIsNotNone(workspace.selected)
-            self.assertIn('Overlapping items',str(workspace.query_one('#agenda-detail',Static).render()))
+            self.assertTrue(workspace.query_one(ListView).display)
             workspace.query_one(Select).value='event';await pilot.pause()
             self.assertEqual(len(workspace.shown),1)
-            table.focus();table.move_cursor(row=24,column=1)
+            calendar.focus();calendar.day=0;calendar.row=24
             await pilot.press('enter');await pilot.pause()
             self.assertEqual(workspace.selected['kind'],'event')
-            table.move_cursor(row=0,column=1)
+            self.assertFalse(workspace.query_one(ListView).display)
+            calendar.row=0
             await pilot.press('enter');await pilot.pause()
             self.assertIsNone(workspace.selected)
             await pilot.resize_terminal(40,25);await pilot.pause()
             self.assertTrue(workspace.has_class('agenda-narrow'))
-            self.assertGreaterEqual(workspace.query_one('.agenda-sidebar').region.y,table.region.bottom)
+            self.assertGreaterEqual(workspace.query_one('.agenda-sidebar').region.y,workspace.query_one('.agenda-calendar-panel').region.bottom)
+
+class AgendaFilterTests(unittest.IsolatedAsyncioTestCase):
+    async def test_filter_label_and_dropdown_have_room_in_each_language(self):
+        from ft_tui.ui.components import Select
+        from textual.widgets._select import SelectCurrent, SelectOverlay
+        for size,language in [((40,30),'en'),((120,40),'en'),((120,40),'fr'),((120,40),'es')]:
+            app=Harness();app.language=language
+            async with app.run_test(size=size) as pilot:
+                await pilot.pause()
+                selector=app.query_one(Select)
+                label=selector.query_one(SelectCurrent).query_one('#label')
+                self.assertGreaterEqual(label.region.width,18)
+                selector.focus()
+                await pilot.press('enter');await pilot.pause()
+                self.assertTrue(selector.expanded)
+                self.assertGreaterEqual(selector.query_one(SelectOverlay).region.width,24)
+                await pilot.press('down','enter');await pilot.pause()
+                self.assertFalse(selector.expanded)
+                self.assertEqual(selector.value,'event')
+                self.assertTrue(all(row['kind']=='event' for row in app.query_one(AgendaWorkspace).shown))
+
+class AgendaBlockTests(unittest.TestCase):
+    def test_only_overlapping_events_share_width(self):
+        from ft_tui.features.agenda.models import timeline_blocks
+        a={'id':1,'kind':'event'};b={'id':2,'kind':'event'};c={'id':3,'kind':'event'}
+        blocks=timeline_blocks({(20,0):[a],(21,0):[a,b],(22,0):[b],(25,0):[c]})
+        self.assertEqual([(b['lane'],b['lanes']) for b in blocks],[(0,2),(1,2),(0,1)])
+
+class AgendaCalendarInteractionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_keyboard_leaves_event_and_unicode_blocks_fit_columns(self):
+        app=Harness()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            workspace=app.query_one(AgendaWorkspace)
+            calendar=workspace.query_one(AgendaCalendar)
+            item=dict(workspace.shown[0],title='测试 🎃 Valgrind',end_at=None)
+            workspace.rows=[item]
+            await workspace.render_rows();await pilot.pause()
+            for y in range(calendar.size.height):
+                self.assertLessEqual(calendar.render_line(y).cell_length,calendar.size.width)
+            calendar.focus();calendar.day=0;calendar.row=24
+            await pilot.press('enter','down');await pilot.pause()
+            self.assertEqual(calendar.row,25)
+            self.assertIsNone(workspace.selected)
+            await pilot.press('up','enter');await pilot.pause()
+            self.assertEqual(workspace.selected['title'],'测试 🎃 Valgrind')
+            column=next(col for col in calendar.columns if col[0]==0)
+            y=24-int(calendar.scroll_offset.y)
+            await pilot.click('#agenda-calendar',offset=(column[1]+1,y))
+            self.assertEqual(workspace.selected['id'],item['id'])
+
+class AgendaExamDetailsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_exam_details_metadata_markdown_and_intra_handoff(self):
+        from unittest.mock import patch
+        from ft_tui.ui.components import Static, Select, Button
+        from textual.widgets import Markdown
+        class Exams(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                self.calls.append(kind)
+                start=begin+timedelta(days=3,hours=13,minutes=15)
+                rows=[] if kind!='exam' else [dict(id=5,kind='exam',begin_at=start.isoformat(),end_at=(start+timedelta(hours=3)).isoformat(),title='EXAM RANK X',description='# Exam session\n\n- Bring your ID\n- Check registration',counterpart='',url='https://profile-v3.intra.42.fr/',location='C1',subscribers=0,capacity=45,projects=['Exam Rank 02','Exam Rank 03'])]
+                return dict(account_id='42',items=rows)
+        app=Harness();app.provider=Exams()
+        async with app.run_test(size=(150,44)) as pilot:
+            await pilot.pause();await pilot.pause()
+            workspace=app.query_one(AgendaWorkspace)
+            self.assertIn('exam',app.provider.calls)
+            self.assertEqual(workspace.selected['kind'],'exam')
+            text=str(workspace.query_one('#agenda-detail',Static).render())
+            for expected in ('3h','C1','0/45','Exam Rank 02','Exam Rank 03'):
+                self.assertIn(expected,text)
+            self.assertIn('EXAM RANK X',str(workspace.query_one('#agenda-item-title',Static).render()))
+            markdown=workspace.query_one('#agenda-description',Markdown)
+            self.assertTrue(markdown.query('MarkdownH1'))
+            self.assertTrue(markdown.query('MarkdownBulletList'))
+            self.assertIn('both the exam session',str(workspace.query_one('#agenda-exam-note',Static).render()))
+            button=workspace.query_one('#agenda-intra',Button)
+            self.assertEqual(str(button.label),'Manage on Intra')
+            with patch('ft_tui.features.agenda.views.webbrowser.open',return_value=True) as browser:
+                await pilot.click('#agenda-intra');await pilot.pause()
+                browser.assert_called_once_with('https://profile-v3.intra.42.fr/')
+            workspace.query_one(Select).value='event';await pilot.pause()
+            self.assertEqual(workspace.shown,[])
+            self.assertFalse(markdown.query('MarkdownH1'))
+
+    async def test_exam_unavailability_does_not_hide_other_sources(self):
+        class OlderBackend(Provider):
+            def get_agenda(self,begin,end,kind,target,campus_id=None):
+                if kind=='exam':raise RuntimeError('source not deployed')
+                return super().get_agenda(begin,end,kind,target,campus_id)
+        app=Harness();app.provider=OlderBackend()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause()
+            workspace=app.query_one(AgendaWorkspace)
+            self.assertEqual(len(workspace.shown),3)
+            from ft_tui.ui.components import Static
+            self.assertIn('Exam',str(workspace.query_one('.agenda-status',Static).render()))
+
+    def test_optional_metadata_rejects_malformed_values(self):
+        from datetime import datetime,timezone
+        begin=datetime.now(timezone.utc)
+        value=Provider().get_agenda(begin,begin+timedelta(days=7),'event',1)
+        for field,invalid in [('location',3),('subscribers',True),('capacity',-1),('projects',[123])]:
+            row=dict(value['items'][0]);row[field]=invalid
+            with self.assertRaises(ValueError):snapshot({'account_id':'42','items':[row]},'42','event')

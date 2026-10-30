@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.
+- Add campus exams, with local schedule, duration, location, occupancy and associated exam projects. Event and exam subscription management opens Intra; exam data and event metadata require the updated backend.
+
 - Remove the separate My evaluations tab. Agenda now opens as a weekly half-hour timeline with role filters, an event list and a detail panel; narrow terminals show details below the timeline.
 
 - Add bottom spacing below the Attempts & evaluations actions and highlight Set as finished with the primary button color.

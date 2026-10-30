@@ -1368,5 +1368,14 @@
   "This week": "Cette semaine",
   "Time": "Heure",
   "Overlapping items · Select an item in the list.": "Éléments simultanés · Sélectionnez un élément dans la liste.",
-  "No items at this time.": "Aucun élément à cette heure."
+  "No items at this time.": "Aucun élément à cette heure.",
+  "Event details": "Détails de l’événement",
+  "Select an event to see its details.": "Sélectionnez un événement pour voir ses détails.",
+  "No events this week.": "Aucun événement cette semaine.",
+  "← → Day · ↑ ↓ Time · Enter Details": "← → Jour · ↑ ↓ Heure · Entrée Détails",
+  "Exam": "Examen",
+  "Duration": "Durée",
+  "Places": "Places",
+  "Manage on Intra": "Gérer sur Intra",
+  "Register for both the exam session and its project on Intra before attending.": "Inscrivez-vous à la session d’examen et à son projet sur Intra avant de vous présenter."
 }
