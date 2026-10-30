@@ -413,7 +413,7 @@ class ProjectTesters(Vertical):
             log_button.display, log_button.disabled = True, False
             log_button.log_path = log_path
             with log_path.open("wb") as log:
-                terminal = workspace.session = WorkspaceSession(log, workspace.output.append, language=language)
+                terminal = workspace.session = WorkspaceSession(log, lambda data: None, language=language)
 
                 def operate():
                     result = None
@@ -478,15 +478,13 @@ class ProjectTesters(Vertical):
                 text += "\n" + translate("Log: {path}", language).format(path=log_path)
                 try:
                     with log_path.open("ab") as log:
-                        log.write((text + "\n").encode())
+                        log.write((text + "\n").replace("\r\n", "\n").replace("\n", "\r\n").encode())
                 except OSError as error:
                     text += "\n" + str(error)
             if self._workspace is not None:
                 self._workspace.result = message
                 self._workspace.result_details = result_details
                 self._workspace.finished = time.monotonic()
-                display_text = (text + "\n").replace("\r\n", "\n").replace("\n", "\r\n")
-                self._workspace.output.append(display_text.encode())
             self._messages[key] = escape(text)
             card_message = translate(message, language)
             if error_detail:

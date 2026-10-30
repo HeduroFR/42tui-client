@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+- Preserve tester output and terminal formatting when reopening the workspace during a run.
+
 - Add project acknowledgements and shorten the README tester section, with a
   separate guide for setup and results.
+
+- Clarify in the README that 42TUI primarily targets 42 Angoulême and some
+  features may be buggy or unusable on other campuses.
 
 - Add Tripouille get_next_line mandatory testing in a Linux container, with
   verified test counts from the maintained fork. Docker builds the image on

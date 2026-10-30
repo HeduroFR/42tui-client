@@ -16,6 +16,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Replay tester output from the transcript in bounded chunks so
+  closing and reopening the workspace preserves output and terminal sequences.
+  The focused reopen regression and all 25 tester UI tests passed.
+  Patch fix within the planned 0.6.0 minor; PR #47, release gates remain open.
+
 - 2026-10-30: Remove the client `docs/superpowers` planning directory, ignore
   future files at that path, and replace its obsolete TODO link with the tester
   runtime assessment. Internal documentation cleanup; no release required.

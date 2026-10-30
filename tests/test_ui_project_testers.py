@@ -173,9 +173,30 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             workspace = TesterWorkspace("Synthetic", root / "log")
             await app.push_screen(workspace)
             await workspace.query_one("#tester-cancel", Button).remove()
-            workspace.output.append(b"preserve pending output")
+            workspace.log_path.write_bytes(b"preserve pending output")
             workspace.refresh_output()
-            self.assertEqual(list(workspace.output), [b"preserve pending output"])
+            self.assertEqual(workspace.output_offset, 0)
+
+    async def test_workspace_replays_output_written_while_closed(self):
+        from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
+        async with self.workspace() as (app, _widget, _service, _projects, pilot, root):
+            log = root / "log"
+            log.write_bytes(b"before\r\n")
+            workspace = TesterWorkspace("Synthetic", log)
+            app.install_screen(workspace, "replay-test")
+            await app.push_screen("replay-test")
+            workspace.refresh_output()
+            await pilot.press("escape")
+            with log.open("ab") as transcript:
+                transcript.write(b"\x1b[31m" + b"x" * 70000 + b"\x1b[0m\r\nafter\r\n")
+            await app.push_screen("replay-test")
+            while workspace.output_offset < log.stat().st_size:
+                workspace.refresh_output()
+            rendered = workspace.console.render().plain
+            self.assertIn("before", rendered)
+            self.assertEqual(rendered.count("x"), 70000)
+            self.assertIn("after", rendered)
+            self.assertEqual(workspace.console.screen.cursor.attrs.fg, "default")
 
     async def test_testers_below_registration_and_shortcut_reveals_actions_on_small_screens(self):
         async with self.workspace() as (app, widget, _service, projects, pilot, root):

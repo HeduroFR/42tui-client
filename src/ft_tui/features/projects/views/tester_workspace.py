@@ -1,7 +1,6 @@
 """Persistent tester output and controls while the rest of the app stays usable."""
 import asyncio
 import codecs
-from collections import deque
 import time
 
 from ft_tui.features.projects.adapters.tester_console import TesterConsole
@@ -28,7 +27,7 @@ class TesterWorkspace(AppModal):
     def __init__(self, title, log_path, *, rerun=None, interactive_input=True):
         super().__init__()
         self.title_text, self.log_path = title, log_path
-        self.output = deque(maxlen=128)
+        self.output_offset = 0
         self.decoder = codecs.getincrementaldecoder('utf-8')(errors='replace')
         self.rerun = rerun
         self.interactive_input = interactive_input
@@ -63,14 +62,15 @@ class TesterWorkspace(AppModal):
                 '#tester-output', '#tester-result', '#tester-rerun', '#tester-cancel', '#tester-input')):
             return
         log = self.query_one('#tester-output', RichLog)
-        chunks = []
         try:
-            while True:
-                chunks.append(self.output.popleft())
-        except IndexError:
-            pass
-        if chunks:
-            self.console.feed(self.decoder.decode(b''.join(chunks)))
+            with self.log_path.open('rb') as transcript:
+                transcript.seek(self.output_offset)
+                chunk = transcript.read(65536)
+                self.output_offset = transcript.tell()
+        except FileNotFoundError:
+            chunk = b''
+        if chunk:
+            self.console.feed(self.decoder.decode(chunk))
             position = log.scroll_offset
             log.clear()
             log.write(self.console.render(), scroll_end=self.follow)
