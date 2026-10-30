@@ -233,8 +233,8 @@ class FriendsWorkspace(Vertical):
                     yield Static('', id='friend-comparison', markup=False, localize=False)
                 with Horizontal(id='friend-project-heading'):
                     yield Static('Project attempts', id='friend-project-caption')
-                    yield Button('View project', icon='↗', id='friend-project-access', disabled=True, variant='primary')
                 yield DataTable(id='friend-projects', cursor_type='row', zebra_stripes=True)
+                yield Button('View project', icon='↗', id='friend-project-access', disabled=True, variant='primary')
 
     def t(self, source, **values):
         return translate(source, self.app.language).format(**values) if values else translate(source, self.app.language)

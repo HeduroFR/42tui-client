@@ -12,6 +12,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Move the friend project preview action below the project list.
+  Patch impact; all 10 friends UI tests passed. Release CI and candidate
+  validation remain pending.
+
 - 2026-10-30: Add the agreed 0.6.2 tester results and interface fixes to the
   roadmap. Documentation only; no release required. Reviewed the roadmap diff;
   implementation and release validation remain pending.

@@ -36,7 +36,7 @@ FRIENDS_CSS = r"""
     #friend-details-actions .icon-button { padding: 0; }
     #friend-project-heading { height: 3; margin-top: 1; }
     #friend-project-caption { width: 1fr; height: 3; content-align: left middle; }
-    #friend-project-access { width: auto; min-width: 0; margin-left: 1; padding: 0 1; }
+    #friend-project-access { width: auto; min-width: 0; margin-top: 1; padding: 0 1; }
     #friend-profile-scroll { height: auto; max-height: 12; margin: 1 0; }
     #friend-profile-scroll.expanded { height: 1fr; max-height: 100%; }
     #friend-profile, #friend-comparison { height: auto; }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Place the friend project preview action below the project list.
+
 - Show structured push_swap test results from the maintained tester fork; missing
   or timed-out memory checks remain unverified.
 
