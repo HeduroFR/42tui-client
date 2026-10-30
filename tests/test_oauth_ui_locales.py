@@ -47,8 +47,6 @@ ACCOUNT_COPY = (
     "42 API",
     "Your projects sync from the centralized 42 API. The local catalog stays available offline.",
     "Your saved projects and activity stay on this device. Connect your 42 account to sync your real projects.",
-    "CONNECTED ACCOUNT · LOCAL PROJECTS",
-    "LOCAL WORKSPACE · OFFLINE MODE",
     "Default cursus",
     "Choose the cursus used to filter your project list.",
     "Loading cursus list…",

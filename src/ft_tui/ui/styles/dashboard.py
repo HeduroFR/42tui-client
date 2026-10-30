@@ -3,7 +3,6 @@
 DASHBOARD_CSS = r"""#dashboard-page { height: 1fr; overflow-y: auto; padding: 0 1; }
     #dashboard-heading { height: 2; }
     #dashboard-title { width: 1fr; color: $accent; text-style: bold; }
-    #dashboard-subtitle { width: auto; color: $text-muted; content-align: right middle; }
     #dashboard-cards { height: 13; min-height: 13; }
     #dashboard-action-cards { height: 14; min-height: 14; margin-top: 1; }
     #dashboard-action-cards .dashboard-card { padding: 1 2; }

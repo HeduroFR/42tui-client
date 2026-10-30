@@ -372,7 +372,7 @@ editor time tracking.
   client release.
 - [ ] Show project names for each progress-bar status on hover, including Done,
   Active, Available and Locked; provide keyboard access to the same information.
-- [ ] Remove the dashboard's top-right connected-account/local-projects label;
+- [x] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
 - [ ] Review project details and the View project action before deciding what
   interface changes are needed beyond the 0.5.0 Git work.

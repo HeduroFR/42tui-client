@@ -166,13 +166,6 @@ class AccountControllerMixin:
         for selector in ("#settings-connect-account", "#onboarding-connect-account"):
             for button in [widget for screen in self.screen_stack for widget in screen.query(selector)]:
                 button.set_source_label(connect_label)
-        dashboard_state = (
-            "CONNECTED ACCOUNT · LOCAL PROJECTS"
-            if self.account_connected
-            else "LOCAL WORKSPACE · OFFLINE MODE"
-        )
-        for widget in self.query("#dashboard-subtitle"):
-            widget.update(translate(dashboard_state, self.language))
         provider_title = (
             "Connected 42 account"
             if self.account_connected

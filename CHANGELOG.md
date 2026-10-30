@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Remove the account and local-projects label from the dashboard heading.
+- Place the friend project preview action below the project list.
+- Show project facts once in the friend project preview, omitting the redundant member count for solo projects.
+
 ## 0.6.2
 
 ### ✨ New features

@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-10-30: Combine dashboard label cleanup and friend project preview
+  layout and details changes. Patch impact; 23 focused UI and locale checks
+  passed on the combined branch. Release CI and candidate validation remain pending.
+
 - 2026-10-30: Remove the danger-button item from the 0.7.0 roadmap and clarify
   agreed priorities, dashboard details and the observed log-time response format.
   Documentation only; no release required. Roadmap diff checked; endpoint
