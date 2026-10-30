@@ -16,6 +16,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.5.2
 
+- 2026-10-30: Include the planned 0.6.1 encrypted remembered-session roadmap
+  from `docs/encrypted-session-roadmap` in PR #47. This is planning only; no
+  credentials, authentication behavior, backend contract or release version
+  changes. Checked roadmap placement and whitespace; implementation, security
+  review and campus-platform validation remain pending. No release required.
+
 - 2026-10-30: Guard the cluster workstation close callback when its grid was
   removed during teardown, fixing the `NoMatches` failure in PR #47 CI.
   Patch fix within planned 0.6.0; the targeted grid-removal and account-change
@@ -30,7 +36,7 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   macOS/arm64, original project preservation, workflow YAML parsing, and wheel/
   sdist checks from a clean source snapshot passed. CI now includes Germinette
   smoke runs on amd64 and arm64; those hosted jobs have not yet run. Pin Python fork commit
-  2b7657a52dce3882dc23bc6a7d401d2b1a04c97c, whose legacy reports record failures
+  8e2458a018c5a789219b2e33f58bcb788a56f672, whose legacy reports record failures
   but explicitly mark outcome accounting incomplete; upstream legacy checkers do
   not reliably record all outcomes. Real student projects, hosted amd64/arm64 CI and school Linux
   validation remain open. Untracked duplicate files in this checkout appeared in

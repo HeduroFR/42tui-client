@@ -284,6 +284,55 @@ independent. Complete this work as soon as possible, before or alongside 0.6.0.
 Standalone binaries, a broader README redesign and the complete keyboard/keymap
 redesign are separate future work; they do not expand this release's scope.
 
+## 0.6.1 — Encrypted remembered sessions without the OS keyring
+
+Status: **planned; implementation and security/platform validation pending**.
+Target campus workstations where OS-keyring unlocking or password verification
+blocks account connection. This target does not bump the package version or
+authorize publication; confirm the release number against the final scope.
+
+- [ ] Offer **Remember me with a passphrase** as an explicit alternative to OS
+  keyring storage. Keep a session-only option that requires browser pairing again
+  after restart, and preserve existing keyring users. Never silently downgrade
+  credentials to plaintext storage.
+- [ ] Ask users to choose and confirm a strong, unique 42TUI passphrase, separate
+  from their 42 account password. Store the access/refresh tokens, expiry and
+  installation private key in an encrypted file in the existing app-data area.
+  Never save or transmit the passphrase or save the derived encryption key.
+- [ ] Reuse the existing cryptography dependency: derive an encryption key using
+  scrypt with a random salt and encrypt with AES-256-GCM and a fresh nonce for
+  every write. Version and authenticate the file metadata; bound file size and
+  validate derivation parameters before performing expensive work. Calibrate the
+  derivation cost on supported campus hardware before finalizing parameters.
+- [ ] Unlock once per app launch with masked input, keeping the derived key only
+  in process memory for automatic token-refresh saves. Cancellation keeps local
+  features available and the saved session untouched. Do not repeat browser
+  authorization unless the backend session has expired or been revoked.
+- [ ] Implement the existing credential-store interface; preserve shared refresh
+  locking and reload the latest credentials before rotating tokens across app
+  instances. Use restricted directory/file access, reject unsafe paths and write
+  atomically. Surface persistence failures without claiming the session was saved;
+  interrupted writes, wrong passphrases and corrupt files must not overwrite it.
+- [ ] Make keyring-to-file migration explicit. Verify the encrypted file before
+  removing the old entry; keep existing credentials usable on failure and require
+  unlock or fresh pairing when the source keyring is inaccessible.
+- [ ] Explain forgotten-passphrase recovery: explicitly discard the saved session
+  and pair again without deleting projects or other local data. Keep backend
+  revocation and local deletion distinct, including offline/failure cases; a local
+  reset alone must not be reported as revocation of the old backend session.
+- [ ] Document that copied vault files allow offline passphrase guessing, shared
+  campus home directories may expose the file on other desks, and encryption
+  protects saved credentials rather than an unlocked or compromised workstation.
+  Do not promise secure memory erasure or encryption of project data.
+- [ ] Validate round trips, wrong passphrases, tampering/truncation, malformed or
+  oversized metadata, permissions/unsafe paths, failed/interrupted writes,
+  multi-instance refresh, migration failure, disconnect/reset and session-only
+  behavior. Cover startup/connection keyboard access, cancellation, small terminals
+  and French/Spanish translations; verify campus Linux and macOS flows.
+- [ ] Preserve current OAuth/API contracts; no backend change is expected for
+  local encrypted storage. Complete focused account/storage/UI regressions,
+  security review and exact-candidate release gates before claiming support.
+
 ## 0.7.0 — Dashboard and interface cleanup
 
 Status: **scope agreed; implementation and release validation pending**.
