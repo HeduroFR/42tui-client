@@ -134,6 +134,7 @@ class WorkspaceSession:
         self.log, self.output, self.language = log, output, language
         self.cancelled = threading.Event()
         self.cancel_requested = False
+        self.phase = "Preparing the tester…"
         self.input = queue.SimpleQueue()
 
     def cancel(self):
@@ -148,6 +149,10 @@ class WorkspaceSession:
 
     def write(self, message):
         self.check_cancelled()
+        if message in {"Preparing a disposable project copy…", "Preparing the native tester…",
+                       "Building the tester image…", "Running the tester…",
+                       "Checking container execution and local folder access…"}:
+            self.phase = message
         # App messages bypass the PTY, so supply its usual LF-to-CRLF conversion.
         text = translate(message, self.language).replace("\r\n", "\n")
         self._output((text.replace("\n", "\r\n") + "\r\n").encode())

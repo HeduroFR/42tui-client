@@ -1281,5 +1281,6 @@
   "Preparing the native tester…": "Préparation du testeur natif…",
   "Git is required for native tester setup.": "Git est nécessaire pour préparer le testeur natif.",
   "Native tester copies cannot contain links outside the copy.": "Les copies des testeurs natifs ne peuvent pas contenir de liens vers l’extérieur de la copie.",
-  "Native tester context must stay inside the repository.": "Le contexte du testeur natif doit rester dans le dépôt."
+  "Native tester context must stay inside the repository.": "Le contexte du testeur natif doit rester dans le dépôt.",
+  "Preparing the tester…": "Préparation du testeur…"
 }

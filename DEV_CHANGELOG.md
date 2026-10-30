@@ -4,7 +4,7 @@ Latest release: **0.5.2** ([`v0.5.2`](https://github.com/HeduroFR/42tui-client/r
 Package version: **0.5.2**.
 Suggested next release: **0.6.0** (minor), for the implemented tester workspace,
 project copy protection and structured result reporting; not publication-ready.
-The tester workspace rework remains planned for 0.6.0; unfinished Git design
+Remaining tester runtime validation targets 0.6.0; unfinished Git design
 work remains in [TODO.md](TODO.md). Plans alone do not justify publication.
 The implemented tester workspace and copy protection warrant preparing 0.6.0
 (minor) beyond the published 0.5.2 artifact.
@@ -15,6 +15,26 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.5.2
+
+- 2026-10-30: Add preparation/build/run stages and a source-hash-guarded
+  Francinette summary reader, counting suites and norm/function checks. Disable
+  upstream auto-update for the verified source; unknown source/missing summaries
+  remain unreadable. Live Docker/macOS arm64 fixture reported exit 0 with 6 checks,
+  3 passed, 2 failed and 1 skipped, preserving the original project. Add summary
+  parser regressions, stage translations and realistic UI session mocks. Add an
+  opt-in full native C-fixture/default-suite smoke check and Ubuntu/Intel/Apple
+  Silicon workflow, plus a sourced Colima/runtime assessment. Upstream push_swap
+  default exits 0 despite printed failures; retain unverified status and do not
+  claim memory coverage when leaks times out. Checks: installation-updates 83,
+  architecture 9 and locale 2 passed; clean tracked-file wheel/sdist and installer
+  hashes/syntax passed. Tester scope 96 passed (110.214 seconds); scope ownership covers all
+  955 discovered tests without overlap. Full default native C build/suite smoke passed its failure/unverified-result
+  assertions on macOS arm64, preserving the source. Upstream memory checks timed
+  out and cannot establish memory safety. Backend protections are being prepared separately;
+  production storage encryption, deployment evidence, hosted platform/Colima
+  measurements and integrated release gates remain open. Minor impact: prepare
+  0.6.0, not publication-ready; version unchanged. Branch
+  `feat/tester-workspace-0.6.0`; PR #47. No publication/deployment.
 
 - 2026-10-30: Add definition-driven native testers, preparation commands and
   source/project/Python placeholders. Bundle ft_ps_tester at commit 49cf9c7 for

@@ -77,7 +77,8 @@ class TesterWorkspace(AppModal):
                 log.scroll_to(position.x, position.y, animate=False, immediate=True)
         elapsed = (self.finished or time.monotonic()) - self.started
         self.query_one('#tester-result', Static).update(
-            translate(self.result, self.app.language) + f' · {elapsed:.1f}s'
+            translate(self.session.phase if self.finished is None and self.session else self.result, self.app.language)
+            + f' · {elapsed:.1f}s'
             + ('\n' + self.result_details if self.result_details else ''))
         self.query_one('#tester-rerun', Button).disabled = self.finished is None or self.rerun is None
         self.query_one('#tester-cancel', Button).disabled = self.finished is not None or bool(

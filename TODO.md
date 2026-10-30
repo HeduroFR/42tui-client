@@ -166,12 +166,12 @@ version or authorize publication.
 | Modular testers with lighter setup and an in-TUI workspace | Workspace/results implemented; native push_swap added, platform validation pending | Rework the existing tester feature |
 | Stable update check on every startup, then every 12 hours while running | Published in 0.4.2 through PR #19 | Preserve and regression-test |
 | Tester instructions and French/Spanish translations | Merged with the tester feature | Include |
-| Backend storage, backup and connection encryption | Planned; implementation and deployment verification pending | Priority security work alongside 0.6.0 |
+| Backend storage, backup and connection encryption | Implementation and disposable validation prepared; production verification pending | Priority security work alongside 0.6.0 |
 | GitHub/Discord Settings buttons and persistent one-time reminders | Planned for 0.7.0 | Deferred beyond 0.6.0 |
 
 ### Agreed tester rework
 
-- [ ] Keep one Run action and extend the existing TOML catalog for multiple
+- [x] Keep one Run action and extend the existing TOML catalog for multiple
   project/module-specific testers, including Python modules and push_swap.
   Define pinned sources, supported platforms, prerequisites, preparation/run
   commands and execution method. Add result readers only where structured
@@ -186,12 +186,12 @@ version or authorize publication.
   and macOS, including Intel/Apple Silicon support and memory-check tooling.
   Do not assume native execution preserves all checks. Preserve unprivileged
   setup, explicit prerequisite approval, retries and existing user configuration.
-- [ ] Add a dedicated Testers workspace showing preparation/build/run stages,
+- [x] Add a dedicated Testers workspace showing preparation/build/run stages,
   live scrollable output, cancellation, follow-output control and final results.
   Keep execution inside the TUI, including internal terminal emulation when
   required. Allow leaving and returning while a run continues; preserve the
   captured project and prevent concurrent conflicting operations.
-- [ ] Show duration, available test counts/failures, Run again and Save log.
+- [x] Show duration, available test counts/failures, Run again and saved logs.
   Preserve full logs and distinguish test failures, setup failures, cancellation
   and unreadable results. Do not equate a successful process exit with all tests
   passing; show percentages only when progress is measurable.
@@ -202,8 +202,11 @@ version or authorize publication.
 Current implementation: pinned Francinette (Docker) and ft_ps_tester for push_swap
 (native Python environment with definition-driven build/run commands). The native
 adapter has synthetic PTY/result/cancellation tests. Full Linux/macOS platform
-validation, a Francinette summary reader, dedicated stage indicators and the
-headless-container/runtime evaluation remain pending.
+validation and headless-runtime lifecycle/resource measurements remain pending.
+The verified Francinette summary reader and dedicated stage indicators are now
+implemented. See [runtime assessment and repeatable platform checks](docs/tester-runtimes.md).
+Local Francinette confirmed failures despite exit zero; native push_swap default
+also exits zero despite printed failures, so its results remain unverified.
 - [ ] Prove the complete flow with Francinette and one contrasting tester
   (push_swap or a Python module tester), including setup/retry, cancellation,
   output capture, result handling and French/Spanish interface coverage.
@@ -214,7 +217,7 @@ These checks do not validate the pending 0.6.0 rework.
 
 ### Priority backend data protection — target 0.6.0
 
-Status: **planned; no production encryption or recovery validation claimed**.
+Status: **backend implementation and disposable recovery checks prepared; production storage and deployment verification pending**.
 The backend owns implementation and operations; client/backend versions remain
 independent. Complete this work as soon as possible, before or alongside 0.6.0.
 

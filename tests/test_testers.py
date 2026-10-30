@@ -1,5 +1,7 @@
 """Catalog validation and Docker operations without an engine or administrator access."""
 
+import ast
+import re
 import csv
 import json
 import os
@@ -81,7 +83,7 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
         catalog = self.write(self.entry() + 'result_file = "reports/result.json"\n')
         self.assertFalse(catalog.error)
         self.assertEqual(catalog.testers[-1].result_file, "reports/result.json")
-        self.assertIsNone(self.tester.result_file)
+        self.assertEqual(self.tester.result_file, ".42tui-francinette-result.json")
         for value in ('"/outside.json"', '"../outside.json"', '"."', '""', 'false', '".git/result.json"'):
             with self.subTest(value=value):
                 catalog = self.write(self.entry() + f'result_file = {value}\n')
@@ -122,6 +124,20 @@ command = ["runner", "--argument with spaces", "$(touch nope)"]
 
 
 class FrancinetteLauncherTests(unittest.TestCase):
+    def test_summary_counts_suites_and_checks_without_trusting_exit_zero(self):
+        script = load_catalog(Path("absent")).testers[0].command[2]
+        function = next(node for node in ast.walk(ast.parse(script))
+                        if isinstance(node, ast.FunctionDef) and node.name == "_summary_report")
+        namespace = {"re": re}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), "summary", "exec"), namespace)
+        report = namespace["_summary_report"]
+        self.assertEqual(report("", [], [("suite", [])], [], False),
+                         dict(version=1, total=3, passed=2, failed=0, errors=0, skipped=1))
+        self.assertEqual(report("src/file.c: Error!", ["function"], [("suite", ["failure"])], ["function"], False)["failed"], 3)
+        self.assertEqual(report("", [], [("suite", [])], [], True)["skipped"], 2)
+        for errors in ([], None, [("suite", None)], [("suite", [1])]):
+            self.assertIsNone(report("", [], errors, [], False))
+
     def test_private_compilers_preserve_arguments_and_cleanup_on_success_or_failure(self):
         with TemporaryDirectory(prefix="francinette 'quoted' ") as directory:
             root = Path(directory)
@@ -180,7 +196,7 @@ class TesterDockerTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.service = TesterDocker(self.root, Host("linux", "amd64", "ubuntu", "noble"))
-        self.tester = load_catalog(self.root / "absent").testers[0]
+        self.tester = replace(load_catalog(self.root / "absent").testers[0], result_file=None)
         connection = patch.object(self.service, "connection", side_effect=nullcontext)
         connection.start()
         self.addCleanup(connection.stop)

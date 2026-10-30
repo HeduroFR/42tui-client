@@ -155,8 +155,10 @@ scrollback; narrow windows can scroll horizontally. Process completion alone doe
 not mean all tests passed. The workspace and saved log distinguish reported test
 failures, process failures, unreadable reports and unverified results, with the
 process exit code and available test counts. The bundled Francinette integration
-does not yet provide a structured summary: its results remain **unverified** and
-must be checked in the log. Full-screen terminal applications are not supported.
+reads the verified upstream summary. Counts represent tester suites plus
+norm/function checks, not individual C test cases.
+Unknown source versions or missing summaries remain **unreadable**; always
+check details in the log. Full-screen terminal applications are not supported.
 
 Custom definitions in `~/.config/42tui/testers.toml` (or
 `$XDG_CONFIG_HOME/42tui/testers.toml`) can opt into structured results by adding

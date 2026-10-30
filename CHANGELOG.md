@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Show the current tester preparation/build/run stage. Read Francinette's verified
+  summary so failed suites and norm checks remain failures even when it exits zero.
+  Counts describe suites and checks; detailed test cases remain in the log.
+
 - Run a pinned push_swap tester without Docker, using a private Python environment
   and a disposable project copy. Native execution requires confirmation; Git and
   project build tools must already be installed. Custom tester definitions can
@@ -10,8 +14,8 @@
 - Distinguish reported test failures from tester process failures, unreadable
   reports and unverified results. Show exit codes and available test counts in
   the workspace and saved log, with French/Spanish translations. Custom testers
-  can provide a fresh JSON summary through `result_file`; Francinette results
-  still require reading the log and are not inferred from a successful exit.
+  can provide a fresh JSON summary through `result_file`; results are never inferred
+  from a successful exit alone.
 - Avoid a workspace refresh error when replacing a finished tester run.
 
 - Recover new or empty project folders from the development remote when Vogsphere

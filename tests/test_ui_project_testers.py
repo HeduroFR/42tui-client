@@ -293,7 +293,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                 service.has_images.return_value = False
                 service.installed.return_value = False
             service.remove = Mock(side_effect=removed)
-            with patch("ft_tui.features.projects.views.testers.WorkspaceSession"):
+            with patch("ft_tui.features.projects.views.testers.WorkspaceSession") as terminal:
+                terminal.return_value.phase = "Preparing the tester…"
                 remove.press()
                 remove.press()
                 await pilot.pause(.4)
@@ -315,7 +316,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await self.select(widget, projects["libft"], pilot)
             self.assertTrue(widget.query_one(TesterAction).disabled)
             self.assertFalse(widget.query_one(TesterRemoveButton).disabled)
-            with patch("ft_tui.features.projects.views.testers.WorkspaceSession"):
+            with patch("ft_tui.features.projects.views.testers.WorkspaceSession") as terminal:
+                terminal.return_value.phase = "Preparing the tester…"
                 widget._start("remove", app.tester_catalog.testers[0])
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()
@@ -377,6 +379,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             widget.project = projects["ft_printf"]
             with patch("ft_tui.features.projects.views.testers.WorkspaceSession") as terminal:
+                terminal.return_value.phase = "Preparing the tester…"
                 app.screen.query_one("#confirm-docker-install", Button).press()
                 await pilot.pause(.4)
                 await widget.workers.wait_for_complete()
