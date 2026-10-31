@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Explain when 42 denies access to an Agenda source, while keeping the other sources visible.
+
 - Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.
 - Add campus exams, with local schedule, duration, location, occupancy and associated exam projects. Event and exam subscription management opens Intra; exam data and event metadata require the updated backend.
 

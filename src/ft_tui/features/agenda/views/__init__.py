@@ -226,6 +226,7 @@ class AgendaWorkspace(Vertical):
         kinds = [('available', self.project_id)] if self.project_id else [('evaluating', None), ('evaluated', None)]
         if not self.project_id and not self.evaluations_only:
             kinds.extend((('event', campus), ('exam', campus)))
+        failure_reasons = {}
         async def read(kind, target):
             try:
                 if not account_id or not callable(getattr(provider, 'get_agenda', None)) or kind in {'event','exam'} and not target:
@@ -240,6 +241,8 @@ class AgendaWorkspace(Vertical):
             except ReadInvalidated:
                 return kind, [], False
             except Exception as error:
+                if getattr(getattr(error, 'response', None), 'status_code', None) == 403:
+                    failure_reasons[kind] = self.t('Access denied by 42')
                 try:
                     if kind == 'available' and error.response.json().get('error') == 'project_not_ready':
                         return kind, [], 'project_not_ready'
@@ -259,7 +262,7 @@ class AgendaWorkspace(Vertical):
             if ok == 'project_not_ready':
                 self.project_not_ready = True
             elif not ok:
-                failures.append(self.t(LABELS[kind]))
+                failures.append(self.t(LABELS[kind]) + (' · ' + failure_reasons[kind] if kind in failure_reasons else ''))
             self.rows.extend(rows)
         self.rows.sort(key=lambda row: row['begin_at'])
         self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale') + ': ' + ', '.join(failures) if failures else self.t('Up to date'))

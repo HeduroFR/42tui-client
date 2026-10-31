@@ -307,3 +307,21 @@ class AgendaExamDetailsTests(unittest.IsolatedAsyncioTestCase):
         for field,invalid in [('location',3),('subscribers',True),('capacity',-1),('projects',[123])]:
             row=dict(value['items'][0]);row[field]=invalid
             with self.assertRaises(ValueError):snapshot({'account_id':'42','items':[row]},'42','event')
+
+class AgendaPermissionFailureTests(unittest.IsolatedAsyncioTestCase):
+    async def test_denied_exam_is_explained_and_other_sources_remain_visible(self):
+        import httpx
+        from ft_tui.ui.components import Static
+        class DeniedExams(Provider):
+            def get_agenda(self,begin,end,kind,target,campus_id=None):
+                if kind=='exam':
+                    response=httpx.Response(403,json={'error':'upstream_permission_denied'},request=httpx.Request('GET','https://example.test/v1/me/agenda'))
+                    raise httpx.HTTPStatusError('denied',request=response.request,response=response)
+                return super().get_agenda(begin,end,kind,target,campus_id)
+        app=Harness();app.provider=DeniedExams()
+        async with app.run_test(size=(120,40)) as pilot:
+            await pilot.pause();await pilot.pause()
+            workspace=app.query_one(AgendaWorkspace)
+            self.assertIn('Exam · Access denied by 42',str(workspace.query_one('.agenda-status',Static).render()))
+            self.assertEqual(len(workspace.shown),3)
+            self.assertFalse(any(row['kind']=='exam' for row in workspace.shown))
