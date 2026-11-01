@@ -84,6 +84,9 @@ class SlotsCalendar(ScrollView, can_focus=True):
         self._slot_revision = 0
         self._render_key = None
         self._lines = {}
+        self.skeleton = False
+        self.skeleton_bright = False
+        self.skeleton_timer = None
         self.virtual_size = Size(0, 96)
 
     def t(self, message):
@@ -119,7 +122,23 @@ class SlotsCalendar(ScrollView, can_focus=True):
 
     def on_mount(self):
         self.set_interval(30, self.refresh_time)
+        self.skeleton_timer = self.set_interval(.65, self.blink_skeleton, pause=True)
         self.call_after_refresh(self.show_time, 32)
+
+    def set_skeleton(self, visible):
+        if self.skeleton == visible:
+            return
+        self.skeleton = visible
+        self.skeleton_bright = False
+        if self.skeleton_timer:
+            self.skeleton_timer.resume() if visible else self.skeleton_timer.pause()
+        self._render_key = None
+        self.refresh()
+
+    def blink_skeleton(self):
+        self.skeleton_bright = not self.skeleton_bright
+        self._render_key = None
+        self.refresh()
 
     def on_resize(self):
         self.action_cancel()
@@ -351,7 +370,7 @@ class SlotsCalendar(ScrollView, can_focus=True):
                self.scrollable_content_region.width, base, accent, primary,
                getattr(self.app, 'language', 'en'), now.date(), now.hour, now.minute // 15,
                self.day, self.row, self.has_focus, self._keyboard_selection, self.preview, self.delete_preview,
-               self.pending, self.pending_label, palette.get('error', '#ff6666'))
+               self.pending, self.pending_label, palette.get('error', '#ff6666'), self.skeleton, self.skeleton_bright)
         if key != self._render_key:
             self._render_key = key
             self._lines.clear()
@@ -380,6 +399,9 @@ class SlotsCalendar(ScrollView, can_focus=True):
                 else:
                     text = '▎'
                 style = base + Style(bgcolor=primary, dim=past, bold=slot.booked)
+            elif self.skeleton and row - 32 - day * 4 in range(4):
+                text = '▎ ' + '━' * (3 if (row - 32 - day * 4) < 2 else 6)
+                style = base + Style(bgcolor=palette.get('surface-lighten-2' if self.skeleton_bright else 'surface-lighten-1', '#404050'), dim=True)
             elif not spans:
                 text = 'DST'
                 style = disabled
@@ -403,8 +425,8 @@ class SlotsCalendar(ScrollView, can_focus=True):
             content = text[:max(0, width - 2)]
             segments.append(Segment(' ' + content, style))
             fill = max(0, width - 2 - len(content))
-            segments.append(Segment(('─' if hour and not candidates and not overlay else ' ') * fill,
-                                    (style + Style(color=guide.color)) if hour and not candidates and not overlay else style))
+            segments.append(Segment(('─' if hour and not candidates and not overlay and not self.skeleton else ' ') * fill,
+                                    (style + Style(color=guide.color)) if hour and not candidates and not overlay and not self.skeleton else style))
             segments.append(Segment('│', guide))
         result = Strip(segments).adjust_cell_length(self.size.width, base)
         self._lines[line_key] = result

@@ -23,6 +23,41 @@ class Harness(App):
     def compose(self): yield AgendaWorkspace()
 
 class AgendaClockTests(unittest.IsolatedAsyncioTestCase):
+    async def test_skeleton_cards_fit_narrow_and_wide_calendars(self):
+        from datetime import date, timezone
+        class CalendarApp(App):
+            language = 'en'
+            def compose(self):
+                yield AgendaCalendar(date(2026, 10, 26), timezone.utc)
+        for width in (40, 120):
+            app = CalendarApp()
+            async with app.run_test(size=(width, 30)) as pilot:
+                cal = app.query_one(AgendaCalendar)
+                cal.set_skeleton(True)
+                cal.scroll_to(y=16, animate=False, force=True)
+                await pilot.pause()
+                lines = [cal.render_line(y) for y in range(cal.size.height)]
+                self.assertTrue(any('▎ ━' in line.text for line in lines))
+                self.assertTrue(all(line.cell_length <= cal.size.width for line in lines))
+                self.assertFalse(cal.blocks)
+                _, start, column_width = cal.columns[0]
+                row = next(y for y, line in enumerate(lines) if '▎ ━' in line.crop(start, start + column_width - 1).text)
+                line = lines[row]
+                left = next(iter(line.crop(start, start + 1))).style.bgcolor
+                right = next(iter(line.crop(start + column_width - 2, start + column_width - 1))).style.bgcolor
+                self.assertEqual(left, right)
+                if len(cal.columns) > 1:
+                    _, second, second_width = cal.columns[1]
+                    second_line = next(y for y, item in enumerate(lines) if '▎ ━' in item.crop(second, second + second_width - 1).text)
+                    self.assertEqual(second_line - row, 2)
+                self.assertTrue(cal.skeleton_timer._active.is_set())
+                old_phase = cal.skeleton_bright
+                await pilot.pause(.8)
+                self.assertNotEqual(cal.skeleton_bright, old_phase)
+                self.assertNotEqual(left, next(iter(cal.render_line(row).crop(start, start + 1))).style.bgcolor)
+                cal.set_skeleton(False)
+                self.assertFalse(cal.skeleton_timer._active.is_set())
+
     async def test_past_days_hours_and_current_time_are_marked(self):
         from datetime import date, datetime, timezone
         from unittest.mock import patch
@@ -52,10 +87,168 @@ class AgendaClockTests(unittest.IsolatedAsyncioTestCase):
                 future = next(segment for segment in cal.render_line(22) if '▎' in segment.text)
                 self.assertTrue(old.style.dim)
                 self.assertFalse(future.style.dim)
+                line = cal.render_line(18)
+                previous_day = next(segment for segment in line.crop(cal.columns[0][1], cal.columns[0][1] + 1))
+                future_day = next(segment for segment in line.crop(cal.columns[2][1], cal.columns[2][1] + 1))
+                self.assertNotEqual(previous_day.style.bgcolor, future_day.style.bgcolor)
+                now_line = cal.render_line(20)
+                before_today = next(segment for segment in cal.render_line(19).crop(cal.columns[1][1] + 12, cal.columns[1][1] + 13))
+                current = next(segment for segment in now_line.crop(cal.columns[1][1] + 12, cal.columns[1][1] + 13))
+                self.assertNotEqual(before_today.style.bgcolor, current.style.bgcolor)
                 self.assertIn('now', cal.render_line(20).text)
 
 
 class AgendaTests(unittest.IsolatedAsyncioTestCase):
+    async def test_skeleton_clears_for_an_empty_week(self):
+        class Empty(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                self.calls.append(kind)
+                return {'account_id': '42', 'items': []}
+        app = Harness()
+        app.provider = Empty()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(50):
+                await pilot.pause(.01)
+                if len(app.provider.calls) == 4 and not ws.agenda_loading:
+                    break
+            self.assertFalse(ws.query_one(AgendaCalendar).skeleton)
+            self.assertIn('No events this week.', str(ws.query_one('#agenda-detail').render()))
+
+    async def test_calendar_skeleton_yields_to_progressive_results(self):
+        release_event, release_others = threading.Event(), threading.Event()
+        class Delayed(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                (release_event if kind == 'event' else release_others).wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = Delayed()
+        try:
+            async with app.run_test(size=(120, 40)) as pilot:
+                ws = app.query_one(AgendaWorkspace)
+                cal = ws.query_one(AgendaCalendar)
+                for _ in range(40):
+                    await pilot.pause(.01)
+                    if ws.agenda_loading:
+                        break
+                self.assertTrue(ws.agenda_loading)
+                self.assertFalse(ws.loading)
+                self.assertTrue(cal.skeleton)
+                self.assertFalse(cal.blocks)
+                self.assertIn('Loading agenda', str(ws.query_one('#agenda-detail').render()))
+                from rich.color import Color
+                placeholder = Color.parse(app.theme_variables.get('surface-lighten-1', '#404050'))
+                self.assertTrue(any(segment.style and segment.style.bgcolor == placeholder
+                                    for y in range(cal.size.height) for segment in cal.render_line(y)))
+                self.assertTrue(any('▎ ━' in cal.render_line(y).text for y in range(cal.size.height)))
+                release_event.set()
+                for _ in range(60):
+                    await pilot.pause(.01)
+                    if ws.shown:
+                        break
+                self.assertEqual([row['kind'] for row in ws.shown], ['event'])
+                self.assertTrue(ws.agenda_loading)
+                self.assertFalse(ws.loading)
+                self.assertFalse(cal.skeleton)
+                release_others.set()
+                for _ in range(60):
+                    await pilot.pause(.01)
+                    if not ws.agenda_loading:
+                        break
+                self.assertEqual(len(ws.shown), 4)
+        finally:
+            release_event.set()
+            release_others.set()
+
+    async def test_pending_exam_retry_is_bounded(self):
+        import httpx
+        class AlwaysPending(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'exam':
+                    self.calls.append(kind)
+                    request = httpx.Request('GET', 'https://example.test/agenda')
+                    response = httpx.Response(503, json={'error': 'agenda_pending'}, headers={'Retry-After': '0.01'}, request=request)
+                    raise httpx.HTTPStatusError('pending', request=request, response=response)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = AlwaysPending()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(100):
+                await pilot.pause(.01)
+                if not ws.agenda_loading and app.provider.calls.count('exam'):
+                    break
+            self.assertEqual(app.provider.calls.count('exam'), 7)
+            self.assertIn('Exam', str(ws.query_one('.agenda-status').render()))
+            self.assertTrue(any(row['kind'] == 'event' for row in ws.shown))
+
+    async def test_pending_exam_retries_without_hiding_other_sources(self):
+        import httpx
+        class PendingExam(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'exam' and self.calls.count(kind) < 2:
+                    self.calls.append(kind)
+                    request = httpx.Request('GET', 'https://example.test/agenda')
+                    response = httpx.Response(503, json={'error': 'agenda_pending'}, headers={'Retry-After': '0.2'}, request=request)
+                    raise httpx.HTTPStatusError('pending', request=request, response=response)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = PendingExam()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(50):
+                await pilot.pause(.01)
+                if ws.shown:
+                    break
+            self.assertTrue(ws.agenda_loading)
+            self.assertTrue(any(row['kind'] == 'event' for row in ws.shown))
+            for _ in range(100):
+                await pilot.pause(.01)
+                if not ws.agenda_loading:
+                    break
+            self.assertFalse(ws.agenda_loading)
+            self.assertEqual(app.provider.calls.count('exam'), 3)
+            self.assertTrue(any(row['kind'] == 'exam' for row in ws.shown))
+
+    async def test_revisiting_week_shows_cached_rows_during_refresh(self):
+        from ft_tui.ui.components import Button
+        gate = threading.Event()
+        started = threading.Event()
+        class DelayedRefresh(Provider):
+            delayed = False
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if self.delayed:
+                    started.set()
+                    gate.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = DelayedRefresh()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if len(ws.shown) == 4 and not ws.agenda_loading:
+                        break
+                from ft_tui.app.read_cache import app_cache
+                for entry in app_cache(app).entries.values():
+                    entry.validated_at -= 31
+                app.provider.delayed = True
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-next', Button)))
+                await pilot.pause(.05)
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-prev', Button)))
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if len(ws.shown) == 4:
+                        break
+                self.assertTrue(ws.agenda_loading)
+                self.assertEqual(len(ws.shown), 4)
+                self.assertIn('Unavailable or stale', str(ws.query_one('.agenda-status').render()))
+                gate.set()
+        finally:
+            gate.set()
+
     async def test_transient_initial_failures_are_retried(self):
         class WarmingUp(Provider):
             def get_agenda(self, begin, end, kind, target, campus_id=None):
@@ -69,7 +262,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
             ws = app.query_one(AgendaWorkspace)
             for _ in range(100):
                 await pilot.pause(.04)
-                if len(ws.shown) == 4 and not ws.loading:
+                if len(ws.shown) == 4 and not ws.agenda_loading:
                     break
             self.assertEqual(len(ws.shown), 4)
             self.assertEqual(app.provider.calls.count('exam'), 2)
@@ -81,7 +274,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
             ws = app.query_one(AgendaWorkspace)
             for _ in range(50):
                 await pilot.pause(.01)
-                if len(ws.shown) == 4 and not ws.loading:
+                if len(ws.shown) == 4 and not ws.agenda_loading:
                     break
             ws.select_row(next(row for row in ws.shown if row['kind'] == 'event'))
             with unittest.mock.patch.object(ws, 'render_rows', wraps=ws.render_rows) as render:
@@ -98,7 +291,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
             ws = app.query_one(AgendaWorkspace)
             for _ in range(50):
                 await pilot.pause(.01)
-                if len(ws.shown) == 4 and not ws.loading:
+                if len(ws.shown) == 4 and not ws.agenda_loading:
                     break
             ws.select_row(next(row for row in ws.shown if row['kind'] == 'event'))
             self.assertFalse(ws.query_one('#agenda-intra').disabled)
@@ -134,7 +327,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 gate.set()
                 for _ in range(80):
                     await pilot.pause(.01)
-                    if not ws.loading and len(ws.shown) == 4:
+                    if not ws.agenda_loading and len(ws.shown) == 4:
                         break
                 self.assertEqual({row['kind'] for row in ws.shown}, {'event', 'exam', 'evaluating', 'evaluated'})
                 self.assertTrue(all(row['begin_at'].startswith(str(ws.week)) for row in ws.shown))
@@ -160,13 +353,13 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause(.01)
                     if len(ws.shown) >= 3:
                         break
-                self.assertTrue(ws.loading)
+                self.assertTrue(ws.agenda_loading)
                 self.assertEqual({row['kind'] for row in ws.shown}, {'evaluating', 'evaluated', 'exam'})
                 self.assertIn('Loading', str(ws.query_one('.agenda-status').render()))
                 gate.set()
                 for _ in range(50):
                     await pilot.pause(.01)
-                    if not ws.loading:
+                    if not ws.agenda_loading:
                         break
                 self.assertEqual(len(ws.shown), 4)
         finally:
@@ -191,7 +384,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 ws = app.query_one(AgendaWorkspace)
                 for _ in range(50):
                     await pilot.pause(.01)
-                    if ws.shown and not ws.loading:
+                    if ws.shown and not ws.agenda_loading:
                         break
                 self.assertEqual(len(ws.shown), 4)
                 app.provider.delayed = True
@@ -201,7 +394,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause(.01)
                     if 'Unavailable' in str(ws.query_one('.agenda-status').render()):
                         break
-                self.assertTrue(ws.loading)
+                self.assertTrue(ws.agenda_loading)
                 self.assertIn('Unavailable or stale', str(ws.query_one('.agenda-status').render()))
                 self.assertTrue(any(row['kind'] == 'evaluated' for row in ws.shown))
                 gate.set()
@@ -235,7 +428,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 gate.set()
                 for _ in range(50):
                     await pilot.pause(.01)
-                    if not ws.loading:
+                    if not ws.agenda_loading:
                         break
                 self.assertFalse(ws.shown)
                 self.assertFalse(ws.sources)
@@ -272,9 +465,9 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 denied.set()
                 for _ in range(50):
                     await pilot.pause(.01)
-                    if not ws.loading:
+                    if not ws.agenda_loading:
                         break
-                self.assertFalse(ws.loading)
+                self.assertFalse(ws.agenda_loading)
                 self.assertFalse(ws.shown)
                 self.assertFalse(ws.sources)
         finally:
@@ -301,7 +494,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                     if ws.shown:
                         break
                 self.assertTrue(ws.shown)
-                self.assertTrue(ws.loading)
+                self.assertTrue(ws.agenda_loading)
         finally:
             gate.set()
 
@@ -328,7 +521,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-next', Button)))
                 for _ in range(50):
                     await pilot.pause(.01)
-                    if not ws.loading:
+                    if not ws.agenda_loading:
                         break
                 self.assertEqual(ws.week, old_week + timedelta(days=7))
                 self.assertEqual(len(ws.shown), 4)

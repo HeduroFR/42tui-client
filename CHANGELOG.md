@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Start Correction Slots loading after the view is mounted, avoiding a stuck first load.
+
+
+- Show pulsing placeholders in Correction Slots while loading, and spread
+  calendar placeholders across different hours.
+
+
+- Show pulsing Agenda loading cards without covering events that have already loaded.
+
+
+- Show saved agenda data promptly when revisiting a week and retry pending event
+  and exam collection automatically while other sources remain available.
+
+
+- Shade past days and hours in the Agenda calendar.
+
+
 - Distinguish past days and time blocks in Agenda and see the current time marker.
 
 

@@ -13,6 +13,51 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-11-01: Defer Correction Slots prefetch until the view is mounted and
+  recover invalidated reads without waiting for a timeout. The live trace showed
+  the initial read being invalidated before provider dispatch; Correction
+  Slots UI tests passed; the user confirmed prompt loading in a live session.
+  Patch impact within 0.7.0; release validation remains pending.
+
+- 2026-11-01: Add pulsing Correction Slots calendar placeholders without hiding
+  saved slots, and stagger Agenda and slot placeholders by day and hour. Patch
+  impact within 0.7.0. All 89 corrections-scope tests passed; focused workspace
+  and Agenda skeleton checks passed afterward. Live terminal and release
+  validation remain outstanding.
+
+
+- 2026-11-01: Extend Agenda loading cards across their columns and pulse them
+  while loading, stopping the timer when data arrives. Show loading guidance
+  instead of an empty-week message during the initial load. Patch impact within
+  0.7.0; focused skeleton tests passed, including narrow/wide layouts and timer
+  behavior. Live terminal and final release validation remain outstanding.
+
+
+- 2026-11-01: Refine Agenda loading cards with inset, varied widths and short
+  placeholder strokes that fit narrow and wide calendars. Patch impact within
+  0.7.0. Focused skeleton tests passed; live terminal review and release
+  validation remain outstanding.
+
+
+- 2026-11-01: Replace the Agenda loading overlay with calendar placeholders and
+  keep partial or cached results visible while sources load. Patch impact within
+  0.7.0. All 33 staged Agenda tests and 87 working-tree corrections tests passed;
+  live terminal and final release validation remain outstanding.
+
+
+- 2026-11-01: Restore cached agenda rows during week changes and retry pending
+  event/exam worker reads at the backend's requested interval, with a bounded
+  retry count. Patch impact within 0.7.0. All 31 agenda tests passed; a local
+  Postman HTTP simulation confirmed a pending exam followed by a successful
+  retry. Live backend timing and final release validation remain outstanding.
+
+
+- 2026-11-01: Shade past agenda calendar cells using the active theme while
+  retaining event colors and the current-time marker. Patch impact within 0.7.0.
+  Focused past/current/future rendering check passed; live terminal appearance
+  and final release validation remain unverified.
+
+
 - 2026-11-01: Dim past agenda days and half-hours and mark the current half-hour
   in empty cells, refreshing the display as time advances. Patch impact within
   0.7.0. All 28 agenda tests passed, including past, current and future rendering;

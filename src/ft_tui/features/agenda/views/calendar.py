@@ -35,6 +35,9 @@ class AgendaCalendar(ScrollView, can_focus=True):
         self.week, self.zone = week, zone
         self.day, self.row = 0, 16
         self.cells, self.blocks = {}, []
+        self.skeleton = False
+        self.skeleton_bright = False
+        self.skeleton_timer = None
         self.selected = None
         self.virtual_size = Size(0, 48)
 
@@ -59,10 +62,24 @@ class AgendaCalendar(ScrollView, can_focus=True):
 
     def on_mount(self):
         self.set_interval(60, self.refresh_time)
+        self.skeleton_timer = self.set_interval(.65, self.blink_skeleton, pause=not self.skeleton)
 
     def refresh_time(self):
         self.refresh()
         self.post_message(self.ViewChanged())
+
+    def set_skeleton(self, visible):
+        if self.skeleton == visible:
+            return
+        self.skeleton = visible
+        self.skeleton_bright = False
+        if self.skeleton_timer:
+            self.skeleton_timer.resume() if visible else self.skeleton_timer.pause()
+        self.refresh()
+
+    def blink_skeleton(self):
+        self.skeleton_bright = not self.skeleton_bright
+        self.refresh()
 
     def set_items(self, items, week):
         changed = week != self.week
@@ -140,7 +157,9 @@ class AgendaCalendar(ScrollView, can_focus=True):
             past = date < now.date() or date == now.date() and half < now.hour * 2 + now.minute // 30
             current = date == now.date() and half == now.hour * 2 + now.minute // 30
             blocks = [b for b in self.blocks if b['day'] == day and b['start'] <= half < b['end']]
-            column = Text(style=self.rich_style + Style(dim=past))
+            base = self.rich_style.bgcolor or Color.parse(variables.get('surface', '#202030'))
+            background = Color.parse(variables.get('surface-darken-1', variables.get('background', '#101020'))) if past else base
+            column = Text(style=self.rich_style + Style(bgcolor=background, dim=past))
             position = 0
             for block in sorted(blocks, key=lambda b: b['lane']):
                 item = block['item']
@@ -149,11 +168,10 @@ class AgendaCalendar(ScrollView, can_focus=True):
                 size = end - start
                 accent = variables.get(palette[item['kind']], '#88aaff')
                 foreground = Color.parse(accent).get_truecolor()
-                base = self.rich_style.bgcolor or Color.parse(variables.get('surface', '#202030'))
-                background = base.get_truecolor()
+                surface = background.get_truecolor()
                 selected = self.selected == (item['kind'], item['id'])
                 amount = .3 if selected else .12
-                fill = Color.from_rgb(*(round(b * (1 - amount) + f * amount) for b, f in zip(background, foreground)))
+                fill = Color.from_rgb(*(round(b * (1 - amount) + f * amount) for b, f in zip(surface, foreground)))
                 style = Style(color=accent, bgcolor=fill, bold=selected, dim=past)
                 offset = half - block['start']
                 begin = datetime.fromisoformat(item['begin_at']).astimezone(self.zone)
@@ -171,11 +189,19 @@ class AgendaCalendar(ScrollView, can_focus=True):
                 column.append_text(rendered)
                 position = end
             remaining = max(0, width - 1 - position)
+            if self.skeleton and not blocks and not current and (half - 16 - day * 2) in (0, 1):
+                size = remaining
+                if size >= 4:
+                    label = '▎ ' + '━' * min(size - 2, 3 if (half - 16 - day * 2) == 0 else 6)
+                    shade = 'surface-lighten-2' if self.skeleton_bright else 'surface-lighten-1'
+                    style = Style(color=self.rich_style.color, bgcolor=variables.get(shade, '#404050'), dim=True)
+                    column.append(label.ljust(size), style=style)
+                    remaining -= size
             if not blocks and current:
                 label = translate('now', getattr(self.app, 'language', 'en'))[:remaining]
                 column.append(label, style=Style(color=variables.get('accent', '#44aaff'), bold=True))
                 remaining -= len(label)
-            column.append(('─' if not blocks and half % 2 == 0 else ' ') * remaining)
+            column.append(' ' * remaining)
             if not blocks and day == self.day and half == self.row and self.has_focus:
                 column.stylize('reverse')
             result.append_text(column)

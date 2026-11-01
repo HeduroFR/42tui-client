@@ -82,7 +82,7 @@ class AgendaWorkspace(Vertical):
         self.rows, self.shown, self.sources = [], [], {}
         self.context = None
         self.epoch = 0
-        self.loading = False
+        self.agenda_loading = False
         self.needs_read = True
         self.timeline = not project_id and not evaluations_only
         self.calendar = bool(project_id) or self.timeline
@@ -182,7 +182,7 @@ class AgendaWorkspace(Vertical):
         return tabs.first().active == target
 
     def refresh_visible(self):
-        if self.active() and not self.loading:
+        if self.active() and not self.agenda_loading:
             self.run_worker(self.reload(background=True), group='agenda-read', exclusive=True)
 
     def check_context(self):
@@ -190,7 +190,7 @@ class AgendaWorkspace(Vertical):
         if context != self.context:
             self.context = context
             self.epoch += 1
-            self.loading = False
+            self.agenda_loading = False
             self.rows, self.sources = [], {}
             self.shown, self.cells = [], {}
             self.query_one(ListView).clear()
@@ -214,9 +214,13 @@ class AgendaWorkspace(Vertical):
             self.run_worker(self.reload(), group='agenda-read', exclusive=True)
 
     async def reload(self, *, refresh=False, background=False):
-        if self.loading:
+        if self.agenda_loading:
             return
-        self.loading = True
+        self.agenda_loading = True
+        if self.timeline and not background:
+            self.query_one(AgendaCalendar).set_skeleton(not self.rows)
+            if not self.rows:
+                self.query_one('#agenda-detail', Static).update(self.t('Loading agenda…'))
         self.epoch += 1
         epoch, context, week = self.epoch, self.identity(), self.week
         provider, account_id, _, campus = context
@@ -227,6 +231,9 @@ class AgendaWorkspace(Vertical):
         kinds = [('available', self.project_id)] if self.project_id else [('evaluating', None), ('evaluated', None)]
         if not self.project_id and not self.evaluations_only:
             kinds.extend((('event', campus), ('exam', campus)))
+        cache = app_cache(self.app)
+        def cache_key(kind, target):
+            return (account_scope(self.app), 'agenda', kind, target, campus, begin.isoformat(), end.isoformat())
         failure_reasons = {}
         async def read(kind, target):
             try:
@@ -236,20 +243,27 @@ class AgendaWorkspace(Vertical):
                     args = (begin, end, kind, target, campus) if kind == 'available' else (begin, end, kind, target)
                     value = await asyncio.to_thread(provider.get_agenda, *args)
                     return snapshot(value, account_id, kind)
-                key = (account_scope(self.app), 'agenda', kind, target, campus, begin.isoformat(), end.isoformat())
-                cache = app_cache(self.app)
-                try:
-                    rows = await cache.read(key, load, refresh=refresh, ttl=30, current=lambda: context == self.identity())
-                except Exception as error:
-                    status = getattr(getattr(error, 'response', None), 'status_code', None)
-                    entry = cache.entries.get(key)
-                    delay = entry.retry_at - cache.clock() if entry else 0
-                    if (refresh or not (isinstance(error, (OSError, httpx.TransportError)) or status in {429, 502, 503, 504})
-                            or not 0 < delay <= 2):
-                        raise
-                    await asyncio.sleep(delay)
-                    rows = await cache.read(key, load, refresh=True, ttl=30, current=lambda: context == self.identity())
-                return kind, rows, True
+                key = cache_key(kind, target)
+                for attempt in range(7):
+                    try:
+                        if week != self.week:
+                            raise ReadInvalidated()
+                        rows = await cache.read(key, load, refresh=refresh or attempt > 0, ttl=30, current=lambda: context == self.identity())
+                        return kind, rows, True
+                    except Exception as error:
+                        entry = cache.entries.get(key)
+                        cause = entry.error if entry and entry.error else error
+                        response = getattr(cause, 'response', None)
+                        status = getattr(response, 'status_code', None)
+                        try:
+                            pending = status == 503 and kind in {'event', 'exam'} and response.json().get('error') == 'agenda_pending'
+                        except (ValueError, AttributeError):
+                            pending = False
+                        delay = max(0, entry.retry_at - cache.clock()) if entry else 0
+                        temporary = isinstance(cause, (OSError, httpx.TransportError)) or status in {429, 502, 503, 504}
+                        if not (pending and attempt < 6 and delay <= 5 or not refresh and attempt == 0 and temporary and 0 < delay <= 2):
+                            raise
+                        await asyncio.sleep(delay)
             except ReadInvalidated:
                 return kind, [], False
             except asyncio.CancelledError:
@@ -272,6 +286,14 @@ class AgendaWorkspace(Vertical):
         failures = []
         self.project_not_ready = False
         try:
+            if not self.rows:
+                saved = {kind: cache.peek(cache_key(kind, target)) for kind, target in kinds}
+                self.sources.update({kind: rows for kind, rows in saved.items() if rows is not None})
+                self.rows = sorted((row for kind, _ in kinds for row in self.sources.get(kind, [])), key=lambda row: row['begin_at'])
+                if self.rows:
+                    if any(not cache.fresh(cache_key(kind, target), 30) for kind, target in kinds if saved[kind] is not None):
+                        self.query_one('.agenda-status', Static).update(self.t('Loading agenda…') + ' · ' + self.t('Unavailable or stale'))
+                    await self.render_rows()
             pending = set(tasks)
             while pending:
                 completed, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
@@ -281,7 +303,7 @@ class AgendaWorkspace(Vertical):
                 if any(ok == 'unauthorized' for _, _, ok in results):
                     self.sources.clear()
                     self.rows = []
-                    self.loading = False
+                    self.agenda_loading = False
                     self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale'))
                     await self.render_rows()
                     return
@@ -301,7 +323,7 @@ class AgendaWorkspace(Vertical):
                     await self.render_rows()
             if not self.is_mounted or epoch != self.epoch or context != self.identity() or week != self.week:
                 return
-            self.loading = False
+            self.agenda_loading = False
             self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale') + ': ' + ', '.join(failures) if failures else self.t('Up to date'))
             if self.project_not_ready:
                 self.query_one('.agenda-status', Static).update(self.t('Set the project as finished on Intra before looking for evaluation slots.'))
@@ -346,6 +368,7 @@ class AgendaWorkspace(Vertical):
             return
         if self.timeline:
             calendar = self.query_one(AgendaCalendar)
+            calendar.set_skeleton(self.agenda_loading and not self.rows)
             previous = (self.selected['kind'], self.selected['id']) if self.selected else calendar.selected
             calendar.set_items(self.shown, self.week)
             selected = next((item for item in self.shown if (item['kind'], item['id']) == previous), None)
@@ -356,7 +379,7 @@ class AgendaWorkspace(Vertical):
                 self.select_row(selected)
             else:
                 self.query_one('.agenda-detail').display = True
-                self.query_one('#agenda-detail', Static).update(self.t('No events this week.') if not self.shown else self.t('Select an event to see its details.'))
+                self.query_one('#agenda-detail', Static).update(self.t('Loading agenda…') if self.agenda_loading and not self.rows else self.t('No events this week.') if not self.shown else self.t('Select an event to see its details.'))
                 self.query_one('#agenda-item-title', Static).update('')
                 self.query_one('#agenda-item-type', Static).update('')
                 self.query_one('#agenda-description', Markdown).update('')
@@ -390,7 +413,7 @@ class AgendaWorkspace(Vertical):
             for key in ('prev', 'next', 'today', 'view'):
                 self.query_one('#agenda-' + key, Button).disabled = self.project_not_ready
             self.update_slot_heading()
-        self.query_one('.agenda-period', Static).update(f'{self.week:%d %b %Y} – {self.week + timedelta(days=6):%d %b %Y} · {self.zone}' + ('' if self.shown else ' · ' + self.t('No items in this view.')))
+        self.query_one('.agenda-period', Static).update(f'{self.week:%d %b %Y} – {self.week + timedelta(days=6):%d %b %Y} · {self.zone}' + ('' if self.shown or self.agenda_loading else ' · ' + self.t('No items in this view.')))
 
     def update_week_heading(self):
         from rich.text import Text
@@ -540,7 +563,7 @@ class AgendaWorkspace(Vertical):
                 except Exception:
                     self.notify(self.t('Could not open the project page.'), severity='error')
         elif key == 'agenda-refresh':
-            if not self.loading:
+            if not self.agenda_loading:
                 self.run_worker(self.reload(refresh=True), group='agenda-read', exclusive=True)
         elif key in {'agenda-prev', 'agenda-next', 'agenda-today'}:
             today = datetime.now(self.zone).date()
@@ -550,7 +573,7 @@ class AgendaWorkspace(Vertical):
             self.week = week
             self.epoch += 1
             self.sources, self.rows = {}, []
-            self.loading = False
+            self.agenda_loading = False
             self.query_one('.agenda-status', Static).update(self.t('Loading agenda…'))
             await self.render_rows()
             self.run_worker(self.reload(), group='agenda-read', exclusive=True)
