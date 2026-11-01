@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Distinguish past days and time blocks in Agenda and see the current time marker.
+
+
 - Retry a temporary agenda read failure once on first load, and open exam details
   directly on Intra.
 

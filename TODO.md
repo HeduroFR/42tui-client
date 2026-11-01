@@ -403,6 +403,7 @@ or in its uncommitted worktree and still require review and CI before merging.
   loading, empty, unavailable and stale data. Assess reuse of the correction
   calendar's navigation/layout without carrying over slot-editing behavior.
   Implemented locally: event and exam sources, weekly agenda and detail views.
+  Past days and half-hours are dimmed, with a current-time marker in empty cells.
   Implemented locally: events open `https://profile.intra.42.fr/events/<event_id>`
   and exams open `https://profile.intra.42.fr/exams/<exam_id>`. Validate both links
   and first-load retry behavior on campus.

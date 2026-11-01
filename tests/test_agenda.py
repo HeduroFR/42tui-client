@@ -22,6 +22,39 @@ class Harness(App):
     def _catalog_scope(self): return SimpleNamespace(campus_id=1)
     def compose(self): yield AgendaWorkspace()
 
+class AgendaClockTests(unittest.IsolatedAsyncioTestCase):
+    async def test_past_days_hours_and_current_time_are_marked(self):
+        from datetime import date, datetime, timezone
+        from unittest.mock import patch
+        week = date(2026, 10, 26)
+        class CalendarApp(App):
+            language = 'en'
+            def compose(self):
+                yield AgendaCalendar(week, timezone.utc)
+        with patch('ft_tui.features.agenda.views.calendar.datetime', wraps=datetime) as clock:
+            clock.now.return_value = datetime(2026, 10, 27, 10, 18, tzinfo=timezone.utc)
+            app = CalendarApp()
+            async with app.run_test(size=(120, 30)) as pilot:
+                cal = app.query_one(AgendaCalendar)
+                await pilot.pause()
+                headings = cal.headings()
+                self.assertEqual(headings.spans[0].style, 'dim')
+                self.assertEqual(headings.spans[2].style, 'bold underline')
+                self.assertEqual(headings.spans[4].style, 'bold')
+                rows = [dict(id=i, kind='event', begin_at=f'2026-10-27T{hour}:00:00+00:00',
+                             end_at=f'2026-10-27T{hour}:30:00+00:00', title='Example')
+                        for i, hour in enumerate(('09', '11'), 1)]
+                cal.set_items(rows, week)
+                await pilot.pause()
+                cal.scroll_to(y=0, animate=False, force=True)
+                await pilot.pause()
+                old = next(segment for segment in cal.render_line(18) if '▎' in segment.text)
+                future = next(segment for segment in cal.render_line(22) if '▎' in segment.text)
+                self.assertTrue(old.style.dim)
+                self.assertFalse(future.style.dim)
+                self.assertIn('now', cal.render_line(20).text)
+
+
 class AgendaTests(unittest.IsolatedAsyncioTestCase):
     async def test_transient_initial_failures_are_retried(self):
         class WarmingUp(Provider):

@@ -13,6 +13,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-11-01: Dim past agenda days and half-hours and mark the current half-hour
+  in empty cells, refreshing the display as time advances. Patch impact within
+  0.7.0. All 28 agenda tests passed, including past, current and future rendering;
+  live terminal and final release validation remain outstanding.
+
+
 - 2026-11-01: Retry temporary agenda read failures once after the cache retry
   deadline and use the direct exam page for Intra links. Patch impact within
   0.7.0. Focused agenda checks cover initial transient failures and both links;

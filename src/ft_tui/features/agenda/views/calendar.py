@@ -53,9 +53,16 @@ class AgendaCalendar(ScrollView, can_focus=True):
         for day, _, width in self.columns:
             date = self.week + timedelta(days=day)
             label = translate(date.strftime('%a'), getattr(self.app, 'language', 'en')) + (f' {date:%d %b %Y}' if len(self.days) == 1 else f' {date.day:02d}')
-            result.append(label.center(max(1, width - 1)), style='bold underline' if date == today else 'bold')
+            result.append(label.center(max(1, width - 1)), style='dim' if date < today else 'bold underline' if date == today else 'bold')
             result.append('│', style='dim')
         return result
+
+    def on_mount(self):
+        self.set_interval(60, self.refresh_time)
+
+    def refresh_time(self):
+        self.refresh()
+        self.post_message(self.ViewChanged())
 
     def set_items(self, items, week):
         changed = week != self.week
@@ -125,11 +132,15 @@ class AgendaCalendar(ScrollView, can_focus=True):
         if not 0 <= half < 48:
             return Strip.blank(self.size.width, self.rich_style)
         result = Text(f'{half // 2:02d}:{half % 2 * 30:02d} ' if half % 2 == 0 else '      ', style=self.rich_style)
+        now = datetime.now(self.zone)
         palette = {'exam': 'error', 'event': 'accent', 'evaluating': 'success', 'evaluated': 'warning'}
         variables = self.app.theme_variables
         for day, _, width in self.columns:
+            date = self.week + timedelta(days=day)
+            past = date < now.date() or date == now.date() and half < now.hour * 2 + now.minute // 30
+            current = date == now.date() and half == now.hour * 2 + now.minute // 30
             blocks = [b for b in self.blocks if b['day'] == day and b['start'] <= half < b['end']]
-            column = Text(style=self.rich_style)
+            column = Text(style=self.rich_style + Style(dim=past))
             position = 0
             for block in sorted(blocks, key=lambda b: b['lane']):
                 item = block['item']
@@ -143,7 +154,7 @@ class AgendaCalendar(ScrollView, can_focus=True):
                 selected = self.selected == (item['kind'], item['id'])
                 amount = .3 if selected else .12
                 fill = Color.from_rgb(*(round(b * (1 - amount) + f * amount) for b, f in zip(background, foreground)))
-                style = Style(color=accent, bgcolor=fill, bold=selected)
+                style = Style(color=accent, bgcolor=fill, bold=selected, dim=past)
                 offset = half - block['start']
                 begin = datetime.fromisoformat(item['begin_at']).astimezone(self.zone)
                 finish = datetime.fromisoformat(item['end_at']).astimezone(self.zone) if item['end_at'] else None
@@ -159,7 +170,12 @@ class AgendaCalendar(ScrollView, can_focus=True):
                 column.append(' ' * max(0, start - position))
                 column.append_text(rendered)
                 position = end
-            column.append(' ' * max(0, width - 1 - position))
+            remaining = max(0, width - 1 - position)
+            if not blocks and current:
+                label = translate('now', getattr(self.app, 'language', 'en'))[:remaining]
+                column.append(label, style=Style(color=variables.get('accent', '#44aaff'), bold=True))
+                remaining -= len(label)
+            column.append(('─' if not blocks and half % 2 == 0 else ' ') * remaining)
             if not blocks and day == self.day and half == self.row and self.has_focus:
                 column.stylize('reverse')
             result.append_text(column)
