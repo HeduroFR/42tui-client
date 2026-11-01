@@ -13,6 +13,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-11-01: Update the 0.7.0 roadmap with remaining integration, performance,
+  editor and release work, and record the direct Intra event URL for the agenda
+  action. Documentation only; no release required. Reviewed the roadmap against
+  local branch and worktree records; live links, final CI and deployment remain
+  unverified.
+
 - 2026-10-31: Diagnose deployed campus-exams 403 responses and expose an explicit translated access-denied reason instead of only a generic stale source. Requires backend c1c43ab for same-token campus-filtered exam collection fallback and correct 403 propagation. Patch impact within 0.7.0; 22 agenda tests passed in the working checkout, and 17 passed against an isolated export of this staged patch, preserving concurrent unrelated work. Backend suite passed 536 tests with 38 environment-dependent skips and type-checking passed. Full client suite, deployment and live fallback success remain unverified; no separate release warranted.
 
 - 2026-10-31: Redesign Agenda with event blocks, overlap lanes, theme colors, compact responsive navigation and readable Markdown details. Correct SelectCurrent clipping by limiting toolbar layout rules to their owning containers; test English/French/Spanish at narrow/wide sizes. Add campus exams and optional location/occupancy/project metadata, retaining zero counts and explicit unknown values. Manage on Intra opens the observed profile-v3 calendar; event writes require an ungranted profile scope and exam writes require Advanced tutor, so no subscription writes or scope expansion were added. Minor impact toward 0.7.0; 70 corrections/agenda tests and 14 architecture/navigation/layout tests passed, with 16 agenda tests and three exam-detail checks rerun after final UI adjustments. Synthetic 40/80/150-column previews inspected. Requires backend 9cdd26a or reviewed successor; deploy it first and verify the exact pair/live campus payloads before release. Full client suite, live subscription/link flow and release CI remain unverified. 0.7.0 remains worth preparing, not ready to publish.

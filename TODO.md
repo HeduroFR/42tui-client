@@ -353,8 +353,8 @@ Status: **planned; implementation and release validation pending**.
 Status: **implementation in progress; review, integration and release validation pending**.
 
 Priority: evaluations and agenda, dashboard, Settings, loading and caching, then
-editor time tracking. The completed client items below are on the local 0.7.0
-interface branch and still require review and CI before merging.
+editor time tracking. Implemented items are on the local 0.7.0 interface branch
+or in its uncommitted worktree and still require review and CI before merging.
 
 - [ ] Rework the student-profile card: keep portrait, login, wallet and correction
   points, remove the workstation duplicated in Cluster Radar, and consider campus,
@@ -402,6 +402,9 @@ interface branch and still require review and CI before merging.
   coverage and account visibility, use explicit local times and distinguish
   loading, empty, unavailable and stale data. Assess reuse of the correction
   calendar's navigation/layout without carrying over slot-editing behavior.
+  Implemented locally: event and exam sources, weekly agenda and detail views.
+  Change the event action to open `https://profile.intra.42.fr/events/<event_id>`;
+  validate the event ID and live link, and retain appropriate behavior for exams.
 - [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
@@ -425,6 +428,8 @@ interface branch and still require review and CI before merging.
   without duplicate time or disruptive errors. Preserve local tracking without
   reading file contents or retaining file paths. Validate fresh installation,
   upgrade/removal and time attribution on Linux/macOS for each supported editor.
+  During onboarding, offer to install the selected editor's extension, with a
+  skip option and clear installation failure feedback.
 - [ ] Fix Open in Editor when the configured editor is installed through Flatpak
   and its executable is not on PATH, including VS Code on campus workstations.
   Detect and launch the installed editor appropriately, preserve existing native
@@ -445,6 +450,18 @@ interface branch and still require review and CI before merging.
   network failures. Do not treat the caching shipped in 0.3.0 as completion.
   Assess backend/API changes and compatibility if needed, and validate loading,
   refresh, account switching and offline/error behavior before release.
+  In progress locally: shared evaluation reads; parallel account, catalog and
+  friend reads; progressive agenda and friend loading; saved friend snapshots;
+  background inbox refresh; portrait deduplication and dashboard aggregation.
+  The backend performance branch overlaps evaluation-context reads. Synthetic
+  measurements and focused checks are recorded in DEV_CHANGELOG.md; review the
+  uncommitted work and measure real backend and UI performance before closing.
+
+- [ ] Review and integrate the client and required backend changes, then deploy
+  the backend first and verify the exact client/backend pair and live campus data.
+  Resolve the two dashboard viewport-height failures recorded in full discovery,
+  rerun the full suite and release CI on the final candidate, and reconcile the
+  verified release baseline before preparing publication.
 
 ## 0.8.0 — Notifications, presence and pokes
 
