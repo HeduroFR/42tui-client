@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep week navigation responsive while agenda sources load, avoid rebuilding an
+  unchanged agenda during background refresh, and open campus events directly on Intra.
+
 - Explain when 42 denies access to an Agenda source, while keeping the other sources visible.
 
 - Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.

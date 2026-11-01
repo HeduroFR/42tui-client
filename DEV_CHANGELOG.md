@@ -13,6 +13,14 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-11-01: Keep agenda week navigation responsive during source reads, batch
+  completed reads, avoid redraws for unchanged background refreshes and open events
+  using their direct Intra URL. Patch impact within 0.7.0. The 26 agenda tests
+  passed, including slow exam and direct-link checks; all 80 corrections-scope
+  tests passed. Live source timing, event links, deployment and final candidate
+  validation remain outstanding.
+
+
 - 2026-11-01: Update the 0.7.0 roadmap with remaining integration, performance,
   editor and release work, and record the direct Intra event URL for the agenda
   action. Documentation only; no release required. Reviewed the roadmap against

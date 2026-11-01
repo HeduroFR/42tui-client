@@ -403,8 +403,8 @@ or in its uncommitted worktree and still require review and CI before merging.
   loading, empty, unavailable and stale data. Assess reuse of the correction
   calendar's navigation/layout without carrying over slot-editing behavior.
   Implemented locally: event and exam sources, weekly agenda and detail views.
-  Change the event action to open `https://profile.intra.42.fr/events/<event_id>`;
-  validate the event ID and live link, and retain appropriate behavior for exams.
+  Implemented locally: events open `https://profile.intra.42.fr/events/<event_id>`;
+  exams retain their existing Intra action. Validate the live event link.
 - [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
@@ -456,6 +456,8 @@ or in its uncommitted worktree and still require review and CI before merging.
   The backend performance branch overlaps evaluation-context reads. Synthetic
   measurements and focused checks are recorded in DEV_CHANGELOG.md; review the
   uncommitted work and measure real backend and UI performance before closing.
+  Agenda week navigation and unchanged background refreshes are improved locally;
+  event and exam reads start concurrently. Verify live loading and source timing.
 
 - [ ] Review and integrate the client and required backend changes, then deploy
   the backend first and verify the exact client/backend pair and live campus data.

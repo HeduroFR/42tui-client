@@ -1,4 +1,6 @@
 import unittest
+import asyncio
+import threading
 from datetime import timedelta
 from types import SimpleNamespace
 from textual.app import App
@@ -21,6 +23,269 @@ class Harness(App):
     def compose(self): yield AgendaWorkspace()
 
 class AgendaTests(unittest.IsolatedAsyncioTestCase):
+    async def test_background_refresh_keeps_unchanged_selection(self):
+        app = Harness()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(50):
+                await pilot.pause(.01)
+                if len(ws.shown) == 4 and not ws.loading:
+                    break
+            ws.select_row(next(row for row in ws.shown if row['kind'] == 'event'))
+            with unittest.mock.patch.object(ws, 'render_rows', wraps=ws.render_rows) as render:
+                await ws.reload(refresh=True, background=True)
+                self.assertEqual(ws.selected['kind'], 'event')
+                self.assertFalse(ws.query_one('#agenda-intra').disabled)
+                render.assert_not_called()
+
+    async def test_event_opens_direct_intra_link_without_source_url(self):
+        from unittest.mock import patch
+        from ft_tui.ui.components import Button
+        app = Harness()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(50):
+                await pilot.pause(.01)
+                if len(ws.shown) == 4 and not ws.loading:
+                    break
+            ws.select_row(next(row for row in ws.shown if row['kind'] == 'event'))
+            self.assertFalse(ws.query_one('#agenda-intra').disabled)
+            with patch('ft_tui.features.agenda.views.webbrowser.open', return_value=True) as browser:
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-intra', Button)))
+                await pilot.pause()
+            browser.assert_called_once_with('https://profile.intra.42.fr/events/1')
+
+    async def test_week_navigation_remains_responsive_during_slow_exam(self):
+        from ft_tui.ui.components import Button
+        gate = threading.Event()
+        started = threading.Event()
+        class SlowExam(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'exam':
+                    started.set()
+                    gate.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = SlowExam()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                old_week = ws.week
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-next', Button)))
+                await pilot.pause(.1)
+                self.assertEqual(ws.week, old_week + timedelta(days=7))
+                self.assertIn('Loading', str(ws.query_one('.agenda-status').render()))
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-next', Button)))
+                await pilot.pause(.1)
+                self.assertEqual(ws.week, old_week + timedelta(days=14))
+                gate.set()
+                for _ in range(80):
+                    await pilot.pause(.01)
+                    if not ws.loading and len(ws.shown) == 4:
+                        break
+                self.assertEqual({row['kind'] for row in ws.shown}, {'event', 'exam', 'evaluating', 'evaluated'})
+                self.assertTrue(all(row['begin_at'].startswith(str(ws.week)) for row in ws.shown))
+        finally:
+            gate.set()
+
+    async def test_fast_sources_display_while_another_source_is_loading(self):
+        gate = threading.Event()
+        started = threading.Event()
+        class SlowEvents(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'event':
+                    started.set()
+                    gate.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = SlowEvents()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if len(ws.shown) >= 3:
+                        break
+                self.assertTrue(ws.loading)
+                self.assertEqual({row['kind'] for row in ws.shown}, {'evaluating', 'evaluated', 'exam'})
+                self.assertIn('Loading', str(ws.query_one('.agenda-status').render()))
+                gate.set()
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if not ws.loading:
+                        break
+                self.assertEqual(len(ws.shown), 4)
+        finally:
+            gate.set()
+
+    async def test_failed_source_is_marked_stale_while_another_source_is_loading(self):
+        gate = threading.Event()
+        started = threading.Event()
+        class PartialFailure(Provider):
+            delayed = False
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if self.delayed and kind == 'event':
+                    started.set()
+                    gate.wait(3)
+                if self.delayed and kind == 'evaluated':
+                    raise OSError('offline')
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = PartialFailure()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if ws.shown and not ws.loading:
+                        break
+                self.assertEqual(len(ws.shown), 4)
+                app.provider.delayed = True
+                worker = ws.run_worker(ws.reload(refresh=True))
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if 'Unavailable' in str(ws.query_one('.agenda-status').render()):
+                        break
+                self.assertTrue(ws.loading)
+                self.assertIn('Unavailable or stale', str(ws.query_one('.agenda-status').render()))
+                self.assertTrue(any(row['kind'] == 'evaluated' for row in ws.shown))
+                gate.set()
+                await worker.wait()
+        finally:
+            gate.set()
+
+    async def test_late_authorization_failure_clears_progressive_results(self):
+        import httpx
+        gate = threading.Event()
+        started = threading.Event()
+        class Expired(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'event':
+                    started.set()
+                    gate.wait(3)
+                    request = httpx.Request('GET', 'https://example.test/agenda')
+                    raise httpx.HTTPStatusError('unauthorized', request=request, response=httpx.Response(401, request=request))
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = Expired()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if ws.shown:
+                        break
+                self.assertTrue(ws.shown)
+                gate.set()
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if not ws.loading:
+                        break
+                self.assertFalse(ws.shown)
+                self.assertFalse(ws.sources)
+                self.assertIn('Unavailable', str(ws.query_one('.agenda-status').render()))
+        finally:
+            gate.set()
+
+    async def test_unauthorized_source_clears_results_while_another_read_is_pending(self):
+        import httpx
+        denied = threading.Event()
+        blocked = threading.Event()
+        release = threading.Event()
+        class Expired(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'event':
+                    denied.wait(3)
+                    request = httpx.Request('GET', 'https://example.test/agenda')
+                    raise httpx.HTTPStatusError('unauthorized', request=request, response=httpx.Response(401, request=request))
+                if kind == 'exam':
+                    blocked.set()
+                    release.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = Expired()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(blocked.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if ws.shown:
+                        break
+                self.assertTrue(ws.shown)
+                denied.set()
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if not ws.loading:
+                        break
+                self.assertFalse(ws.loading)
+                self.assertFalse(ws.shown)
+                self.assertFalse(ws.sources)
+        finally:
+            denied.set()
+            release.set()
+
+    async def test_exit_while_sources_are_still_loading_is_safe(self):
+        gate = threading.Event()
+        started = threading.Event()
+        class SlowEvents(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind == 'event':
+                    started.set()
+                    gate.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = SlowEvents()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if ws.shown:
+                        break
+                self.assertTrue(ws.shown)
+                self.assertTrue(ws.loading)
+        finally:
+            gate.set()
+
+    async def test_old_week_results_cannot_replace_new_week_during_progressive_load(self):
+        gate = threading.Event()
+        started = threading.Event()
+        class SlowOldWeek(Provider):
+            old_begin = None
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if self.old_begin is None:
+                    self.old_begin = begin
+                if kind == 'event' and begin == self.old_begin:
+                    started.set()
+                    gate.wait(3)
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = SlowOldWeek()
+        try:
+            async with app.run_test(size=(100, 40)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(AgendaWorkspace)
+                old_week = ws.week
+                from ft_tui.ui.components import Button
+                await ws.on_button_pressed(Button.Pressed(ws.query_one('#agenda-next', Button)))
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if not ws.loading:
+                        break
+                self.assertEqual(ws.week, old_week + timedelta(days=7))
+                self.assertEqual(len(ws.shown), 4)
+                gate.set()
+                await pilot.pause(.1)
+                self.assertTrue(all(row['begin_at'].startswith(str(ws.week)) for row in ws.shown))
+        finally:
+            gate.set()
+
     async def test_list_calendar_details_filters_and_account_switch(self):
         app = Harness()
         async with app.run_test(size=(100, 40)) as pilot:

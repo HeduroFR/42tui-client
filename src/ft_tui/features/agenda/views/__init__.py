@@ -182,7 +182,7 @@ class AgendaWorkspace(Vertical):
 
     def refresh_visible(self):
         if self.active() and not self.loading:
-            self.run_worker(self.reload(), group='agenda-read', exclusive=True)
+            self.run_worker(self.reload(background=True), group='agenda-read', exclusive=True)
 
     def check_context(self):
         context = self.identity()
@@ -212,15 +212,15 @@ class AgendaWorkspace(Vertical):
             self.needs_read = False
             self.run_worker(self.reload(), group='agenda-read', exclusive=True)
 
-    async def reload(self, *, refresh=False):
+    async def reload(self, *, refresh=False, background=False):
         if self.loading:
             return
         self.loading = True
         self.epoch += 1
         epoch, context, week = self.epoch, self.identity(), self.week
         provider, account_id, _, campus = context
-        self.query_one('.agenda-status', Static).update(self.t('Loading agenda…'))
-        self.query_one('#agenda-intra', Button).disabled = True
+        if not background:
+            self.query_one('.agenda-status', Static).update(self.t('Loading agenda…'))
         begin = local_datetime(f'{week}T00:00', self.zone)
         end = local_datetime(f'{week + timedelta(days=7)}T00:00', self.zone)
         kinds = [('available', self.project_id)] if self.project_id else [('evaluating', None), ('evaluated', None)]
@@ -240,6 +240,10 @@ class AgendaWorkspace(Vertical):
                 return kind, rows, True
             except ReadInvalidated:
                 return kind, [], False
+            except asyncio.CancelledError:
+                if asyncio.current_task().cancelling():
+                    raise
+                return kind, [], False
             except Exception as error:
                 if getattr(getattr(error, 'response', None), 'status_code', None) == 403:
                     failure_reasons[kind] = self.t('Access denied by 42')
@@ -248,31 +252,59 @@ class AgendaWorkspace(Vertical):
                         return kind, [], 'project_not_ready'
                 except (AttributeError, TypeError, ValueError):
                     pass
-                denied = getattr(getattr(error, 'response', None), 'status_code', None) in {401, 403}
-                return kind, [] if denied else self.sources.get(kind, []), False
-        results = await asyncio.gather(*(read(kind, target) for kind, target in kinds))
-        if not self.is_mounted or epoch != self.epoch or context != self.identity() or week != self.week:
-            return
-        self.loading = False
-        self.rows = []
+                status = getattr(getattr(error, 'response', None), 'status_code', None)
+                if status == 401:
+                    return kind, [], 'unauthorized'
+                return kind, [] if status == 403 else self.sources.get(kind, []), False
+        tasks = [asyncio.create_task(read(kind, target)) for kind, target in kinds]
         failures = []
         self.project_not_ready = False
-        for kind, rows, ok in results:
-            self.sources[kind] = rows
-            if ok == 'project_not_ready':
-                self.project_not_ready = True
-            elif not ok:
-                failures.append(self.t(LABELS[kind]) + (' · ' + failure_reasons[kind] if kind in failure_reasons else ''))
-            self.rows.extend(rows)
-        self.rows.sort(key=lambda row: row['begin_at'])
-        self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale') + ': ' + ', '.join(failures) if failures else self.t('Up to date'))
-        if self.project_not_ready:
-            self.query_one('.agenda-status', Static).update(self.t('Set the project as finished on Intra before looking for evaluation slots.'))
-        elif self.project_id and not failures:
-            self.query_one('.agenda-status', Static).update(self.t('Confirm these times and book on Intra.'))
-        await self.render_rows()
+        try:
+            pending = set(tasks)
+            while pending:
+                completed, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                if not self.is_mounted or epoch != self.epoch or context != self.identity() or week != self.week:
+                    return
+                results = [task.result() for task in completed]
+                if any(ok == 'unauthorized' for _, _, ok in results):
+                    self.sources.clear()
+                    self.rows = []
+                    self.loading = False
+                    self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale'))
+                    await self.render_rows()
+                    return
+                for kind, rows, ok in results:
+                    self.sources[kind] = rows
+                    if ok == 'project_not_ready':
+                        self.project_not_ready = True
+                    elif not ok:
+                        failures.append(self.t(LABELS[kind]) + (' · ' + failure_reasons[kind] if kind in failure_reasons else ''))
+                if failures:
+                    self.query_one('.agenda-status', Static).update(
+                        (self.t('Loading agenda…') + ' · ' if pending and not background else '') + self.t('Unavailable or stale') + ': ' + ', '.join(failures))
+                rows = sorted((row for source, _ in kinds for row in self.sources.get(source, [])),
+                              key=lambda row: row['begin_at'])
+                if rows != self.rows or self.project_not_ready:
+                    self.rows = rows
+                    await self.render_rows()
+            if not self.is_mounted or epoch != self.epoch or context != self.identity() or week != self.week:
+                return
+            self.loading = False
+            self.query_one('.agenda-status', Static).update(self.t('Unavailable or stale') + ': ' + ', '.join(failures) if failures else self.t('Up to date'))
+            if self.project_not_ready:
+                self.query_one('.agenda-status', Static).update(self.t('Set the project as finished on Intra before looking for evaluation slots.'))
+            elif self.project_id and not failures:
+                self.query_one('.agenda-status', Static).update(self.t('Confirm these times and book on Intra.'))
+            if not self.rows:
+                await self.render_rows()
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def render_rows(self):
+        epoch = self.epoch
         value = self.query_one(Select).value
         rows = self.rows
         if isinstance(self, UpcomingEvaluations):
@@ -284,6 +316,8 @@ class AgendaWorkspace(Vertical):
         self.query_one('#agenda-intra', Button).disabled = not bool(self.project_url)
         listing = self.query_one(ListView)
         await listing.clear()
+        if not self.is_attached or not listing.is_attached or not self.app.is_running or epoch != self.epoch:
+            return
         items = []
         for row in self.shown:
             local = datetime.fromisoformat(row['begin_at']).astimezone(self.zone)
@@ -295,6 +329,9 @@ class AgendaWorkspace(Vertical):
                 parts.append(row['counterpart'])
             items.append(ListItem(Static(' · '.join(parts), markup=False, localize=False)))
         await listing.extend(items)
+        if (not self.is_attached or not listing.is_attached or not self.app.is_running or epoch != self.epoch
+                or self.timeline and not self.query(AgendaCalendar)):
+            return
         if self.timeline:
             calendar = self.query_one(AgendaCalendar)
             previous = (self.selected['kind'], self.selected['id']) if self.selected else calendar.selected
@@ -437,11 +474,11 @@ class AgendaWorkspace(Vertical):
             parts = parts[2:]
         self.query_one('#agenda-detail', Static).update('\n\n'.join(parts))
         button = self.query_one('#agenda-intra', Button)
-        button.disabled = not bool(row['url'] or self.project_url)
+        button.disabled = not bool(row['kind'] == 'event' or row['url'] or self.project_url)
         if self.timeline:
             self.query_one('#agenda-description', Markdown).update(row['description'])
             self.query_one('#agenda-exam-note', Static).update(self.t('Register for both the exam session and its project on Intra before attending.') if row['kind'] == 'exam' else '')
-            button.set_source_label('Manage on Intra' if row['kind'] in {'event','exam'} else 'Open on Intra')
+            button.set_source_label('Manage on Intra' if row['kind'] == 'exam' else 'Open on Intra')
 
     def on_markdown_link_clicked(self, event):
         event.stop()
@@ -482,7 +519,8 @@ class AgendaWorkspace(Vertical):
             event.button.set_source_label('List view' if self.calendar else 'Weekly calendar')
             self.query_one(ListView).display = not self.calendar
         elif key == 'agenda-intra':
-            url = self.selected.get('url') if self.selected else None
+            url = (f"https://profile.intra.42.fr/events/{self.selected['id']}" if self.selected and self.selected['kind'] == 'event'
+                   else self.selected.get('url') if self.selected else None)
             if url or self.project_url:
                 try:
                     if not await asyncio.to_thread(webbrowser.open, url or self.project_url):
@@ -490,14 +528,20 @@ class AgendaWorkspace(Vertical):
                 except Exception:
                     self.notify(self.t('Could not open the project page.'), severity='error')
         elif key == 'agenda-refresh':
-            await self.reload(refresh=True)
+            if not self.loading:
+                self.run_worker(self.reload(refresh=True), group='agenda-read', exclusive=True)
         elif key in {'agenda-prev', 'agenda-next', 'agenda-today'}:
             today = datetime.now(self.zone).date()
-            self.week = today - timedelta(days=today.weekday()) if key == 'agenda-today' else self.week + timedelta(days=-7 if key == 'agenda-prev' else 7)
+            week = today - timedelta(days=today.weekday()) if key == 'agenda-today' else self.week + timedelta(days=-7 if key == 'agenda-prev' else 7)
+            if week == self.week:
+                return
+            self.week = week
+            self.epoch += 1
             self.sources, self.rows = {}, []
             self.loading = False
+            self.query_one('.agenda-status', Static).update(self.t('Loading agenda…'))
             await self.render_rows()
-            await self.reload()
+            self.run_worker(self.reload(), group='agenda-read', exclusive=True)
 
 class ProjectSlotsScreen(AppModal):
     BINDINGS = [('escape', 'dismiss', 'Close')]
