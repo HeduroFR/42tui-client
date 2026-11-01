@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Retry a temporary agenda read failure once on first load, and open exam details
+  directly on Intra.
+
+
 - Keep week navigation responsive while agenda sources load, avoid rebuilding an
   unchanged agenda during background refresh, and open campus events directly on Intra.
 

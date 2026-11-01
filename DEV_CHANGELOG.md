@@ -13,6 +13,12 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.0
 
+- 2026-11-01: Retry temporary agenda read failures once after the cache retry
+  deadline and use the direct exam page for Intra links. Patch impact within
+  0.7.0. Focused agenda checks cover initial transient failures and both links;
+  live first-load behavior, links and release validation remain unverified.
+
+
 - 2026-11-01: Keep agenda week navigation responsive during source reads, batch
   completed reads, avoid redraws for unchanged background refreshes and open events
   using their direct Intra URL. Patch impact within 0.7.0. The 26 agenda tests

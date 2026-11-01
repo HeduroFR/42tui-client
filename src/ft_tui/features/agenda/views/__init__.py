@@ -1,6 +1,7 @@
 """Read-only agenda shared by projects, corrections and the dashboard."""
 import asyncio
 import webbrowser
+import httpx
 from datetime import datetime, timedelta
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from ft_tui.ui.modal import AppModal
@@ -236,7 +237,18 @@ class AgendaWorkspace(Vertical):
                     value = await asyncio.to_thread(provider.get_agenda, *args)
                     return snapshot(value, account_id, kind)
                 key = (account_scope(self.app), 'agenda', kind, target, campus, begin.isoformat(), end.isoformat())
-                rows = await app_cache(self.app).read(key, load, refresh=refresh, ttl=30, current=lambda: context == self.identity())
+                cache = app_cache(self.app)
+                try:
+                    rows = await cache.read(key, load, refresh=refresh, ttl=30, current=lambda: context == self.identity())
+                except Exception as error:
+                    status = getattr(getattr(error, 'response', None), 'status_code', None)
+                    entry = cache.entries.get(key)
+                    delay = entry.retry_at - cache.clock() if entry else 0
+                    if (refresh or not (isinstance(error, (OSError, httpx.TransportError)) or status in {429, 502, 503, 504})
+                            or not 0 < delay <= 2):
+                        raise
+                    await asyncio.sleep(delay)
+                    rows = await cache.read(key, load, refresh=True, ttl=30, current=lambda: context == self.identity())
                 return kind, rows, True
             except ReadInvalidated:
                 return kind, [], False
@@ -474,11 +486,11 @@ class AgendaWorkspace(Vertical):
             parts = parts[2:]
         self.query_one('#agenda-detail', Static).update('\n\n'.join(parts))
         button = self.query_one('#agenda-intra', Button)
-        button.disabled = not bool(row['kind'] == 'event' or row['url'] or self.project_url)
+        button.disabled = not bool(row['kind'] in {'event', 'exam'} or row['url'] or self.project_url)
         if self.timeline:
             self.query_one('#agenda-description', Markdown).update(row['description'])
             self.query_one('#agenda-exam-note', Static).update(self.t('Register for both the exam session and its project on Intra before attending.') if row['kind'] == 'exam' else '')
-            button.set_source_label('Manage on Intra' if row['kind'] == 'exam' else 'Open on Intra')
+            button.set_source_label('Open on Intra')
 
     def on_markdown_link_clicked(self, event):
         event.stop()
@@ -519,7 +531,7 @@ class AgendaWorkspace(Vertical):
             event.button.set_source_label('List view' if self.calendar else 'Weekly calendar')
             self.query_one(ListView).display = not self.calendar
         elif key == 'agenda-intra':
-            url = (f"https://profile.intra.42.fr/events/{self.selected['id']}" if self.selected and self.selected['kind'] == 'event'
+            url = (f"https://profile.intra.42.fr/{'events' if self.selected['kind'] == 'event' else 'exams'}/{self.selected['id']}" if self.selected and self.selected['kind'] in {'event', 'exam'}
                    else self.selected.get('url') if self.selected else None)
             if url or self.project_url:
                 try:

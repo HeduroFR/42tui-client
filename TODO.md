@@ -403,8 +403,9 @@ or in its uncommitted worktree and still require review and CI before merging.
   loading, empty, unavailable and stale data. Assess reuse of the correction
   calendar's navigation/layout without carrying over slot-editing behavior.
   Implemented locally: event and exam sources, weekly agenda and detail views.
-  Implemented locally: events open `https://profile.intra.42.fr/events/<event_id>`;
-  exams retain their existing Intra action. Validate the live event link.
+  Implemented locally: events open `https://profile.intra.42.fr/events/<event_id>`
+  and exams open `https://profile.intra.42.fr/exams/<exam_id>`. Validate both links
+  and first-load retry behavior on campus.
 - [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule

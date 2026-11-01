@@ -23,6 +23,25 @@ class Harness(App):
     def compose(self): yield AgendaWorkspace()
 
 class AgendaTests(unittest.IsolatedAsyncioTestCase):
+    async def test_transient_initial_failures_are_retried(self):
+        class WarmingUp(Provider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                if kind not in self.calls:
+                    self.calls.append(kind)
+                    raise OSError('temporarily unavailable')
+                return super().get_agenda(begin, end, kind, target, campus_id)
+        app = Harness()
+        app.provider = WarmingUp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            for _ in range(100):
+                await pilot.pause(.04)
+                if len(ws.shown) == 4 and not ws.loading:
+                    break
+            self.assertEqual(len(ws.shown), 4)
+            self.assertEqual(app.provider.calls.count('exam'), 2)
+            self.assertIn('Up to date', str(ws.query_one('.agenda-status').render()))
+
     async def test_background_refresh_keeps_unchanged_selection(self):
         app = Harness()
         async with app.run_test(size=(100, 40)) as pilot:
@@ -544,10 +563,10 @@ class AgendaExamDetailsTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(markdown.query('MarkdownBulletList'))
             self.assertIn('both the exam session',str(workspace.query_one('#agenda-exam-note',Static).render()))
             button=workspace.query_one('#agenda-intra',Button)
-            self.assertEqual(str(button.label),'Manage on Intra')
+            self.assertEqual(str(button.label),'Open on Intra')
             with patch('ft_tui.features.agenda.views.webbrowser.open',return_value=True) as browser:
                 await pilot.click('#agenda-intra');await pilot.pause()
-                browser.assert_called_once_with('https://profile-v3.intra.42.fr/')
+                browser.assert_called_once_with('https://profile.intra.42.fr/exams/5')
             workspace.query_one(Select).value='event';await pilot.pause()
             self.assertEqual(workspace.shown,[])
             self.assertFalse(markdown.query('MarkdownH1'))
