@@ -729,7 +729,8 @@ class SettingsMixin:
             self.settings_status_timer.stop()
         self.settings_status_timer = self.set_timer(3, self._clear_settings_status)
         workspace = self.query_one(SettingsWorkspace)
-        workspace.run_worker(workspace._load_editor_integration(), group="editor-integration", exclusive=True)
+        if workspace.is_mounted:
+            workspace.run_worker(workspace._load_editor_integration(), group="editor-integration", exclusive=True)
         self._update_black_hole()
         await self._refresh_dashboard()
 
