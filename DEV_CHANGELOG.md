@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Keep the user-facing Unreleased notes aligned with committed code;
+  notes for the still-uncommitted performance work remain in the worktree with
+  that code. Documentation only; no release impact.
+
 - 2026-11-02: Paint the friends list from the cached summary batch during refresh,
   enrich details two at a time instead of one by one, and shorten rank cells while
   keeping the full explanation in details. Patch impact toward 0.7.0. Friends scope

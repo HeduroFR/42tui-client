@@ -30,27 +30,13 @@
 - Keep week navigation responsive while agenda sources load, avoid rebuilding an
   unchanged agenda during background refresh, and open campus events directly on Intra.
 
-- Refresh Clubs promptly after changing campus during an in-flight load.
-
-- Open and refresh the friends inbox without blocking its controls.
-
 - Explain when 42 denies access to an Agenda source, while keeping the other sources visible.
 
 - Show available agenda items while slower sources continue loading.
 
-- Reduce dashboard refresh work when local activity history is large.
-
-- Show saved friend project details immediately when opening a profile, including offline, while fresher data loads when available.
-
-- Reuse concurrent requests for the same portrait to reduce duplicate loading.
-
 - Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.
 - Add campus exams, with local schedule, duration, location, occupancy and associated exam projects. Event and exam subscription management opens Intra; exam data and event metadata require the updated backend.
 
-
-- Load account profile and cursus information concurrently when connecting.
-
-- Load curriculum, personal projects and catalog categories faster during catalog refresh.
 
 - Show friend summaries progressively and reduce interface lag when loading large friends lists.
 
