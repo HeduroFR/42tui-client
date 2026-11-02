@@ -4,6 +4,11 @@ if exists('g:loaded_ft_tui')
 endif
 let g:loaded_ft_tui = 1
 
+let s:config = expand('<sfile>:p:h:h') . '/ft_tui_config.vim'
+if filereadable(s:config)
+  execute 'source' fnameescape(s:config)
+endif
+
 if !exists('g:ft_tui_command')
   let g:ft_tui_command = '42tui'
 endif

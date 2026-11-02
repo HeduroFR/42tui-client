@@ -8,6 +8,7 @@ local pending_write = false
 
 M.command = "42tui"
 M.min_interval = 30
+M._configured = false
 
 local function send_pending()
   timer_pending = false
@@ -46,9 +47,15 @@ local function heartbeat(is_write)
 end
 
 function M.setup(opts)
+  M._configured = true
   opts = opts or {}
-  M.command = opts.command or M.command
-  M.min_interval = opts.min_interval or M.min_interval
+  local generated = {}
+  local has_generated, config = pcall(require, "ft_tui_config")
+  if has_generated and type(config) == "table" then
+    generated = config
+  end
+  M.command = opts.command or generated.command or M.command
+  M.min_interval = opts.min_interval or generated.min_interval or M.min_interval
 
   local group = vim.api.nvim_create_augroup("FtTuiHeartbeat", { clear = true })
   vim.api.nvim_create_autocmd({ "BufEnter", "TextChanged", "TextChangedI" }, {

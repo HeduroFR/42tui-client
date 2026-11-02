@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Install, verify, update, repair and uninstall the Vim, Neovim, VS Code or Zed
+  activity integration from onboarding and Settings → Workspace → Editor. The
+  card shows the installed version, the 42TUI executable path, the last editor
+  event and a non-recording heartbeat check. Installation is offline, never
+  edits editor configuration, and reports failures instead of claiming success.
+
 - Switch the dashboard activity card between coding time and the campus
   workstation log time reported by Intra. Cluster Radar and its Cluster Map link
   stay in place. Workstation time requires the updated backend and shows loading,

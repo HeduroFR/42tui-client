@@ -1,15 +1,16 @@
 """First-run setup wizard for a personal 42TUI workspace."""
 
+import asyncio
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from ft_tui.ui.modal import AppModal
-from textual.widgets import Input, Static
+from textual.widgets import Input
 
 from ft_tui.ui.select import Select
 from ft_tui.i18n import LANGUAGE_LABELS, SUPPORTED_LANGUAGES, translate
-from ft_tui.ui.components import Button
+from ft_tui.ui.components import Button, Static
 
 
 class OnboardingScreen(AppModal[dict[str, str]]):
@@ -44,6 +45,9 @@ class OnboardingScreen(AppModal[dict[str, str]]):
     #onboarding-theme-wrap { width: 1fr; }
     #onboarding-language-wrap { height: auto; margin-top: 1; }
     #onboarding-error { color: $error; height: 1; }
+    #onboarding-editor-integration { height: auto; margin-top: 1; }
+    #onboarding-integration-actions { height: 3; margin-top: 1; }
+    #onboarding-integration-actions Button { margin-right: 1; }
     #onboarding-actions { height: 3; align-vertical: middle; }
     #onboarding-actions-spacer { width: 1fr; }
     #onboarding-back { width: 14; margin-right: 1; }
@@ -72,6 +76,7 @@ class OnboardingScreen(AppModal[dict[str, str]]):
         self.account_login = account_login
         self._initial_theme = None
         self._completed = False
+        self._integration_skipped = False
 
     def _t(self, message: str) -> str:
         return translate(message, getattr(self.app, "language", "en"))
@@ -124,7 +129,7 @@ class OnboardingScreen(AppModal[dict[str, str]]):
                         self._t("New project checkouts will be suggested inside this folder."),
                         classes="onboarding-help",
                     )
-                with Vertical(id="onboarding-form-preferences", classes="onboarding-form"):
+                with VerticalScroll(id="onboarding-form-preferences", classes="onboarding-form"):
                     with Horizontal(id="onboarding-preferences-row"):
                         with Vertical(id="onboarding-editor-wrap"):
                             yield Static(self._t("FAVORITE EDITOR"), classes="onboarding-field-label")
@@ -153,6 +158,12 @@ class OnboardingScreen(AppModal[dict[str, str]]):
                             allow_blank=False,
                             id="onboarding-language",
                         )
+                    with Vertical(id="onboarding-editor-integration"):
+                        yield Static(self._t("Editor integration"), classes="onboarding-field-label")
+                        yield Static(self._t("Not installed"), id="onboarding-integration-status")
+                        with Horizontal(id="onboarding-integration-actions"):
+                            yield Button(self._t("Install integration"), id="onboarding-install-integration")
+                            yield Button(self._t("Skip"), id="onboarding-skip-integration")
                     yield Static(self._t("Your choices are saved on this device."), classes="onboarding-help")
                 yield Static("", id="onboarding-error")
                 with Horizontal(id="onboarding-actions"):
@@ -171,6 +182,89 @@ class OnboardingScreen(AppModal[dict[str, str]]):
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == 'onboarding-theme' and event.value in self.app.available_themes:
             self.app.theme = event.value
+        elif event.select.id == 'onboarding-editor' and not self._integration_skipped:
+            self.run_worker(self._load_integration(), group="onboarding-integration", exclusive=True)
+
+    def _selected_editor_key(self) -> str:
+        return str(self.query_one("#onboarding-editor", Select).value)
+
+    def _integration_message(self, result) -> str:
+        messages = {
+            "installed_verified": "Installed and heartbeat verified",
+            "installed_verification_unavailable": "Installed · heartbeat not verified (no project)",
+            "installed_verification_failed": "Installed · heartbeat check failed",
+            "cli_missing": "42TUI executable not found",
+            "cli_invalid": "The configured 42TUI path is not executable",
+            "asset_missing": "This build is missing the editor integration files",
+            "target_foreign": "Another installation exists at the target path",
+            "target_modified": "The installed integration was modified; remove it manually",
+            "target_symlink": "The integration target is a symbolic link",
+            "install_failed": "Installation failed",
+        }
+        text = messages.get(result.code, "Integration action failed")
+        if result.installed and result.status.editor == "zed":
+            text += ". Restart Zed to load the extension"
+        elif result.installed and result.status.editor == "vscode":
+            text += ". Reload VS Code to load the extension"
+        return f"{text}. {result.detail}" if result.detail else text
+
+    async def _load_integration(self) -> None:
+        editor = self._selected_editor_key()
+        try:
+            status = await asyncio.to_thread(self.app.editor_integration_service.status, editor)
+        except Exception:
+            try:
+                self.query_one("#onboarding-integration-status", Static).update("Could not read integration status")
+            except Exception:
+                pass
+            return
+        if not self.is_mounted or editor != self._selected_editor_key():
+            return
+        labels = {
+            "installed": "Installed",
+            "update_available": "Update available",
+            "needs_repair": "Needs repair",
+            "foreign": "Another installation exists",
+        }
+        try:
+            self.query_one("#onboarding-integration-status", Static).update(labels.get(status.state, "Not installed"))
+        except Exception:
+            pass
+
+    async def _install_integration(self) -> None:
+        editor = self._selected_editor_key()
+        controls = [
+            self.query_one("#onboarding-back", Button),
+            self.query_one("#onboarding-next", Button),
+            self.query_one("#onboarding-finish", Button),
+            self.query_one("#onboarding-editor", Select),
+            self.query_one("#onboarding-install-integration", Button),
+            self.query_one("#onboarding-skip-integration", Button),
+        ]
+        for control in controls:
+            control.disabled = True
+        status = self.query_one("#onboarding-integration-status", Static)
+        status.update("Working…")
+        try:
+            result = await asyncio.to_thread(
+                self.app.editor_integration_service.install, editor, force=True
+            )
+        except Exception:
+            status.update("Integration action failed")
+        else:
+            status.update(self._integration_message(result))
+            if not result.verified:
+                button = self.query_one("#onboarding-install-integration", Button)
+                button._source_label = "Retry"
+                button.apply_language()
+        finally:
+            if self.is_mounted:
+                for control in controls:
+                    control.disabled = False
+
+    def _skip_integration(self) -> None:
+        self._integration_skipped = True
+        self.query_one("#onboarding-editor-integration").display = False
 
     def on_unmount(self) -> None:
         if not self._completed and self._initial_theme in self.app.available_themes:
@@ -200,6 +294,8 @@ class OnboardingScreen(AppModal[dict[str, str]]):
         )
         self.query_one("#onboarding-title", Static).update(self._t(titles[self.step]))
         self.query_one("#onboarding-description", Static).update(self._t(descriptions[self.step]))
+        if self.step == 2 and not self._integration_skipped:
+            self.run_worker(self._load_integration(), group="onboarding-integration", exclusive=True)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "onboarding-connect-account":
@@ -212,6 +308,10 @@ class OnboardingScreen(AppModal[dict[str, str]]):
             self._continue()
         elif event.button.id == "onboarding-finish":
             self._finish()
+        elif event.button.id == "onboarding-install-integration":
+            self.run_worker(self._install_integration(), group="onboarding-integration", exclusive=True)
+        elif event.button.id == "onboarding-skip-integration":
+            self._skip_integration()
 
     def _continue(self) -> None:
         if not self._valid_account():

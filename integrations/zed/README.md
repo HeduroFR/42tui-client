@@ -38,3 +38,14 @@ path in Zed settings:
 The extension forwards only the active file path, editor ID, event time, and save flag to the
 local CLI. The CLI uses the path to find the configured project and does not store the path or read
 the file contents. No project file is modified by installation.
+
+## Packaged asset
+
+42TUI ships a prebuilt `extension.wasm` with the Python package. After changing
+`src/lib.rs` or `extension.toml`, rebuild and refresh the packaged copy:
+
+```sh
+python release/build_zed_extension.py
+```
+
+The release package check fails if the wasm is missing or empty.

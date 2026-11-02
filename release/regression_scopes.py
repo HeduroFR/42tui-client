@@ -44,13 +44,14 @@ SCOPES = {
         'test_project_activity_feature_boundaries', 'test_activity_presentation', 'test_activity_provider', 'test_project_kind',
         'test_registration_cache', 'test_registration_presentation',
         'test_registration_provider', 'test_subject_sync', 'test_ui_fuzzy_projects',
-        'test_ui_project_activity', 'test_ui_project_browser', 'test_ui_project_details_layout',
+        'test_ui_project_activity', 'test_editor_launch', 'test_ui_project_browser', 'test_ui_project_details_layout',
         'test_ui_project_rank', 'test_ui_project_registration', 'test_ui_project_team',
         'test_ui_subject_refresh',
     ),
     'dashboard': (
         'test_dashboard_cache', 'test_goals_types', 'test_dashboard_service',
         'test_dashboard_repository', 'test_dashboard_feature_wiring',
+        'test_activity_heatmap',
         'test_ui_dashboard_portrait', 'test_ui_dashboard_profile',
     ),
     'cluster': (
@@ -67,6 +68,12 @@ SCOPES = {
     'settings-navigation': (
         'test_settings_feature_service', 'test_terminal_capabilities', 'test_ui_settings_navigation',
         'test_ui_terminal_settings', 'test_ui_username',
+    ),
+    'editor-integrations': (
+        'test_editor_integrations_assets', 'test_heartbeat_check', 'test_editor_integrations_files',
+        'test_editor_integrations_vsix', 'test_editor_integrations_editors',
+        'test_editor_integrations_service', 'test_ui_editor_integrations',
+        'test_onboarding_editor_integration',
     ),
     'testers': ('test_tester_terminal', 'test_testers', 'test_ui_project_testers'),
     'installation-updates': (

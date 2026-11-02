@@ -17,12 +17,16 @@ def _record_editor_heartbeat(args: argparse.Namespace) -> int:
             datetime.fromtimestamp(args.timestamp, tz=timezone.utc) if args.timestamp is not None else None
         )
         result = build_worklog_service(session_factory).heartbeat(
-            Path(args.file), editor=args.editor, is_write=args.write, occurred_at=occurred_at)
+            Path(args.file), editor=args.editor, is_write=args.write, occurred_at=occurred_at,
+            dry_run=args.dry_run)
     except ValueError as error:
         print(f"42tui: {error}", file=sys.stderr)
         return 2
     if not args.quiet:
-        print(f"42tui: activity recorded for {result.project_name} (+{result.credited_seconds:.0f}s)")
+        if args.dry_run:
+            print(f"42tui: activity would be recorded for {result.project_name}")
+        else:
+            print(f"42tui: activity recorded for {result.project_name} (+{result.credited_seconds:.0f}s)")
     return 0
 
 
@@ -58,6 +62,7 @@ def main() -> None:
         parser.add_argument("--editor", default="unknown", help="editor identifier, for example vscode or nvim")
         parser.add_argument("--write", action="store_true", help="mark this event as a file save")
         parser.add_argument("--timestamp", type=float, help="event Unix timestamp (defaults to now)")
+        parser.add_argument("--dry-run", action="store_true", help="check project resolution without recording")
         parser.add_argument("--quiet", action="store_true", help="suppress the success message")
         raise SystemExit(_record_editor_heartbeat(parser.parse_args(sys.argv[2:])))
 

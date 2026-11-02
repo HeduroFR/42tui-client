@@ -40,6 +40,12 @@ SETTINGS_CSS = r"""
     #settings-storage-apply { width: auto; min-width: 0; margin-left: 2; }
     .narrow-storage #settings-storage-row { height: 6; layout: vertical; }
     .narrow-storage #settings-storage-apply { margin-left: 0; }
+    #editor-cli-row, #editor-integration-actions { height: 3; }
+    #editor-cli-path { width: 1fr; }
+    #editor-cli-detect { width: auto; min-width: 0; margin-left: 2; }
+    #editor-integration-actions Button { width: auto; min-width: 0; margin-right: 1; }
+    .narrow-storage #editor-cli-row, .narrow-storage #editor-integration-actions { height: 7; layout: vertical; }
+    .narrow-storage #editor-cli-detect, .narrow-storage #editor-integration-actions Button { margin-left: 0; margin-right: 0; }
     #community-links { height: auto; }
     .community-card { width: 1fr; margin-right: 1; }
     .community-card:last-child { margin-right: 0; }

@@ -52,7 +52,7 @@ from ft_tui.app.bootstrap import (build_account_service, build_catalog_service,
                                     build_profile_service, build_dashboard_service,
                                     build_worklog_service, build_project_service,
                                     build_friends_service, build_clubs_service, build_social_service, build_cluster_service,
-                                    build_corrections_service, build_settings_service, build_installation_service, build_registration_service, build_student_profile_service,
+                                    build_corrections_service, build_settings_service, build_installation_service, build_editor_integration_service, build_registration_service, build_student_profile_service,
                                     build_subject_service, build_activity_service, build_account_shell_service, build_startup_service)
 from ft_tui.features.dashboard.state import DashboardState
 from ft_tui.features.worklog.state import WorklogState
@@ -180,6 +180,7 @@ class FortyTwoTuiApp(
         corrections_service=None,
         settings_service=None,
         installation_service=None,
+        editor_integration_service=None,
         registration_service=None,
         subject_service=None,
         activity_service=None,
@@ -209,6 +210,8 @@ class FortyTwoTuiApp(
         self.corrections_service = build_corrections_service() if corrections_service is None else corrections_service
         self.settings_service = build_settings_service(session_factory) if settings_service is None else settings_service
         self.installation_service = build_installation_service(session_factory) if installation_service is None else installation_service
+        self.editor_integration_service = (build_editor_integration_service(session_factory)
+                                           if editor_integration_service is None else editor_integration_service)
         self.registration_service = build_registration_service() if registration_service is None else registration_service
         self.subject_service = build_subject_service(session_factory) if subject_service is None else subject_service
         self.activity_service = build_activity_service(session_factory,self._configured_cursus_id) if activity_service is None else activity_service

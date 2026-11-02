@@ -13,6 +13,38 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Add managed editor integrations for Vim, Neovim, VS Code and Zed.
+  Assets ship inside the wheel and install offline into native `pack/start`
+  directories (Vim/Neovim), a generated VSIX or extension folder (VS Code), and
+  Zed's installed-extension directory. The feature service resolves the absolute
+  `42tui` path, injects it into files 42TUI owns, refuses unmarked targets, writes
+  an install manifest, and removes only manifest-owned files. `42tui heartbeat
+  --dry-run` resolves a configured project without inserting a heartbeat or
+  crediting time, so Settings can verify the executable without polluting
+  activity. Onboarding offers install/skip/retry; Settings → Workspace → Editor
+  shows install state, path, last editor event, heartbeat verification,
+  update/repair and confirmed uninstall. French and Spanish strings are included.
+  Minor impact toward 0.7.0.
+  Checks: full suite (1147 tests, 5 skipped) passes; asset/packaging, VSIX contents, warm-path filesystem safety, editor
+  targets, fake `code`/`flatpak` commands, heartbeat dry-run, service lifecycle,
+  Settings and onboarding UI tests pass. `uv build` and
+  `python release/check_package.py dist` pass with all editor assets.
+  Review fixes: repair restores missing owned files, uninstall removes only
+  manifest-owned files and leaves user files, heartbeat verification uses the CLI
+  path recorded at install, Settings requires `--version` before saving a path,
+  foreign installs cannot be uninstalled, and Neovim's user `setup()` falls back
+  to the injected absolute command.
+  Blockers: live VS Code (VSIX activation) and Zed (hand-placed wasm) validation
+  is pending on machines where those editors are installed; the owner reviews the
+  real extensions. A LazyVim/SupraVIM install/startup check with the full plugin
+  manager is still pending, but a Neovim startup that calls
+  `require("ft_tui").setup()` before the auto plugin verified that the user's
+  command and interval are not overridden. Manual macOS
+  checks passed for fresh Vim/Neovim installs, plugin auto-load with a generated
+  absolute path, and a Neovim `BufEnter` heartbeat recorded through the installed
+  plugin; Vim's headless ex-mode does not exercise its asynchronous job, so the
+  Vim edit/save attribution walkthrough remains for interactive review.
+
 - 2026-11-02: Add the dashboard activity-card toggle between local coding time and
   the connected account's reported campus workstation time. Workstation mode sums
   reported daily seconds into four weeks, keeps missing days distinct from reported
