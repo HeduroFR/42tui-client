@@ -890,6 +890,10 @@ class AgendaSubscriptionTests(unittest.IsolatedAsyncioTestCase):
             await wait_for(pilot, lambda: provider.reads == 1)
             toggle = ws.query_one('#agenda-subscribe', Button)
             self.assertTrue(toggle.disabled)
+            await wait_for(
+                pilot,
+                lambda: toggle.tooltip == 'Reconnect your 42 account to enable subscriptions.',
+            )
             self.assertEqual(toggle.tooltip,
                 'Reconnect your 42 account to enable subscriptions.')
             ws.show_subscription({'account_id':'42','event_id':1,'subscribed':True,
@@ -1044,6 +1048,10 @@ class AgendaSubscriptionTests(unittest.IsolatedAsyncioTestCase):
             ws = app.query_one(AgendaWorkspace)
             await wait_for(pilot, lambda: provider.reads == 1)
             toggle = ws.query_one('#agenda-subscribe', Button)
+            await wait_for(
+                pilot,
+                lambda: toggle.tooltip == 'Reconnect your 42 account to enable subscriptions.',
+            )
             self.assertEqual(toggle.tooltip,
                 'Reconnect your 42 account to enable subscriptions.')
             app.language = 'fr'; toggle.apply_language()
