@@ -183,6 +183,9 @@ class SettingsWorkspace(Vertical):
         self.query_one("#editor-integration-uninstall", Button).disabled = status.state in ("not_installed", "foreign")
 
     def _result_text(self, result) -> str:
+        from ft_tui.i18n import translate
+
+        language = getattr(self.app, "language", "en")
         messages = {
             "installed_verified": "Installed and heartbeat verified",
             "installed_verification_unavailable": "Installed · heartbeat not verified (no project)",
@@ -201,11 +204,11 @@ class SettingsWorkspace(Vertical):
             "install_failed": "Installation failed",
             "uninstall_failed": "Could not remove the integration",
         }
-        text = messages.get(result.code, "Integration action failed")
+        text = translate(messages.get(result.code, "Integration action failed"), language)
         if result.installed and result.status.editor == "zed":
-            text += ". Restart Zed to load the extension"
+            text += ". " + translate("Restart Zed to load the extension", language)
         elif result.installed and result.status.editor == "vscode":
-            text += ". Reload VS Code to load the extension"
+            text += ". " + translate("Reload VS Code to load the extension", language)
         return f"{text}. {result.detail}" if result.detail else text
 
     async def _run_editor_action(self, action: str) -> None:

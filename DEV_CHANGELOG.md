@@ -30,9 +30,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   Settings and onboarding UI tests pass. `uv build` and
   `python release/check_package.py dist` pass with all editor assets.
   Review fixes: repair restores missing owned files, uninstall removes only
-  manifest-owned files and leaves user files, heartbeat verification uses the CLI
+  manifest-owned files and moves unrelated leftovers to a sibling
+  `-unrelated` directory, heartbeat verification uses the CLI
   path recorded at install, Settings requires `--version` before saving a path,
-  foreign installs cannot be uninstalled, and Neovim's user `setup()` falls back
+  foreign installs cannot be uninstalled, result messages translate their base
+  text before appending technical detail, and Neovim's user `setup()` falls back
   to the injected absolute command.
   Blockers: live VS Code (VSIX activation) and Zed (hand-placed wasm) validation
   is pending on machines where those editors are installed; the owner reviews the

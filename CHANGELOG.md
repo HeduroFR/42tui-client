@@ -7,6 +7,8 @@
   card shows the installed version, the 42TUI executable path, the last editor
   event and a non-recording heartbeat check. Installation is offline, never
   edits editor configuration, and reports failures instead of claiming success.
+  Uninstall removes only 42TUI files; unrelated files left inside the integration
+  folder are moved to a sibling `-unrelated` directory.
 
 - Switch the dashboard activity card between coding time and the campus
   workstation log time reported by Intra. Cluster Radar and its Cluster Map link

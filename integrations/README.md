@@ -16,7 +16,9 @@ time. File paths are not stored and file contents are never read.
 
 The same card shows the installed version, update and repair state, the last
 editor event and the installed editor executable. **Uninstall** removes only the
-files 42TUI installed.
+files 42TUI installed. If you added unrelated files inside the integration
+folder, they are moved to a sibling `<folder>-unrelated` directory instead of
+being deleted.
 
 During first-run onboarding, the **Editor & style** step offers the same install
 for the selected editor. **Skip** leaves the rest of setup untouched.

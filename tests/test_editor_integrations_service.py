@@ -144,7 +144,8 @@ class ServiceTests(unittest.TestCase):
         (target / "user.txt").write_text("keep")
         result = service.uninstall("vim")
         self.assertEqual(result.code, "removed")
-        self.assertEqual((target / "user.txt").read_text(), "keep")
+        self.assertEqual(service.status("vim").state, "not_installed")
+        self.assertEqual((target.with_name("ft_tui-unrelated") / "user.txt").read_text(), "keep")
         self.assertFalse((target / "plugin" / "ft_tui.vim").exists())
 
     def test_uninstall_preserves_config_and_reports_missing(self):

@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 from ft_tui.features.editor_integrations.adapters.files import (
@@ -86,10 +87,27 @@ class EditorCommands:
                 self._run(command + ["--uninstall-extension", VSCODE_ID])
             removed = True
             for path in self._vscode_installed():
-                removed = remove_tree(path, path.parent) and removed
+                if not remove_tree(path, path.parent):
+                    removed = False
+                elif path.exists():
+                    removed = self._quarantine(path) and removed
             return removed and not any(self._vscode_installed())
         target = self.target(editor)
-        return remove_tree(target, target.parent)
+        removed = remove_tree(target, target.parent)
+        if removed and target.exists():
+            removed = self._quarantine(target)
+        return removed
+
+    def _quarantine(self, path: Path) -> bool:
+        """Move unrelated leftovers aside so the target path is free again."""
+        destination = path.with_name(f"{path.name}-unrelated")
+        if destination.exists():
+            destination = path.with_name(f"{path.name}-unrelated-{uuid.uuid4().hex[:8]}")
+        try:
+            path.rename(destination)
+        except OSError:
+            return False
+        return True
 
     def manifest(self, editor: str) -> dict[str, object] | None:
         if editor == "vscode":

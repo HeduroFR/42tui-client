@@ -201,11 +201,11 @@ class OnboardingScreen(AppModal[dict[str, str]]):
             "target_symlink": "The integration target is a symbolic link",
             "install_failed": "Installation failed",
         }
-        text = messages.get(result.code, "Integration action failed")
+        text = self._t(messages.get(result.code, "Integration action failed"))
         if result.installed and result.status.editor == "zed":
-            text += ". Restart Zed to load the extension"
+            text += ". " + self._t("Restart Zed to load the extension")
         elif result.installed and result.status.editor == "vscode":
-            text += ". Reload VS Code to load the extension"
+            text += ". " + self._t("Reload VS Code to load the extension")
         return f"{text}. {result.detail}" if result.detail else text
 
     async def _load_integration(self) -> None:
