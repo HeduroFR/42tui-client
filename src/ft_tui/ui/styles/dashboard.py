@@ -56,8 +56,9 @@ DASHBOARD_CSS = r"""#dashboard-page { height: 1fr; overflow-y: auto; padding: 0 
     #dashboard-needs-spacer { height: 1fr; }
     #dashboard-setup-next { height: 3; min-height: 3; margin-top: 1; }
     #dashboard-activity-card { width: 1fr; padding: 1 1 0 1; }
-    #dashboard-activity-heatmap { height: 5; content-align: left middle; }
-    #dashboard-activity-toggle { height: 1; min-height: 1; border: none; padding: 0 1; text-overflow: ellipsis; }
+    #dashboard-activity-heatmap { height: 5; content-align: center middle; }
+    #dashboard-activity-toggle-area { height: 1fr; align: center middle; }
+    #dashboard-activity-toggle { height: 3; min-height: 3; width: auto; min-width: 16; }
     #dashboard-cluster-card { content-align: center middle; }
     #dashboard-cluster-card .dashboard-kicker { margin-bottom: 0; }
     #dashboard-cluster-map { width: 1fr; height: 3; min-height: 3; }

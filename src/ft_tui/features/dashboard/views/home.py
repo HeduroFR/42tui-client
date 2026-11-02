@@ -13,7 +13,12 @@ from rich.text import Text
 from ft_tui.ui.username import username_text
 
 from ft_tui.features.dashboard.service import DashboardService
-from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap, activity_color, format_duration
+from ft_tui.features.dashboard.views.heatmap import (
+    ActivityHeatmap,
+    activity_color,
+    format_duration,
+    format_tooltip_time,
+)
 
 from ft_tui.ui.components import (
     Button,
@@ -422,7 +427,7 @@ class DashboardMixin:
     def _render_activity_card(self, model, language) -> None:
         workstation = getattr(self, "attendance_mode", "coding") == "workstation"
         toggle = self.query_one("#dashboard-activity-toggle", Button)
-        toggle.set_source_label("Coding time" if workstation else "Workstation log")
+        toggle.set_source_label("Coding time" if workstation else "Log time")
         data = getattr(self, "account_attendance", None) if workstation else None
         if isinstance(data, dict) and data.get("user_id") != getattr(self, "account_id", None):
             data = None
@@ -432,7 +437,7 @@ class DashboardMixin:
         if workstation and status != "available":
             pending = status in (None, "pending")
             state = "Loading…" if pending else "Unavailable"
-            title_widget.update(f"{translate('WORKSTATION LOG', language)} · {translate(state, language)}")
+            title_widget.update(f"{translate('LOG TIME', language)} · {translate(state, language)}")
             title_widget.tooltip = None
             heatmap.set_snapshot(translate("Loading workstation time…" if pending
                                            else "Workstation time unavailable.", language), {})
@@ -443,7 +448,7 @@ class DashboardMixin:
                 data.get("days") or {}, datetime.now(timezone.utc)
             )
             stale = data.get("stale") is True
-            heading = translate("WORKSTATION LOG", language)
+            heading = translate("LOG TIME", language)
         else:
             week_starts, day_seconds, week_seconds = model.week_starts, model.day_seconds, model.week_seconds
             known = {week: 7 for week in week_starts}
@@ -465,11 +470,6 @@ class DashboardMixin:
             "fr": "L M M J V S D",
             "es": "L M X J V S D",
         }.get(language, "M T W T F S S")
-        weekday_labels = {
-            "en": ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-            "fr": ("lun", "mar", "mer", "jeu", "ven", "sam", "dim"),
-            "es": ("lun", "mar", "mié", "jue", "vie", "sáb", "dom"),
-        }.get(language, ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
         month_labels = {
             "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
             "fr": ("jan", "fév", "mar", "avr", "mai", "jun", "jui", "aoû", "sep", "oct", "nov", "déc"),
@@ -492,12 +492,9 @@ class DashboardMixin:
                 cells.append(f"[{color}]█[/]" if color
                              else "[#2f3740]·[/]" if seconds is None
                              else "[#46505b]·[/]")
-                label = f"{weekday_labels[day]} {date.day:02d} {month_labels[date.month - 1]}"
-                text = (f"{label} · {translate('No reported duration', language)}"
-                        if seconds is None else f"{label} · {format_duration(seconds)}")
-                if reported:
-                    text += f"\n{translate('Week to date', language)}: {format_duration(cumulative)}"
-                tooltips[(week_index, day)] = text
+                day_time = "—" if seconds is None else format_tooltip_time(seconds)
+                week_time = format_tooltip_time(cumulative) if reported else "—"
+                tooltips[(week_index, day)] = f"{day_time} ({week_time})"
             seconds = week_seconds[week]
             duration = format_duration(seconds) if known[week] else "—"
             label = f"{week.day:02d} {month_labels[week.month - 1]}"

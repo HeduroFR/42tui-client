@@ -85,7 +85,8 @@ class MainLayoutMixin:
                                 localize=False,
                             )
                             yield ActivityHeatmap(id="dashboard-activity-heatmap")
-                            yield Button("Workstation log", id="dashboard-activity-toggle")
+                            with Vertical(id="dashboard-activity-toggle-area"):
+                                yield Button("Log time", id="dashboard-activity-toggle")
                         with Vertical(classes="dashboard-card", id="dashboard-cluster-card"):
                             yield Static("CLUSTER RADAR", classes="dashboard-kicker")
                             yield Static("Unavailable", id="dashboard-cluster-status")

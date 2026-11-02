@@ -22,8 +22,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   and queues the authenticated Intra worker read of
   `translate.intra.42.fr/users/<login>/locations_stats.json`. Patch impact toward
   0.7.0.
-  Hovering a day now shows its exact time and the cumulative week-to-date total;
-  activity cells use a smooth hour-based color gradient instead of fixed bands.
+  Hovering a day now shows its exact time and the cumulative week-to-date total in
+  the compact `10h32 (34h00)` form; activity cells use a smooth hour-based color
+  gradient instead of fixed bands, the grid stays centered, and the heatmap uses a
+  pointer cursor. The toggle is a centered 3-row AppButton and the section is
+  labelled `LOG TIME`.
   Checks: 130 agenda/dashboard/profile/HTTP client tests passed, including the new
   projection, provider, pending-retry, gradient and per-day tooltip tests. The
   dependent backend and worker change is not deployed yet; live campus permissions,
