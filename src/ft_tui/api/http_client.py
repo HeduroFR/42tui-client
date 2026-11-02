@@ -23,6 +23,14 @@ class HttpProjectProvider:
             params['campus_id'] = str(campus_id)
         return self.api.request('GET', '/v1/me/agenda', params=params)
 
+    def get_event_subscription(self, event_id):
+        return self.api.request('GET', f'/v1/me/events/{event_id}/subscription')
+
+    def change_event_subscription(self, event_id, subscribed):
+        from uuid import uuid4
+        return self.api.request('POST', f'/v1/me/events/{event_id}/subscription',
+                                json={'subscribed': subscribed}, headers={'Idempotency-Key': str(uuid4())})
+
     def get_correction_slots(self, begin, end):
         from ft_tui.features.corrections.types import slot_snapshot
         return slot_snapshot(self.api.request('GET', '/v1/me/slots', params={

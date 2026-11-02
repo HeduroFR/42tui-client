@@ -1,4 +1,9 @@
 {
+  "Subscribe": "Suscribirse",
+  "Unsubscribe": "Cancelar suscripción",
+  "Reconnect your 42 account to enable subscriptions.": "Vuelve a conectar tu cuenta 42 para activar las suscripciones.",
+  "Subscription status unavailable.": "Estado de suscripción no disponible.",
+  "Subscription could not be changed. Refresh its status before trying again.": "No se pudo cambiar la suscripción. Actualiza su estado antes de volver a intentarlo.",
   "Save your session in the system keyring.": "Guarda tu sesión en el llavero del sistema.",
   "Connect again when you restart 42TUI.": "Vuelve a conectarte al reiniciar 42TUI.",
   "Unlock your saved session with a passphrase.": "Desbloquea tu sesión guardada con una frase de contraseña.",

@@ -66,7 +66,10 @@ class AgendaWorkspace(Vertical):
     AgendaWorkspace .agenda-main { layout: horizontal; height: 1fr; min-height: 8; }
     AgendaWorkspace .agenda-sidebar { width: 48; max-width: 42%; min-width: 24; height: 1fr; border-left: solid $primary; padding-left: 1; margin-left: 1; }
     AgendaWorkspace .agenda-sidebar .agenda-detail { height: 1fr; max-height: 100%; }
-    AgendaWorkspace .agenda-sidebar Button { width: 1fr; }
+    AgendaWorkspace .agenda-sidebar Button { width: 1fr; min-width: 0; }
+    AgendaWorkspace .event-actions { height: 3; layout: horizontal; }
+    AgendaWorkspace .event-actions > Button { width: 1fr; text-wrap: nowrap; padding: 0; }
+    AgendaWorkspace .event-actions #agenda-intra { margin-right: 1; }
     AgendaWorkspace.agenda-narrow .agenda-main { layout: vertical; }
     AgendaWorkspace.agenda-narrow .agenda-calendar-panel { width: 1fr; height: 2fr; }
     AgendaWorkspace.agenda-narrow .agenda-sidebar { width: 1fr; max-width: 100%; min-width: 0; height: 12; border-left: none; border-top: solid $primary; padding: 0; margin: 1 0 0 0; }
@@ -89,6 +92,9 @@ class AgendaWorkspace(Vertical):
         self.project_not_ready = False
         self._slot_window = None
         self.selected = None
+        self.subscription_epoch = 0
+        self.subscription_state = None
+        self.subscription_writing = False
 
     def t(self, text):
         return translate(text, getattr(self.app, 'language', 'en'))
@@ -119,7 +125,9 @@ class AgendaWorkspace(Vertical):
                         yield Markdown('', id='agenda-description', open_links=False)
                         yield Static('', id='agenda-exam-note', markup=False, localize=False)
                     yield ListView(id='agenda-items')
-                    yield Button('Open on Intra', id='agenda-intra', disabled=True)
+                    with Horizontal(classes='event-actions'):
+                        yield Button('Open on Intra', id='agenda-intra', disabled=True)
+                        yield Button('Subscribe', id='agenda-subscribe', variant='primary', disabled=True)
         else:
             yield Static('Evaluation slots' if self.project_id else 'My evaluations')
             with Horizontal(classes='agenda-toolbar'):
@@ -201,6 +209,7 @@ class AgendaWorkspace(Vertical):
             if self.project_id:
                 self.query_one(SlotsCalendar).set_slots(())
             self.selected = None
+            self.clear_subscription()
             self.query_one('#agenda-detail', Static).update('')
             if self.timeline:
                 self.query_one('#agenda-item-title', Static).update('')
@@ -345,6 +354,7 @@ class AgendaWorkspace(Vertical):
             rows = [row for row in rows if datetime.fromisoformat(row['begin_at']) >= datetime.now(self.zone)][:3]
         self.shown = [row for row in rows if value == 'all' or row['kind'] == value]
         self.selected = None
+        self.clear_subscription()
         self.query_one('#agenda-detail', Static).update('')
         self.query_one('.agenda-detail').display = False
         self.query_one('#agenda-intra', Button).disabled = not bool(self.project_url)
@@ -514,6 +524,70 @@ class AgendaWorkspace(Vertical):
             self.query_one('#agenda-description', Markdown).update(row['description'])
             self.query_one('#agenda-exam-note', Static).update(self.t('Register for both the exam session and its project on Intra before attending.') if row['kind'] == 'exam' else '')
             button.set_source_label('Open on Intra')
+            self.subscription_epoch += 1
+            self.subscription_state = None
+            self.subscription_writing = False
+            toggle = self.query_one('#agenda-subscribe', Button)
+            toggle.display = row['kind'] == 'event'
+            toggle.disabled = True
+            toggle.variant = 'primary'
+            toggle.set_source_label('Subscribe')
+            if row['kind'] == 'event':
+                self.run_worker(self.read_subscription(row['id'], self.subscription_epoch, self.identity()), group='agenda-subscription-read', exclusive=True)
+
+    def subscription_current(self, event_id, epoch, context):
+        return self.is_mounted and self.identity() == context and self.subscription_epoch == epoch and self.selected is not None and self.selected['kind'] == 'event' and self.selected['id'] == event_id
+
+    def clear_subscription(self):
+        self.subscription_epoch += 1
+        self.subscription_state = None
+        self.subscription_writing = False
+        if not self.timeline:
+            return
+        toggle = self.query_one('#agenda-subscribe', Button)
+        toggle.display = False
+        toggle.disabled = True
+        toggle.variant = 'primary'
+        toggle.set_source_label('Subscribe')
+        toggle.set_source_tooltip(None)
+
+    def show_subscription(self, value, event_id, context):
+        if not isinstance(value, dict) or value.get('account_id') != context[1] or value.get('event_id') != event_id or type(value.get('can_write')) is not bool or value.get('subscribed') not in (True, False, None) or type(value.get('subscribed')) not in (bool, type(None)):
+            raise ValueError('Invalid event subscription')
+        self.subscription_state = value.get('subscribed')
+        toggle = self.query_one('#agenda-subscribe', Button)
+        toggle.disabled = not value['can_write'] or self.subscription_state is None
+        toggle.set_source_label('Unsubscribe' if self.subscription_state else 'Subscribe')
+        toggle.variant = 'danger' if self.subscription_state else 'primary'
+        toggle.set_source_tooltip('Reconnect your 42 account to enable subscriptions.'
+                                  if value.get('reason') == 'scope_missing' else None)
+
+    async def read_subscription(self, event_id, epoch, context):
+        provider = context[0]
+        if not callable(getattr(provider, 'get_event_subscription', None)):
+            return
+        try:
+            value = await asyncio.to_thread(provider.get_event_subscription, event_id)
+            if self.subscription_current(event_id, epoch, context):
+                self.show_subscription(value, event_id, context)
+        except Exception:
+            if self.subscription_current(event_id, epoch, context):
+                self.query_one('#agenda-subscribe', Button).set_source_tooltip('Subscription status unavailable.')
+
+    async def change_subscription(self, event_id, epoch, context, desired):
+        toggle = self.query_one('#agenda-subscribe', Button)
+        toggle.disabled = True
+        try:
+            value = await asyncio.to_thread(context[0].change_event_subscription, event_id, desired)
+            if self.subscription_current(event_id, epoch, context):
+                self.show_subscription(value, event_id, context)
+        except Exception:
+            if self.subscription_current(event_id, epoch, context):
+                self.notify(self.t('Subscription could not be changed. Refresh its status before trying again.'), severity='error')
+                await self.read_subscription(event_id, epoch, context)
+        finally:
+            self.subscription_writing = False
+
 
     def on_markdown_link_clicked(self, event):
         event.stop()
@@ -553,6 +627,12 @@ class AgendaWorkspace(Vertical):
                 self.query_one('.project-slot-headings').display = self.calendar
             event.button.set_source_label('List view' if self.calendar else 'Weekly calendar')
             self.query_one(ListView).display = not self.calendar
+        elif key == 'agenda-subscribe':
+            if (self.selected and self.subscription_state is not None and not self.subscription_writing
+                    and callable(getattr(self.identity()[0], 'change_event_subscription', None))):
+                self.subscription_writing = True
+                self.query_one('#agenda-subscribe', Button).disabled = True
+                self.run_worker(self.change_subscription(self.selected['id'], self.subscription_epoch, self.identity(), not self.subscription_state), group='agenda-subscription-write')
         elif key == 'agenda-intra':
             url = (f"https://profile.intra.42.fr/{'events' if self.selected['kind'] == 'event' else 'exams'}/{self.selected['id']}" if self.selected and self.selected['kind'] in {'event', 'exam'}
                    else self.selected.get('url') if self.selected else None)

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Subscribe to or unsubscribe from Intra campus events from an event's Agenda
+  details. Sessions without the new 42 permission need to reconnect before
+  changing a subscription.
+
 - Start Correction Slots loading after the view is mounted, avoiding a stuck first load.
 
 

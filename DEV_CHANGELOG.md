@@ -13,6 +13,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Add Intra event subscription management to Agenda with the `profile`
+  scope requested on every login, and translate its copy. Minor impact toward
+  0.7.0. Focused subscription and locale tests passed; backend deployment, live
+  42 behavior and final candidate validation remain outstanding.
+
 - 2026-11-02: Reset the development changelog to the verified 0.6.2 publication
   baseline after confirming the GitHub release, tag and PyPI version, and removed
   the 17 entries included in 0.6.1/0.6.2. Documentation only; no release impact.

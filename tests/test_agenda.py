@@ -835,3 +835,226 @@ class AgendaPermissionFailureTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('Exam · Access denied by 42',str(workspace.query_one('.agenda-status',Static).render()))
             self.assertEqual(len(workspace.shown),3)
             self.assertFalse(any(row['kind']=='exam' for row in workspace.shown))
+
+class SubscriptionProvider(Provider):
+    def __init__(self):
+        super().__init__()
+        self.status = {'account_id': '42', 'event_id': 1, 'subscribed': False,
+                       'can_write': True, 'reason': None}
+        self.reads = 0
+        self.writes = []
+        self.failure = None
+    def get_agenda(self, begin, end, kind, target, campus_id=None):
+        value = super().get_agenda(begin, end, kind, target, campus_id)
+        return value if kind == 'event' else {'account_id': '42', 'items': []}
+    def get_event_subscription(self, event_id):
+        self.reads += 1
+        return dict(self.status, event_id=event_id)
+    def change_event_subscription(self, event_id, subscribed):
+        self.writes.append((event_id, subscribed))
+        if self.failure: raise self.failure
+        self.status = dict(self.status, subscribed=subscribed)
+        return dict(self.status, event_id=event_id)
+
+async def wait_for(pilot, predicate, tries=50):
+    for _ in range(tries):
+        await pilot.pause(.01)
+        if predicate(): return
+
+class AgendaSubscriptionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_event_subscription_status_controls_toggle(self):
+        from ft_tui.ui.components import Button
+        app = Harness(); app.provider = SubscriptionProvider()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: ws.subscription_state is not None)
+            toggle = ws.query_one('#agenda-subscribe', Button)
+            self.assertTrue(toggle.display); self.assertFalse(toggle.disabled)
+            self.assertEqual(str(toggle.label), 'Subscribe')
+            self.assertEqual(toggle.variant, 'primary')
+            await pilot.pause()
+            await pilot.click('#agenda-subscribe')
+            await wait_for(pilot, lambda: ws.subscription_state is True)
+            self.assertEqual(app.provider.writes, [(1, True)])
+            self.assertEqual(str(toggle.label), 'Unsubscribe')
+            self.assertEqual(toggle.variant, 'danger')
+
+    async def test_missing_profile_scope_disables_toggle_and_clears_hint(self):
+        from ft_tui.ui.components import Button
+        app = Harness(); provider = SubscriptionProvider()
+        provider.status = {'account_id':'42','event_id':1,'subscribed':None,
+                           'can_write':False,'reason':'scope_missing'}
+        app.provider = provider
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: provider.reads == 1)
+            toggle = ws.query_one('#agenda-subscribe', Button)
+            self.assertTrue(toggle.disabled)
+            self.assertEqual(toggle.tooltip,
+                'Reconnect your 42 account to enable subscriptions.')
+            ws.show_subscription({'account_id':'42','event_id':1,'subscribed':True,
+                                  'can_write':True,'reason':None}, 1, ws.identity())
+            self.assertFalse(toggle.disabled)
+            self.assertIsNone(toggle.tooltip)
+
+    async def test_write_failure_notifies_and_rereads_status(self):
+        from ft_tui.ui.components import Button
+        from unittest.mock import patch
+        app = Harness(); provider = SubscriptionProvider()
+        provider.failure = RuntimeError('offline'); app.provider = provider
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: provider.reads == 1)
+            await pilot.pause()
+            with patch.object(app, 'notify') as notify:
+                await pilot.click('#agenda-subscribe')
+                await wait_for(pilot, lambda: provider.reads == 2)
+            notify.assert_called_once()
+            self.assertIn('Subscription could not be changed', notify.call_args.args[0])
+            self.assertEqual(provider.writes, [(1, True)])
+            self.assertFalse(ws.query_one('#agenda-subscribe', Button).disabled)
+
+    async def test_second_activation_is_ignored_while_writing(self):
+        import threading
+        from ft_tui.ui.components import Button
+        release = threading.Event()
+        class Slow(SubscriptionProvider):
+            def change_event_subscription(self, event_id, subscribed):
+                self.writes.append((event_id, subscribed)); release.wait(3)
+                self.status = dict(self.status, subscribed=subscribed)
+                return dict(self.status, event_id=event_id)
+        app = Harness(); app.provider = Slow()
+        try:
+            async with app.run_test(size=(120, 40)) as pilot:
+                ws = app.query_one(AgendaWorkspace)
+                await wait_for(pilot, lambda: app.provider.reads == 1)
+                await pilot.pause()
+                toggle = ws.query_one('#agenda-subscribe', Button)
+                toggle.post_message(Button.Pressed(toggle))
+                toggle.post_message(Button.Pressed(toggle))
+                await pilot.pause()
+                self.assertEqual(app.provider.writes, [(1, True)])
+        finally:
+            release.set()
+
+    async def test_status_read_failure_disables_toggle_but_keeps_agenda_usable(self):
+        from ft_tui.ui.components import Button
+        class Failing(SubscriptionProvider):
+            def get_event_subscription(self, event_id):
+                self.reads += 1
+                raise RuntimeError('offline')
+        app = Harness(); app.provider = Failing()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: app.provider.reads == 1)
+            await pilot.pause()
+            toggle = ws.query_one('#agenda-subscribe', Button)
+            self.assertTrue(toggle.disabled)
+            self.assertEqual(toggle.tooltip, 'Subscription status unavailable.')
+            self.assertIsNotNone(ws.selected)
+            before = ws.week
+            await pilot.click('#agenda-next'); await pilot.pause()
+            self.assertNotEqual(ws.week, before)
+
+    async def test_subscription_ui_clears_when_selection_is_lost(self):
+        from ft_tui.ui.components import Button, Select
+        app = Harness(); app.provider = SubscriptionProvider()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: ws.subscription_state is not None)
+            await pilot.pause()
+            toggle = ws.query_one('#agenda-subscribe', Button)
+            self.assertTrue(toggle.display)
+            ws.query_one(Select).value = 'exam'
+            await pilot.pause()
+            self.assertFalse(toggle.display)
+            self.assertTrue(toggle.disabled)
+            self.assertIsNone(ws.subscription_state)
+            self.assertEqual(str(toggle.label), 'Subscribe')
+
+    async def test_late_status_for_previous_event_is_ignored(self):
+        import threading
+        release = threading.Event()
+        class TwoEvents(SubscriptionProvider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                self.calls.append(kind)
+                if kind != 'event': return {'account_id': '42', 'items': []}
+                return {'account_id': '42', 'items': [
+                    dict(id=1, kind='event', begin_at=(begin+timedelta(hours=10)).isoformat(),
+                         end_at=None, title='First', description='', counterpart='', url=None),
+                    dict(id=2, kind='event', begin_at=(begin+timedelta(hours=14)).isoformat(),
+                         end_at=None, title='Second', description='', counterpart='', url=None)]}
+            def get_event_subscription(self, event_id):
+                self.reads += 1
+                if event_id == 1: release.wait(3)
+                return {'account_id': '42', 'event_id': event_id,
+                        'subscribed': event_id == 2, 'can_write': True, 'reason': None}
+        app = Harness(); app.provider = TwoEvents()
+        try:
+            async with app.run_test(size=(120, 40)) as pilot:
+                ws = app.query_one(AgendaWorkspace)
+                await wait_for(pilot, lambda: app.provider.reads == 1)
+                ws.select_row(ws.shown[1])
+                await wait_for(pilot, lambda: ws.subscription_state is True)
+                release.set()
+                await pilot.pause(); await pilot.pause()
+                self.assertEqual(ws.selected['id'], 2)
+                self.assertIs(ws.subscription_state, True)
+        finally:
+            release.set()
+
+    async def test_status_for_another_event_or_account_is_rejected(self):
+        app = Harness(); app.provider = SubscriptionProvider()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: app.provider.reads == 1)
+            context = ws.identity()
+            self.assertFalse(ws.subscription_current(1, 0, context))
+            with self.assertRaises(ValueError):
+                ws.show_subscription({'account_id':'42','event_id':2,'subscribed':True,
+                                      'can_write':True,'reason':None}, 1, context)
+            with self.assertRaises(ValueError):
+                ws.show_subscription({'account_id':'99','event_id':1,'subscribed':True,
+                                      'can_write':True,'reason':None}, 1, context)
+
+    async def test_exam_hides_subscription_toggle(self):
+        from ft_tui.ui.components import Button
+        class Exams(SubscriptionProvider):
+            def get_agenda(self, begin, end, kind, target, campus_id=None):
+                self.calls.append(kind)
+                rows = [] if kind != 'exam' else [dict(id=5, kind='exam',
+                    begin_at=(begin + timedelta(days=3)).isoformat(), end_at=None,
+                    title='Exam', description='', counterpart='', url=None)]
+                return {'account_id':'42','items':rows}
+        app = Harness(); app.provider = Exams()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: bool(ws.selected))
+            await pilot.pause()
+            self.assertFalse(ws.query_one('#agenda-subscribe', Button).display)
+            self.assertEqual(app.provider.reads, 0)
+
+    async def test_subscription_hint_follows_language_changes(self):
+        from ft_tui.ui.components import Button
+        app = Harness(); provider = SubscriptionProvider()
+        provider.status = {'account_id':'42','event_id':1,'subscribed':None,
+                           'can_write':False,'reason':'scope_missing'}
+        app.provider = provider
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: provider.reads == 1)
+            toggle = ws.query_one('#agenda-subscribe', Button)
+            self.assertEqual(toggle.tooltip,
+                'Reconnect your 42 account to enable subscriptions.')
+            app.language = 'fr'; toggle.apply_language()
+            self.assertEqual(toggle.tooltip,
+                'Reconnectez votre compte 42 pour activer les abonnements.')
+
+    def test_subscription_copy_is_translated(self):
+        from ft_tui.i18n import translate
+        for language in ('fr', 'es'):
+            for source in ('Subscribe', 'Unsubscribe',
+                    'Reconnect your 42 account to enable subscriptions.',
+                    'Subscription status unavailable.',
+                    'Subscription could not be changed. Refresh its status before trying again.'):
+                self.assertNotEqual(translate(source, language), source, source)
