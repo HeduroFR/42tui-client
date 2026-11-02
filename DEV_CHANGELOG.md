@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Assign the `test_activity_heatmap` and `test_editor_launch`
+  modules to their dashboard and projects regression scopes. Test-only; no
+  runtime impact.
+
 - 2026-11-02: Add the dashboard activity-card toggle between local coding time and
   the connected account's reported campus workstation time. Workstation mode sums
   reported daily seconds into four weeks, keeps missing days distinct from reported
