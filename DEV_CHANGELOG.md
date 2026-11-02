@@ -13,6 +13,22 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Add the dashboard activity-card toggle between local coding time and
+  the connected account's reported campus workstation time. Workstation mode sums
+  reported daily seconds into four weeks, keeps missing days distinct from reported
+  zero, labels stale retained data, shows pending/loading/unavailable states with
+  bounded retries, and preserves cached data on refresh failures. It reads the
+  account-scoped `GET /v1/me/attendance`, which takes no user or login parameter
+  and queues the authenticated Intra worker read of
+  `translate.intra.42.fr/users/<login>/locations_stats.json`. Patch impact toward
+  0.7.0.
+  Hovering a day now shows its exact time and the cumulative week-to-date total;
+  activity cells use a smooth hour-based color gradient instead of fixed bands.
+  Checks: 130 agenda/dashboard/profile/HTTP client tests passed, including the new
+  projection, provider, pending-retry, gradient and per-day tooltip tests. The
+  dependent backend and worker change is not deployed yet; live campus permissions,
+  timezone coverage and ongoing-session behavior remain unverified.
+
 - 2026-11-02: Exclude exam projects from the dashboard's Needs Attention setup
   candidates and its setup button, matching the existing resume filter, while
   keeping exams in the curriculum journey. Patch impact toward 0.7.0. Nine

@@ -18,6 +18,7 @@ from ft_tui.ui.components import (
 )
 from textual.containers import VerticalScroll
 from ft_tui.features.dashboard.views.progress import ProgressLegend, ProgressSegment
+from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap
 from ft_tui.features.corrections.views import CorrectionSlotsWorkspace
 from ft_tui.features.friends.views.workspace import FriendsWorkspace
 from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
@@ -83,7 +84,8 @@ class MainLayoutMixin:
                                 classes="dashboard-kicker",
                                 localize=False,
                             )
-                            yield Static("", id="dashboard-activity-heatmap")
+                            yield ActivityHeatmap(id="dashboard-activity-heatmap")
+                            yield Button("Workstation log", id="dashboard-activity-toggle")
                         with Vertical(classes="dashboard-card", id="dashboard-cluster-card"):
                             yield Static("CLUSTER RADAR", classes="dashboard-kicker")
                             yield Static("Unavailable", id="dashboard-cluster-status")

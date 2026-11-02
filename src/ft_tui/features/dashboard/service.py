@@ -1,5 +1,5 @@
 """Compose dashboard values from explicit snapshots and read-only capabilities."""
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from collections.abc import Callable
 from ft_tui.features.catalog.read_models import curriculum_projects
 from ft_tui.features.catalog.kind import project_kind
@@ -32,6 +32,30 @@ class DashboardService:
             if 0 <= age <= IDLE_TIMEOUT_SECONDS:
                 active = project_id
         return Activity(latest, active)
+
+    @staticmethod
+    def attendance_weeks(days, now):
+        """Map reported date -> seconds into four local weeks; missing stays None."""
+        today = now.date()
+        monday = today - timedelta(days=today.weekday())
+        weeks = tuple(monday - timedelta(weeks=offset) for offset in range(3, -1, -1))
+        day_seconds = {week + timedelta(days=day): None for week in weeks for day in range(7)}
+        for key, seconds in (days or {}).items():
+            day = date.fromisoformat(key)
+            if day in day_seconds:
+                day_seconds[day] = float(seconds)
+        week_seconds = {
+            week: sum(value for value in
+                      (day_seconds[week + timedelta(days=day)] for day in range(7))
+                      if value is not None)
+            for week in weeks
+        }
+        known = {
+            week: sum(day_seconds[week + timedelta(days=day)] is not None
+                      for day in range(7))
+            for week in weeks
+        }
+        return weeks, day_seconds, week_seconds, known
 
     def compose(self, *, projects, profile, goals, curriculum, activity,
                 active_project_id, selected_project_key, now):

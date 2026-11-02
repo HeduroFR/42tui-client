@@ -390,6 +390,90 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                 factory.kw['bind'].dispose()
 
 
+class DashboardWorkstationActivityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_toggle_switches_between_coding_and_workstation_states(self):
+        from datetime import datetime, timedelta, timezone
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "activity.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    await pilot.pause()
+                    app.account_connected = True
+                    app.account_id = '42'
+                    today = datetime.now(timezone.utc).date()
+                    monday = today - timedelta(days=today.weekday())
+                    app.account_attendance = {
+                        'user_id': '42', 'status': 'available', 'begin': '2026-07-01',
+                        'end': today.isoformat(), 'collected_at': '2026-10-27T10:00:00Z',
+                        'stale': False, 'days': {monday.isoformat(): 3600,
+                                                 (monday + timedelta(days=1)).isoformat(): 7200}}
+                    await app._refresh_dashboard()
+                    self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    await pilot.click('#dashboard-activity-toggle')
+                    await pilot.pause()
+                    self.assertEqual(app.attendance_mode, 'workstation')
+                    self.assertIn('WORKSTATION LOG', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    self.assertIn('3h 00m', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap
+                    heatmap = app.query_one('#dashboard-activity-heatmap', ActivityHeatmap)
+                    self.assertIn('Mon', heatmap.cell_tooltip(3, 0))
+                    self.assertIn('1h 00m', heatmap.cell_tooltip(3, 0))
+                    self.assertIn('Week to date: 1h 00m', heatmap.cell_tooltip(3, 0))
+                    self.assertIn('Tue', heatmap.cell_tooltip(3, 1))
+                    self.assertIn('2h 00m', heatmap.cell_tooltip(3, 1))
+                    self.assertIn('Week to date: 3h 00m', heatmap.cell_tooltip(3, 1))
+                    app.account_attendance = {**app.account_attendance, 'stale': True}
+                    await app._refresh_dashboard()
+                    self.assertIn('stale', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    app.account_attendance = {**app.account_attendance, 'user_id': '99'}
+                    await app._refresh_dashboard()
+                    self.assertIn('Loading…', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    app.account_attendance = {'user_id': '42', 'status': 'unavailable', 'stale': True}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertIn('Workstation time unavailable.', str(app.query_one('#dashboard-activity-heatmap', Static).render()))
+                    class PendingResponse:
+                        status_code = 503
+                        headers = {'retry-after': '5'}
+                        def json(self):
+                            return {'error': 'attendance_pending'}
+                    class PendingError(Exception):
+                        response = PendingResponse()
+                    class PendingProvider:
+                        def get_my_attendance(self, account):
+                            raise PendingError()
+                    app.account_attendance = None
+                    app.provider = PendingProvider()
+                    await app._fetch_attendance(app.provider, '42', app.account_generation)
+                    self.assertEqual(app.account_attendance['status'], 'pending')
+                    self.assertIn('Loading…', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    if getattr(app, '_attendance_timer', None) is not None:
+                        app._attendance_timer.stop()
+                        app._attendance_timer = None
+                    class Failing:
+                        def get_my_attendance(self, account):
+                            raise RuntimeError('offline')
+                    app.account_attendance = {
+                        'user_id': '42', 'status': 'available', 'begin': '2026-07-01',
+                        'end': today.isoformat(), 'collected_at': '2026-10-27T10:00:00Z',
+                        'stale': False, 'days': {monday.isoformat(): 3600}}
+                    app.provider = Failing()
+                    await app._fetch_attendance(app.provider, '42', app.account_generation)
+                    self.assertTrue(app.account_attendance['stale'])
+                    self.assertEqual(app.account_attendance['days'], {monday.isoformat(): 3600})
+                    await pilot.pause()
+                    await pilot.click('#dashboard-activity-toggle')
+                    await pilot.pause()
+                    self.assertEqual(app.attendance_mode, 'coding')
+                    self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
+            finally:
+                factory.kw['bind'].dispose()
+
+
 class CoalitionSnapshotTests(unittest.TestCase):
     def test_available_snapshot_wins_and_foreign_or_malformed_values_are_rejected(self):
         from ft_tui.features.dashboard.views.home import coalition_values

@@ -13,6 +13,7 @@ from rich.text import Text
 from ft_tui.ui.username import username_text
 
 from ft_tui.features.dashboard.service import DashboardService
+from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap, activity_color, format_duration
 
 from ft_tui.ui.components import (
     Button,
@@ -27,6 +28,24 @@ from ft_tui.ui.components import (
     timezone,
     translate,
 )
+
+
+def attendance_pending_retry(error):
+    """Return the retry delay for the worker's pending response, else None."""
+    response = getattr(error, "response", None)
+    if getattr(response, "status_code", None) != 503:
+        return None
+    try:
+        payload = response.json()
+    except Exception:
+        return None
+    if not isinstance(payload, dict) or payload.get("error") != "attendance_pending":
+        return None
+    try:
+        retry = int(response.headers.get("retry-after", "5"))
+    except (TypeError, ValueError):
+        retry = 5
+    return min(max(retry, 1), 60)
 
 
 def coalition_values(profile, snapshot, *, account_id=None, cursus_id=None):
@@ -271,6 +290,7 @@ class DashboardMixin:
         self._render_coalition(profile)
         self._start_coalition_refresh()
         self._start_event_subscriptions_refresh()
+        self._start_attendance_refresh()
         continue_project = model.resume
         active_project = continue_project if model.active_now else None
         recent_project = continue_project if model.recent_activity else None
@@ -358,55 +378,7 @@ class DashboardMixin:
                 self.query_one("#dashboard-notes-empty", Static).styles.display = "block"
             self.dashboard_recent_notes_signature = note_signature
 
-        week_starts = model.week_starts
-        day_seconds = model.day_seconds
-        week_seconds = model.week_seconds
-        current_seconds = week_seconds[week_starts[-1]]
-        current_hours, current_minutes = divmod(int(current_seconds // 60), 60)
-        language = self.language
-        weekly_coding = translate("WEEKLY CODING", language)
-        weekly_time = translate("{time} [dim]this week[/]", language).format(
-            time=f"{current_hours}h {current_minutes:02d}m"
-        )
-        self.query_one("#dashboard-activity-title", Static).update(
-            f"{weekly_coding} · {weekly_time}"
-        )
-
-        def activity_cell(seconds: float) -> str:
-            if seconds <= 0:
-                return "[#46505b]·[/]"
-            if seconds < 15 * 60:
-                return "[#65bfa8]░[/]"
-            if seconds < 60 * 60:
-                return "[#49c7ae]▒[/]"
-            if seconds < 3 * 60 * 60:
-                return "[#22cbb7]▓[/]"
-            return "[bold #15d3c1]█[/]"
-
-        day_labels = {
-            "en": "M T W T F S S",
-            "fr": "L M M J V S D",
-            "es": "L M X J V S D",
-        }.get(self.language, "M T W T F S S")
-        month_labels = {
-            "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-            "fr": ("jan", "fév", "mar", "avr", "mai", "jun", "jui", "aoû", "sep", "oct", "nov", "déc"),
-            "es": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
-        }.get(self.language, ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
-        # Keep every row the same width so centering the widget doesn't shift
-        # the weekday legend away from its activity columns.
-        heatmap_lines = [f"        {day_labels}         "]
-        for week in week_starts:
-            cells = " ".join(
-                activity_cell(day_seconds[week + timedelta(days=day)])
-                for day in range(7)
-            )
-            seconds = week_seconds[week]
-            hours, minutes = divmod(int(seconds // 60), 60)
-            duration = f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"
-            label = f"{week.day:02d} {month_labels[week.month - 1]}"
-            heatmap_lines.append(f"{label:>6}  {cells} {duration:>8}")
-        self.query_one("#dashboard-activity-heatmap", Static).update("\n".join(heatmap_lines))
+        self._render_activity_card(model, self.language)
 
         self._update_black_hole()
 
@@ -446,6 +418,159 @@ class DashboardMixin:
         if unknown:
             unclassified.styles.width = f'{unknown}fr'
         self.query_one("#dashboard-progress-next-name", Static).update(journey.next_name)
+
+    def _render_activity_card(self, model, language) -> None:
+        workstation = getattr(self, "attendance_mode", "coding") == "workstation"
+        toggle = self.query_one("#dashboard-activity-toggle", Button)
+        toggle.set_source_label("Coding time" if workstation else "Workstation log")
+        data = getattr(self, "account_attendance", None) if workstation else None
+        if isinstance(data, dict) and data.get("user_id") != getattr(self, "account_id", None):
+            data = None
+        status = data.get("status") if isinstance(data, dict) else None
+        title_widget = self.query_one("#dashboard-activity-title", Static)
+        heatmap = self.query_one("#dashboard-activity-heatmap", ActivityHeatmap)
+        if workstation and status != "available":
+            pending = status in (None, "pending")
+            state = "Loading…" if pending else "Unavailable"
+            title_widget.update(f"{translate('WORKSTATION LOG', language)} · {translate(state, language)}")
+            title_widget.tooltip = None
+            heatmap.set_snapshot(translate("Loading workstation time…" if pending
+                                           else "Workstation time unavailable.", language), {})
+            heatmap.tooltip = None
+            return
+        if workstation:
+            week_starts, day_seconds, week_seconds, known = DashboardService.attendance_weeks(
+                data.get("days") or {}, datetime.now(timezone.utc)
+            )
+            stale = data.get("stale") is True
+            heading = translate("WORKSTATION LOG", language)
+        else:
+            week_starts, day_seconds, week_seconds = model.week_starts, model.day_seconds, model.week_seconds
+            known = {week: 7 for week in week_starts}
+            stale = False
+            heading = translate("WEEKLY CODING", language)
+        current_seconds = week_seconds[week_starts[-1]]
+        if known[week_starts[-1]]:
+            hours, minutes = divmod(int(current_seconds // 60), 60)
+            current = translate("{time} [dim]this week[/]", language).format(
+                time=f"{hours}h {minutes:02d}m"
+            )
+        else:
+            current = translate("Unavailable", language)
+        title_widget.update(f"{heading} · {current}{' · ' + translate('stale', language) if stale else ''}")
+        title_widget.tooltip = None
+
+        day_labels = {
+            "en": "M T W T F S S",
+            "fr": "L M M J V S D",
+            "es": "L M X J V S D",
+        }.get(language, "M T W T F S S")
+        weekday_labels = {
+            "en": ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+            "fr": ("lun", "mar", "mer", "jeu", "ven", "sam", "dim"),
+            "es": ("lun", "mar", "mié", "jue", "vie", "sáb", "dom"),
+        }.get(language, ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+        month_labels = {
+            "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+            "fr": ("jan", "fév", "mar", "avr", "mai", "jun", "jui", "aoû", "sep", "oct", "nov", "déc"),
+            "es": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
+        }.get(language, ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+        # Keep every row the same width so the weekday legend stays aligned.
+        heatmap_lines = [f"        {day_labels}         "]
+        tooltips = {}
+        for week_index, week in enumerate(week_starts):
+            cumulative = 0.0
+            reported = 0
+            cells = []
+            for day in range(7):
+                date = week + timedelta(days=day)
+                seconds = day_seconds[date]
+                if seconds is not None:
+                    cumulative += seconds
+                    reported += 1
+                color = activity_color(seconds)
+                cells.append(f"[{color}]█[/]" if color
+                             else "[#2f3740]·[/]" if seconds is None
+                             else "[#46505b]·[/]")
+                label = f"{weekday_labels[day]} {date.day:02d} {month_labels[date.month - 1]}"
+                text = (f"{label} · {translate('No reported duration', language)}"
+                        if seconds is None else f"{label} · {format_duration(seconds)}")
+                if reported:
+                    text += f"\n{translate('Week to date', language)}: {format_duration(cumulative)}"
+                tooltips[(week_index, day)] = text
+            seconds = week_seconds[week]
+            duration = format_duration(seconds) if known[week] else "—"
+            label = f"{week.day:02d} {month_labels[week.month - 1]}"
+            heatmap_lines.append(f"{label:>6}  {' '.join(cells)} {duration:>8}")
+        heatmap.set_snapshot("\n".join(heatmap_lines), tooltips)
+        heatmap.tooltip = None
+
+    def _start_attendance_refresh(self, *, force=False) -> None:
+        provider = getattr(self, "provider", None)
+        if (not getattr(self, "account_connected", False) or not getattr(self, "account_id", None)
+                or getattr(self, "attendance_mode", "coding") != "workstation"
+                or not callable(getattr(provider, "get_my_attendance", None))
+                or getattr(self, "_attendance_busy", False)):
+            return
+        if force and getattr(self, "_attendance_timer", None) is not None:
+            self._attendance_timer.stop()
+            self._attendance_timer = None
+        now = asyncio.get_running_loop().time()
+        if getattr(self, "_attendance_account", None) != self.account_id:
+            self._attendance_account = self.account_id
+            self._attendance_checked = 0.0
+            self._attendance_attempts = 0
+        if not force and now - getattr(self, "_attendance_checked", 0.0) < 60:
+            return
+        self._attendance_busy = True
+        self.run_worker(self._fetch_attendance(provider, self.account_id, self.account_generation),
+                        group="dashboard-attendance", exclusive=True)
+
+    def _schedule_attendance_retry(self, delay) -> None:
+        attempts = getattr(self, "_attendance_attempts", 0) + 1
+        self._attendance_attempts = attempts
+        if attempts > 6 or getattr(self, "_attendance_timer", None) is not None:
+            return
+
+        def retry():
+            self._attendance_timer = None
+            if self.is_mounted and self.attendance_mode == "workstation":
+                self._start_attendance_refresh(force=True)
+
+        self._attendance_timer = self.set_timer(delay, retry)
+
+    async def _fetch_attendance(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_my_attendance, account)
+            if account != self.account_id or generation != self.account_generation:
+                return
+            current = getattr(self, "account_attendance", None)
+            if isinstance(value, dict) and (value.get("status") == "available" or not current):
+                self.account_attendance = value
+            elif isinstance(current, dict):
+                self.account_attendance = {**current, "stale": True}
+            self._attendance_attempts = 0
+            self._attendance_checked = asyncio.get_running_loop().time()
+            await self._refresh_dashboard()
+        except Exception as error:
+            if account == self.account_id and generation == self.account_generation:
+                current = getattr(self, "account_attendance", None)
+                delay = attendance_pending_retry(error)
+                if delay is not None and not (isinstance(current, dict)
+                                              and current.get("status") == "available"):
+                    self.account_attendance = {"user_id": account, "status": "pending", "stale": False}
+                    self._schedule_attendance_retry(delay)
+                elif isinstance(current, dict) and current.get("status") == "available":
+                    self.account_attendance = {**current, "stale": True}
+                    self._attendance_attempts = 0
+                else:
+                    self.account_attendance = {"user_id": account, "status": "unavailable",
+                                               "stale": True, "reason": "attendance_unavailable"}
+                    self._attendance_attempts = 0
+                self._attendance_checked = asyncio.get_running_loop().time()
+                await self._refresh_dashboard()
+        finally:
+            self._attendance_busy = False
 
     def _load_project_activity(self, session=None) -> None:
         activity = self.dashboard_service.activity(datetime.now(timezone.utc))

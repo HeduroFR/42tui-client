@@ -280,6 +280,8 @@ class FortyTwoTuiApp(
         self.dev_log_previewing = False
         self.dashboard_continue_key: str | None = None
         self.dashboard_setup_key: str | None = None
+        self.attendance_mode = "coding"
+        self.account_attendance: dict | None = None
         self.dashboard_recent_notes_signature: tuple[tuple[object, ...], ...] = ()
         self.pending_dashboard_project_key: str | None = None
         self.shortcuts_visible = False
@@ -683,6 +685,12 @@ class FortyTwoTuiApp(
             return
         if event.button.id == "dashboard-cluster-map":
             self.query_one(TabbedContent).active = "cluster-map"
+            return
+        if event.button.id == "dashboard-activity-toggle":
+            self.attendance_mode = "coding" if self.attendance_mode == "workstation" else "workstation"
+            if self.attendance_mode == "workstation":
+                self._start_attendance_refresh(force=True)
+            await self._refresh_dashboard()
             return
         if event.button.id == "dashboard-view-project":
             if self.dashboard_continue_key:

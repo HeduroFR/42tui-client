@@ -169,6 +169,11 @@ class HttpProjectProvider:
         if not isinstance(value,dict):raise ValueError('Invalid coalition response')
         return value
 
+    def get_my_attendance(self, account_id):
+        from ft_tui.features.profiles.models import student_id, student_attendance
+        student_id(account_id)
+        return student_attendance(self.api.request('GET','/v1/me/attendance'), account_id)
+
     def get_event_subscriptions(self):
         value=self.api.request('GET','/v1/me/events/subscriptions')
         ids=value.get('event_ids') if isinstance(value,dict) else None

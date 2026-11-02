@@ -21,6 +21,18 @@ class ApiTests(unittest.TestCase):
         api.wrong=True
         with self.assertRaises(ValueError):provider.submit_cluster_issue('1A1',draft,key)
 
+    def test_account_attendance_uses_the_connected_me_endpoint_only(self):
+        class Api:
+            def request(self, method, path, **options):
+                self.last = (method, path, options)
+                return {'user_id': '42', 'status': 'available', 'begin': '2026-07-01',
+                        'end': '2026-10-27', 'collected_at': '2026-10-27T10:00:00Z',
+                        'stale': False, 'days': {'2026-10-26': 0}}
+        api = Api(); provider = HttpProjectProvider(api)
+        self.assertEqual(provider.get_my_attendance('42')['days'], {'2026-10-26': 0})
+        self.assertEqual(api.last, ('GET', '/v1/me/attendance', {}))
+        with self.assertRaises(ValueError): provider.get_my_attendance('99')
+
     def test_portrait_endpoint_is_host_scoped_and_response_identity_is_checked(self):
         class Api:
             def request(self,method,path,**options):

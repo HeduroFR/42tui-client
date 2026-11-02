@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Switch the dashboard activity card between coding time and the campus
+  workstation log time reported by Intra. Cluster Radar and its Cluster Map link
+  stay in place. Workstation time requires the updated backend and shows loading,
+  stale and unavailable states without discarding cached data. Hover a day to see
+  its exact time and the week-to-date total; activity colors now use a smoother
+  hour-based gradient.
+
 - Stop proposing exam projects in Needs Attention for local folder setup.
 
 - Group the dashboard into My evaluations — sessions you will evaluate, sessions

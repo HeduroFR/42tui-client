@@ -363,7 +363,7 @@ or in its uncommitted worktree and still require review and CI before merging.
   Implemented locally: workstation moved to Cluster Radar; grade, level and
   primary campus added; coalition score and rank now come from `/v1/me/coalition`
   with a profile fallback. The card layout still needs review.
-- [ ] Let the activity card switch between coding time and campus workstation log
+- [x] Let the activity card switch between coding time and campus workstation log
   time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
   worker endpoint for the connected user's own Intra `locations_stats.json`,
   The user reports that an authenticated account can request other users' data;
@@ -374,6 +374,13 @@ or in its uncommitted worktree and still require review and CI before merging.
   sessions. Distinguish reported zero from missing, unavailable or stale data.
   Assess API compatibility and deploy the required backend before a dependent
   client release.
+  Implemented locally: `GET /v1/me/attendance` has no user/login parameter and
+  queues the authenticated Intra worker read of the connected account's
+  `locations_stats.json`; the dashboard toggle, four-week totals,
+  missing-versus-zero cells, pending/loading, stale retention and unavailable
+  states are covered by focused tests. Backend/worker deployment, live campus
+  permissions/timezone behavior and the ongoing-session boundary still require
+  validation.
 - [x] Show project names for each progress-bar status on hover, including Done,
   Active, Available and Locked; provide keyboard access to the same information.
 - [x] Remove the dashboard's top-right connected-account/local-projects label;

@@ -83,6 +83,17 @@ class DashboardServiceTests(unittest.TestCase):
         self.assertEqual(model.week_seconds[model.week_starts[-1]], 300)
         self.assertEqual(model.day_seconds[self.now.date()-timedelta(days=1)], 300)
 
+    def test_attendance_weeks_keep_missing_days_distinct_and_sum_reports(self):
+        weeks, days, totals, known = DashboardService.attendance_weeks(
+            {'2026-10-26': '3600', '2026-10-22': '0'}, self.now)
+        self.assertEqual(weeks[-1].isoformat(), '2026-10-26')
+        self.assertEqual(days[weeks[-1]], 3600.0)
+        self.assertIsNone(days[self.now.date()])
+        self.assertEqual(known[weeks[-1]], 1)
+        self.assertEqual(totals[weeks[-1]], 3600.0)
+        self.assertEqual((totals[weeks[-2]], known[weeks[-2]]), (0.0, 1))
+        self.assertTrue(all(known[week] == 0 for week in weeks[:2]))
+
     def test_deadline_uses_current_rank_and_in_progress_over_available(self):
         model = self.compose([project(1), project(2, 'in_progress')])
         self.assertEqual(model.deadline.milestone, 'Rank 00')
