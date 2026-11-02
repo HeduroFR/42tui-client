@@ -1,7 +1,9 @@
 """Settings UI composition and behavior."""
 
 import asyncio
+import os
 import webbrowser
+from pathlib import Path
 from collections.abc import Iterable
 from ft_tui.ui.username import USERNAME_GRADIENTS, username_text
 
@@ -69,6 +71,9 @@ class SettingsWorkspace(Vertical):
         watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
         self.query_one('#subject-tdf-help').display = self.query_one('#subject-viewer', Select).value == 'tdf'
+        saved_path = self.app._settings_operations().get("editor_cli_path", "")
+        self.query_one("#editor-cli-path", Input).value = saved_path
+        self.run_worker(self._load_editor_integration(), group="editor-integration", exclusive=True)
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
@@ -104,6 +109,174 @@ class SettingsWorkspace(Vertical):
 
     def action_categories(self) -> None:
         self.query_one("#settings-categories", ListView).focus()
+
+    def _editor_service(self):
+        return self.app.editor_integration_service
+
+    def _selected_editor(self) -> str:
+        return str(self.query_one("#favorite-editor", Select).value)
+
+    async def _load_editor_integration(self) -> None:
+        editor = self._selected_editor()
+        try:
+            status = await asyncio.to_thread(self._editor_service().status, editor)
+        except Exception:
+            try:
+                self.query_one("#editor-integration-detail", Static).update("Could not read integration status")
+            except NoMatches:
+                pass
+            return
+        if self.is_mounted and editor == self._selected_editor():
+            try:
+                self._render_editor_status(status)
+            except NoMatches:
+                pass
+
+    def _render_editor_status(self, status, message: str = "") -> None:
+        try:
+            self.query_one("#editor-integration-status", Static)
+        except NoMatches:
+            return
+        labels = {
+            "not_installed": "Not installed",
+            "installed": "Installed",
+            "update_available": "Update available",
+            "needs_repair": "Needs repair",
+            "foreign": "Another installation exists",
+        }
+        self.query_one("#editor-integration-status", Static).update(labels.get(status.state, "Not installed"))
+        detail = message
+        if not detail and status.installed_version:
+            detail = f"Version {status.installed_version}"
+        self.query_one("#editor-integration-detail", Static).update(detail)
+        heartbeat = {
+            "verified": "Heartbeat: verified",
+            "failed": "Heartbeat: check failed",
+            "unavailable": "Heartbeat: unavailable",
+        }.get(status.verification, "Heartbeat: not checked")
+        self.query_one("#editor-integration-heartbeat", Static).update(heartbeat)
+        self.query_one("#editor-integration-last-event", Static).update(
+            f"Last editor event {status.last_event_at:%Y-%m-%d %H:%M} UTC" if status.last_event_at else ""
+        )
+        if status.editor == "zed" and status.cli_path:
+            lsp = status.cli_path.parent / "42tui-zed-lsp"
+            editor_text = (
+                f"Zed language server: {lsp}" if lsp.is_file()
+                else "42tui-zed-lsp is missing next to the executable"
+            )
+        else:
+            editor_text = (
+                "Editor executable detected" if status.editor_found else "Editor executable not found"
+            )
+        self.query_one("#editor-integration-editor", Static).update(editor_text)
+        if status.cli_path:
+            self.query_one("#editor-cli-path", Input).placeholder = str(status.cli_path)
+        install = self.query_one("#editor-integration-install", Button)
+        label = {
+            "installed": "Reinstall",
+            "update_available": "Update",
+            "needs_repair": "Repair",
+        }.get(status.state, "Install")
+        install._source_label = label
+        install.apply_language()
+        self.query_one("#editor-integration-verify", Button).disabled = status.state in ("not_installed", "foreign")
+        self.query_one("#editor-integration-uninstall", Button).disabled = status.state in ("not_installed", "foreign")
+
+    def _result_text(self, result) -> str:
+        from ft_tui.i18n import translate
+
+        language = getattr(self.app, "language", "en")
+        messages = {
+            "installed_verified": "Installed and heartbeat verified",
+            "installed_verification_unavailable": "Installed · heartbeat not verified (no project)",
+            "installed_verification_failed": "Installed · heartbeat check failed",
+            "verified": "Heartbeat verified",
+            "verification_failed": "Heartbeat check failed",
+            "verification_unavailable": "Add a project to verify the heartbeat",
+            "removed": "Integration removed",
+            "not_installed": "Integration is not installed",
+            "cli_missing": "42TUI executable not found",
+            "cli_invalid": "The configured 42TUI path is not executable",
+            "asset_missing": "This build is missing the editor integration files",
+            "target_foreign": "Another installation exists at the target path",
+            "target_modified": "The installed integration was modified; remove it manually",
+            "target_symlink": "The integration target is a symbolic link",
+            "install_failed": "Installation failed",
+            "uninstall_failed": "Could not remove the integration",
+        }
+        text = translate(messages.get(result.code, "Integration action failed"), language)
+        if result.installed and result.status.editor == "zed":
+            text += ". " + translate("Restart Zed to load the extension", language)
+        elif result.installed and result.status.editor == "vscode":
+            text += ". " + translate("Reload VS Code to load the extension", language)
+        return f"{text}. {result.detail}" if result.detail else text
+
+    async def _run_editor_action(self, action: str) -> None:
+        editor = self._selected_editor()
+        service = self._editor_service()
+        buttons = [
+            self.query_one("#editor-integration-install", Button),
+            self.query_one("#editor-integration-verify", Button),
+            self.query_one("#editor-integration-uninstall", Button),
+            self.query_one("#editor-cli-detect", Button),
+        ]
+        for button in buttons:
+            button.disabled = True
+        self.query_one("#editor-integration-status", Static).update("Working…")
+        message = "Integration action failed"
+        try:
+            result = await asyncio.to_thread(getattr(service, action), editor, **(
+                {"force": True} if action == "install" else {})
+            )
+            message = self._result_text(result)
+        except Exception:
+            pass
+        finally:
+            if self.is_mounted:
+                for button in buttons:
+                    button.disabled = False
+                try:
+                    status = await asyncio.to_thread(service.status, editor)
+                except Exception:
+                    self.query_one("#editor-integration-status", Static).update(message)
+                else:
+                    self._render_editor_status(status, message)
+
+    @on(Select.Changed, "#favorite-editor")
+    def editor_selection_changed(self, event):
+        event.stop()
+        self.run_worker(self._load_editor_integration(), group="editor-integration", exclusive=True)
+
+    @on(Button.Pressed, "#editor-cli-detect")
+    async def detect_editor_cli(self, event):
+        event.stop()
+        path = await asyncio.to_thread(self._editor_service().detect_cli_path)
+        if path:
+            self.query_one("#editor-cli-path", Input).value = path
+        else:
+            self.query_one("#editor-integration-detail", Static).update("42TUI executable not found")
+
+    @on(Button.Pressed, "#editor-integration-install")
+    async def install_editor_integration(self, event):
+        event.stop()
+        await self._run_editor_action("install")
+
+    @on(Button.Pressed, "#editor-integration-verify")
+    async def verify_editor_integration(self, event):
+        event.stop()
+        await self._run_editor_action("verify")
+
+    @on(Button.Pressed, "#editor-integration-uninstall")
+    def uninstall_editor_integration(self, event):
+        event.stop()
+        from ft_tui.features.editor_integrations.views.confirm import EditorIntegrationRemoveScreen
+        editor = self._selected_editor()
+        label = {"vim": "Vim", "nvim": "Neovim", "vscode": "VS Code", "zed": "Zed"}.get(editor, editor)
+        self.app.push_screen(EditorIntegrationRemoveScreen(label), self._editor_removal_confirmed)
+
+    def _editor_removal_confirmed(self, confirmed: bool | None) -> None:
+        if confirmed:
+            self.run_worker(self._run_editor_action("uninstall"), group="editor-integration", exclusive=True)
 
     async def action_save(self) -> None:
         await self.app._save_settings_and_refresh_projects()
@@ -276,6 +449,21 @@ class SettingsMixin:
                                 value="nvim",
                                 id="favorite-editor",
                             )
+                            yield Static("ACTIVITY INTEGRATION", classes="section-kicker")
+                            yield Static("Editor integration", classes="settings-label")
+                            yield Static("Not installed", id="editor-integration-status")
+                            yield Static("", id="editor-integration-detail")
+                            yield Static("", id="editor-integration-heartbeat")
+                            yield Static("", id="editor-integration-last-event")
+                            yield Static("", id="editor-integration-editor")
+                            yield Static("42TUI executable", classes="settings-label")
+                            with Horizontal(id="editor-cli-row"):
+                                yield Input(placeholder="Auto-detected", id="editor-cli-path")
+                                yield Button("Detect", id="editor-cli-detect")
+                            with Horizontal(id="editor-integration-actions"):
+                                yield Button("Install", id="editor-integration-install")
+                                yield Button("Check heartbeat", id="editor-integration-verify")
+                                yield Button("Uninstall", id="editor-integration-uninstall")
                         with Vertical(classes="settings-section"):
                             yield Static("Automatic updates", classes="settings-label")
                             automatic_updates = self._settings_operations().get("automatic_updates", "true")
@@ -453,6 +641,16 @@ class SettingsMixin:
         updates_were_enabled = self.automatic_updates_enabled()
         root_value = self.query_one("#projects-root", Input).value.strip()
         favorite_editor = str(self.query_one("#favorite-editor", Select).value)
+        cli_value = self.query_one("#editor-cli-path", Input).value.strip()
+        status = self.query_one("#settings-status", Static)
+        if cli_value:
+            candidate = Path(cli_value).expanduser()
+            if (not candidate.is_absolute() or not candidate.is_file()
+                    or not os.access(candidate, os.X_OK)
+                    or self.editor_integration_service.cli_version(str(candidate)) is None):
+                status.update("Enter the absolute path to a working 42TUI executable.")
+                return
+            cli_value = str(candidate)
         favorite_subject_viewer = str(self.query_one("#subject-viewer", Select).value)
         subject_interval = str(self.query_one("#subject-check-interval", Select).value)
         favorite_theme = str(self.query_one("#favorite-theme", Select).value)
@@ -463,7 +661,6 @@ class SettingsMixin:
         gradient = self.query_one('#username-gradient', Select).value
         gradient = gradient if gradient in USERNAME_GRADIENTS else 'off'
         default_cursus_id = self.query_one("#default-cursus", Select).value
-        status = self.query_one("#settings-status", Static)
         campus_value = self.query_one("#catalog-campus", Select).value
         track_value = self.query_one("#cc-default-track", Select).value
         current_scope = self._catalog_scope()
@@ -471,6 +668,7 @@ class SettingsMixin:
             "automatic_updates": str(self.query_one("#automatic-updates", Select).value),
             "projects_root": root_value,
             "favorite_editor": favorite_editor,
+            "editor_cli_path": cli_value,
             "favorite_subject_viewer": favorite_subject_viewer,
             "subject_check_interval_seconds": subject_interval,
             "favorite_theme": favorite_theme,
@@ -530,6 +728,8 @@ class SettingsMixin:
         if self.settings_status_timer is not None:
             self.settings_status_timer.stop()
         self.settings_status_timer = self.set_timer(3, self._clear_settings_status)
+        workspace = self.query_one(SettingsWorkspace)
+        workspace.run_worker(workspace._load_editor_integration(), group="editor-integration", exclusive=True)
         self._update_black_hole()
         await self._refresh_dashboard()
 

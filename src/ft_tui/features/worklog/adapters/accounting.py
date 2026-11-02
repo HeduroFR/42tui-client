@@ -14,24 +14,8 @@ from ft_tui.db.models import ActivityHeartbeat, Project, TimeLog
 from ft_tui.shared.activity import IDLE_TIMEOUT_SECONDS
 
 
-def record_heartbeat(
-    session: Session,
-    file_path: str | Path,
-    *,
-    editor: str = "unknown",
-    is_write: bool = False,
-    occurred_at: datetime | None = None,
-) -> tuple[Project, float]:
-    """Record an editor event, crediting only the gap since recent activity.
-
-    The incoming absolute file path is used only to find a configured project. It is not
-    written to the database. Activity from multiple editors shares one global idle window,
-    so simultaneous use does not double count time.
-    """
-    if session.get_bind().dialect.name == "sqlite" and not session.in_transaction():
-        # Serialize CLI processes around the read-previous / insert-current sequence.
-        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
-
+def resolve_project(session: Session, file_path: str | Path) -> Project:
+    """Find the configured project containing an editor file path."""
     target = Path(file_path).expanduser().resolve(strict=False)
     candidates = list(session.scalars(select(Project).where(Project.local_path.is_not(None))))
     matches: list[tuple[int, Project]] = []
@@ -44,7 +28,32 @@ def record_heartbeat(
         matches.append((len(str(project_root)), project))
     if not matches:
         raise ValueError("File is outside every configured project folder")
-    project = max(matches, key=lambda match: match[0])[1]
+    return max(matches, key=lambda match: match[0])[1]
+
+
+def record_heartbeat(
+    session: Session,
+    file_path: str | Path,
+    *,
+    editor: str = "unknown",
+    is_write: bool = False,
+    occurred_at: datetime | None = None,
+    dry_run: bool = False,
+) -> tuple[Project, float]:
+    """Record an editor event, crediting only the gap since recent activity.
+
+    The incoming absolute file path is used only to find a configured project. It is not
+    written to the database. Activity from multiple editors shares one global idle window,
+    so simultaneous use does not double count time. A dry run only resolves the project.
+    """
+    if dry_run:
+        return resolve_project(session, file_path), 0.0
+
+    if session.get_bind().dialect.name == "sqlite" and not session.in_transaction():
+        # Serialize CLI processes around the read-previous / insert-current sequence.
+        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+
+    project = resolve_project(session, file_path)
 
     timestamp = occurred_at or datetime.now(timezone.utc).replace(tzinfo=None)
     if timestamp.tzinfo is not None:

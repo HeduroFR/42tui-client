@@ -78,6 +78,15 @@ def build_installation_service(session_factory):
     return InstallationService(SqliteSettingsRepository(session_factory))
 
 
+def build_editor_integration_service(session_factory):
+    from ft_tui.features.editor_integrations.adapters.assets import PackagedAssets
+    from ft_tui.features.editor_integrations.adapters.editors import EditorCommands
+    from ft_tui.features.editor_integrations.adapters.heartbeat import HeartbeatProbe
+    from ft_tui.features.editor_integrations.service import EditorIntegrationService
+    return EditorIntegrationService(PackagedAssets(), EditorCommands(), HeartbeatProbe(session_factory),
+                                    build_settings_service(session_factory))
+
+
 def build_registration_service():
     from ft_tui.features.projects.registration.service import RegistrationService
     return RegistrationService()

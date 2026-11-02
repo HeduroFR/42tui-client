@@ -78,8 +78,10 @@ Use the shared `AppButton`/`AppSelect` or their localized wrappers. Preserve loc
 coverage, resource paths and account/provider/cursus context fences.
 
 Run focused tests for the affected features locally before requesting review.
-The full suite runs in PR CI; running it locally is optional, not a prerequisite
-for review. Broaden local checks when useful for cross-cutting changes or failures:
+The full suite runs in PR CI; do not run the full suite locally for routine
+changes. It is reserved for release-candidate validation or investigating a
+cross-cutting failure. Broaden local checks when useful for cross-cutting
+changes or failures:
 
 ```sh
 python release/regression_scopes.py --check

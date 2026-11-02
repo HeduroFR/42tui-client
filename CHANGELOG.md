@@ -2,134 +2,45 @@
 
 ## Unreleased
 
-- Switch the dashboard activity card between coding time and the campus
-  workstation log time reported by Intra. Cluster Radar and its Cluster Map link
-  stay in place. Workstation time requires the updated backend and shows loading,
-  stale and unavailable states without discarding cached data. Hover a day to see
-  its exact time and the week-to-date total; activity colors now use a smoother
-  hour-based gradient.
+### ✨ New features
 
-- Stop proposing exam projects in Needs Attention for local folder setup.
+- **Editor integrations.** Install, verify, update, repair and remove the Vim,
+  Neovim, VS Code or Zed activity integration from onboarding and Settings.
+  Installation is offline, never edits editor configuration, and includes a
+  non-recording heartbeat check.
+- **Agenda and evaluations.** A weekly half-hour timeline with event blocks,
+  overlap lanes, role filters, a detail panel, past-time shading and a current-time
+  marker. Browse campus events, exams and evaluation slots, open details on Intra,
+  and subscribe from event details. Campus exams include schedule, duration,
+  location, occupancy and linked projects.
+- **Dashboard.** Switch between local coding time and campus workstation time,
+  hover a day for exact totals, group evaluations, and show coalition identity,
+  profile progress and the next three evaluations.
+- **Friends and community.** Show saved ranks and project details immediately
+  while fresher data loads, update details progressively, and find GitHub,
+  Discord and login-link actions in clearer Community cards.
+- **Settings.** Redesigned navigation and simpler sections, immediate theme
+  preview, session storage moving between keyring, passphrase and session-only,
+  and side-by-side terminal image and icon selectors.
+- **Flatpak editors.** Open projects in Flatpak-installed VS Code, Zed, Neovim or
+  Vim when the executable is not on PATH, preferring native installations.
 
-- Group the dashboard into My evaluations — sessions you will evaluate, sessions
-  where you are evaluated, and events/exams you subscribed to — and move recent
-  notes beside the progress bar.
+### 🐛 Fixes
 
-- Show your coalition name, score and rank on the dashboard from the backend
-  snapshot, falling back to the live profile while the snapshot is pending.
+- Keep Agenda usable while sources load: show available items, retry temporary
+  failures, avoid redundant refreshes, explain denied access, and mark retained
+  data stale.
+- Load Correction Slots after the view mounts, show placeholders without hiding
+  loaded events, and scope slots to the selected campus.
+- Fix clipped labels, dialog alignment, evaluation-action visibility and the
+  friend rank placeholder.
+- Reduce dashboard refresh work on large local histories and reuse portrait
+  requests.
 
-- Open projects in VS Code, Zed, Neovim or Vim installed through Flatpak when
-  the executable is not on PATH, while still preferring native installations.
+### 📦 Update
 
-- Show saved friend ranks, levels and project counts immediately after a refresh
-  while fresher data loads, update friend details two at a time, and replace the
-  clipped rank placeholder with a short label plus the full explanation.
-
-- Subscribe to or unsubscribe from Intra campus events from an event's Agenda
-  details. Sessions without the new 42 permission need to reconnect before
-  changing a subscription.
-
-- Start Correction Slots loading after the view is mounted, avoiding a stuck first load.
-
-- Show pulsing placeholders in Correction Slots while loading, and spread
-  calendar placeholders across different hours.
-
-- Show pulsing Agenda loading cards without covering events that have already loaded.
-
-- Show saved agenda data promptly when revisiting a week and retry pending event
-  and exam collection automatically while other sources remain available.
-
-- Shade past days and hours in the Agenda calendar.
-
-- Distinguish past days and time blocks in Agenda and see the current time marker.
-
-- Retry a temporary agenda read failure once on first load, and open exam details
-  directly on Intra.
-
-- Keep week navigation responsive while agenda sources load, avoid rebuilding an
-  unchanged agenda during background refresh, and open campus events directly on Intra.
-
-- Refresh Clubs promptly after changing campus during an in-flight load.
-
-- Open and refresh the friends inbox without blocking its controls.
-
-- Explain when 42 denies access to an Agenda source, while keeping the other sources visible.
-
-- Show available agenda items while slower sources continue loading.
-
-- Reduce dashboard refresh work when local activity history is large.
-
-- Show saved friend project details immediately when opening a profile, including offline, while fresher data loads when available.
-
-- Reuse concurrent requests for the same portrait to reduce duplicate loading.
-
-- Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.
-- Add campus exams, with local schedule, duration, location, occupancy and associated exam projects. Event and exam subscription management opens Intra; exam data and event metadata require the updated backend.
-
-
-- Load account profile and cursus information concurrently when connecting.
-
-- Load curriculum, personal projects and catalog categories faster during catalog refresh.
-
-- Show friend summaries progressively and reduce interface lag when loading large friends lists.
-
-- Remove the separate My evaluations tab. Agenda now opens as a weekly half-hour timeline with role filters, an event list and a detail panel; narrow terminals show details below the timeline.
-
-- Add bottom spacing below the Attempts & evaluations actions and highlight Set as finished with the primary button color.
-
-- Show Set as finished only for an in-progress project and Subscribe to defense only while waiting for correction. Hide calendar navigation when the project is not ready.
-
-- Place Evaluation slots and Set as finished side by side, cropping long labels and retaining full descriptions in tooltips.
-
-- Keep the project dialog’s Open Intra label on one line and align evaluation actions with the Registration controls.
-
-- Center the project evaluation dialog’s Intra and Close buttons on one row with consistent spacing.
-
-- Show evaluation slots only after the project is waiting for correction, and scope them to the selected campus. Use the correction timeline in a bounded project dialog, with clear time ranges and an Intra handoff.
-
-- Load the selected friend’s project details while the friends list is still refreshing.
-
-- Browse campus events and your evaluations in an agenda list or weekly calendar,
-  filter by evaluation role, and inspect details in local time. The dashboard
-  shows your next three evaluations over the coming seven days.
-- Browse available evaluation slots from project details, and open Intra to finish
-  a project or complete a booking. These views require the updated backend;
-  unavailable sources are shown explicitly and retained data is marked stale.
-- Revisit recently loaded correction weeks without repeating the same request;
-  refreshing and publishing changes still revalidate the data.
-
-- Place terminal image and icon selectors side by side when space allows.
-
-- Simplify Workspace and notification settings, and show the TDF installation note only when TDF is selected.
-
-- Simplify the Account settings descriptions while retaining session-only storage guidance when selected.
-
-- Place Refresh catalog beside the Common Core fallback selector in Settings.
-
-- Clear Community link feedback automatically after five seconds.
-
-- Find the GitHub and Discord links in clearer Community cards in Settings.
-
-- Open GitHub and Discord from Settings; see each community reminder once in a bottom-right card with a link button.
-- Copy the login link using the local desktop clipboard when available; the link remains visible if copying cannot be confirmed.
-
-- Preview themes while moving through the selector and place the session-move action beside its selector.
-
-- Preview themes immediately when choosing them in Settings or onboarding.
-
-- Move an active account session between OS keyring, passphrase-protected and session-only storage in Settings.
-
-- Simplify terminal display settings by removing the icon preview and capability notes.
-
-- Navigate Settings with a redesigned category rail, clearer sections and a fixed save area.
-
-- Inspect the projects behind each dashboard progress status by hovering or using the keyboard.
-
-- Show the selected cursus grade and level and primary campus on the dashboard profile card, with wallet and evaluation points stacked together; workstation status remains in Cluster Radar.
-
-- Remove the account and local-projects label from the dashboard heading.
-- Place the friend project preview action below the project list.
-- Show project facts once in the friend project preview, omitting the redundant member count for solo projects.
+- Workstation time, campus exams, event subscriptions and evaluation slots
+  require the updated backend. Unavailable sources are shown explicitly.
 
 ## 0.6.2
 

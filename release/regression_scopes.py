@@ -69,6 +69,12 @@ SCOPES = {
         'test_settings_feature_service', 'test_terminal_capabilities', 'test_ui_settings_navigation',
         'test_ui_terminal_settings', 'test_ui_username',
     ),
+    'editor-integrations': (
+        'test_editor_integrations_assets', 'test_heartbeat_check', 'test_editor_integrations_files',
+        'test_editor_integrations_vsix', 'test_editor_integrations_editors',
+        'test_editor_integrations_service', 'test_ui_editor_integrations',
+        'test_onboarding_editor_integration',
+    ),
     'testers': ('test_tester_terminal', 'test_testers', 'test_ui_project_testers'),
     'installation-updates': (
         'test_installation_feature_service', 'test_installation_feature_boundaries', 'test_installer', 'test_installer_bootstrap', 'test_installer_lifecycle',

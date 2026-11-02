@@ -1,19 +1,66 @@
-import { execFile } from "node:child_process";
-import * as vscode from "vscode";
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const { execFile } = require("node:child_process");
+const vscode = require("vscode");
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
-export function activate(context: vscode.ExtensionContext): void {
+function cliCandidates(context) {
+    const configured = vscode.workspace.getConfiguration("42tui").get("cliPath", "").trim();
+    const candidates = [];
+    if (configured) {
+        candidates.push(configured);
+    }
+    if (process.env.FT_TUI_EXECUTABLE) {
+        candidates.push(process.env.FT_TUI_EXECUTABLE);
+    }
+    try {
+        const injected = fs.readFileSync(path.join(context.extensionPath, "42tui-path.txt"), "utf8").trim();
+        if (injected) {
+            candidates.push(injected);
+        }
+    } catch {
+        // The installer always injects this file; a source-tree run may not have it.
+    }
+    const home = process.env.HOME || process.env.USERPROFILE;
+    if (home) {
+        candidates.push(
+            path.join(home, ".local", "bin", "42tui"),
+            path.join(home, ".local", "pipx", "venvs", "ft-tui", "bin", "42tui"),
+        );
+    }
+    candidates.push("/opt/homebrew/bin/42tui", "/usr/local/bin/42tui");
+    return candidates;
+}
+
+function resolveCli(context) {
+    for (const candidate of cliCandidates(context)) {
+        try {
+            if (fs.statSync(candidate).isFile()) {
+                fs.accessSync(candidate, fs.constants.X_OK);
+                return candidate;
+            }
+        } catch {
+            // Try the next candidate.
+        }
+    }
+    return "42tui";
+}
+
+function activate(context) {
     const output = vscode.window.createOutputChannel("42TUI Activity");
     context.subscriptions.push(output);
 
-    let lastFile: string | undefined;
+    const cliPath = resolveCli(context);
+    let lastFile;
     let lastHeartbeatAt = 0;
     let missingCliReported = false;
 
-    const sendHeartbeat = (document: vscode.TextDocument, isWrite = false): void => {
+    const sendHeartbeat = (document, isWrite = false) => {
         const config = vscode.workspace.getConfiguration("42tui");
-        if (!config.get<boolean>("enabled", true) || document.uri.scheme !== "file") {
+        if (!config.get("enabled", true) || document.uri.scheme !== "file") {
             return;
         }
 
@@ -23,7 +70,6 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
         }
 
-        const cliPath = config.get<string>("cliPath", "42tui");
         const args = ["heartbeat", "--file", filePath, "--editor", "vscode", "--quiet"];
         if (isWrite) {
             args.push("--write");
@@ -69,3 +115,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.workspace.onDidSaveTextDocument((document) => sendHeartbeat(document, true)),
     );
 }
+
+function deactivate() {}
+
+module.exports = { activate, deactivate, resolveCli };

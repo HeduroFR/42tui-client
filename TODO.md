@@ -440,6 +440,11 @@ or in its uncommitted worktree and still require review and CI before merging.
   upgrade/removal and time attribution on Linux/macOS for each supported editor.
   During onboarding, offer to install the selected editor's extension, with a
   skip option and clear installation failure feedback.
+  Implemented locally: offline assets, managed install/repair/uninstall, injected
+  executable paths, non-recording `heartbeat --dry-run` verification, onboarding
+  install/skip/retry and the Settings card. Focused tests and package checks pass.
+  Still open: live VS Code and Zed install/activation checks, a real
+  LazyVim/SupraVIM startup check, and the Linux/macOS time-attribution matrix.
 - [ ] Fix Open in Editor when the configured editor is installed through Flatpak
   and its executable is not on PATH, including VS Code on campus workstations.
   Detect and launch the installed editor appropriately, preserve existing native

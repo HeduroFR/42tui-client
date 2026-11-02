@@ -5,7 +5,11 @@ import sys
 import tarfile
 import zipfile
 
-RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh', 'tester_images/gnl.Dockerfile', 'tester_images/gnl.sh')
+RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh', 'tester_images/gnl.Dockerfile', 'tester_images/gnl.sh',
+             'integrations/assets/vim/plugin/ft_tui.vim', 'integrations/assets/nvim/lua/ft_tui.lua',
+             'integrations/assets/nvim/plugin/ft_tui_auto.lua', 'integrations/assets/vscode/extension.js',
+             'integrations/assets/vscode/package.json', 'integrations/assets/zed/extension.toml',
+             'integrations/assets/zed/extension.wasm')
 
 
 def check_archive(path: Path) -> str:
@@ -33,6 +37,8 @@ def check_archive(path: Path) -> str:
     for resource in ('main.py', *RESOURCES):
         if prefix + resource not in files:
             raise ValueError(f'Missing package resource {resource} in {path.name}')
+    if not files.get(prefix + 'integrations/assets/zed/extension.wasm'):
+        raise ValueError(f'Empty Zed extension asset in {path.name}')
     metadata = BytesParser().parsebytes(files.get(metadata_name, b''))
     if metadata['Name'] != 'ft-tui' or metadata['Requires-Python'] != '>=3.12' or not metadata['Version']:
         raise ValueError(f'Invalid distribution metadata in {path.name}')
