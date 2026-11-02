@@ -13,6 +13,9 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Make the cancelled-connection release check wait for the
+  account modal before asserting it. Test-only; no runtime impact.
+
 - 2026-11-02: Prepare version 0.7.0 and its release notes. Minor impact; package
   version and changelog headings updated, regression scope ownership and
   wheel/sdist checks run locally. Release CI, manual editor validation, backend

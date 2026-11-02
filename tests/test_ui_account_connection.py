@@ -739,7 +739,10 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             app.action_show_settings()
             await pilot.pause()
             await pilot.click("#settings-connect-account")
-            await pilot.pause()
+            for _ in range(50):
+                await pilot.pause(0.05)
+                if app.screen.__class__.__name__ == "AccountConnectionScreen":
+                    break
             self.assertEqual(app.screen.__class__.__name__, "AccountConnectionScreen")
             await pilot.click("#account-connection-cancel")
             await pilot.pause()
