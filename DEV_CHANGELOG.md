@@ -1,17 +1,22 @@
 # Development changelog
 
 Latest release: **0.6.2** ([`v0.6.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.6.2)).
-Package version: **0.6.2**.
+Package version: **0.7.0** (release candidate).
 Suggested next release: **0.7.0** (minor), for the Agenda redesign, campus exams,
-Correction Slots loading and the accumulated interface and loading work. Final
-candidate checks, compatibility, backend deployment and publication validation
-remain outstanding.
+Correction Slots loading, editor integrations and the accumulated interface,
+performance and loading work. Release CI, manual editor validation, backend
+deployment and publication validation remain outstanding.
 
 This file tracks implemented changes since the latest successful release. Keep
 published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.6.2
+
+- 2026-11-02: Prepare version 0.7.0 and its release notes. Minor impact; package
+  version and changelog headings updated, regression scope ownership and
+  wheel/sdist checks run locally. Release CI, manual editor validation, backend
+  deployment and exact-candidate publication checks remain pending.
 
 - 2026-11-02: Document that local verification uses only the focused tests or
   `release/regression_scopes.py --scope <affected-scope>` for the changed
