@@ -40,10 +40,10 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                             self.assertGreaterEqual(app.query_one('#dashboard-login').region.width, len('mabarrer'))
                             if not card.has_class('compact-profile'):
                                 self.assertEqual(app.query_one('#dashboard-login').region.y, app.query_one('#dashboard-portrait').region.y)
-                            for name in ('wallet', 'correction-points', 'coalition-score', 'coalition-rank'):
+                            for name in ('wallet', 'correction-points', 'coalition-score'):
                                 widget = app.query_one(f'#dashboard-{name}')
                                 self.assertTrue(app.query_one('#dashboard-balances').content_region.contains_region(widget.region))
-                            self.assertEqual(app.query_one('#dashboard-level').region.y - app.query_one('#dashboard-login').region.bottom, 1)
+                            self.assertEqual(app.query_one('#dashboard-level').region.y - app.query_one('#dashboard-login').region.bottom, 0)
                             self.assertLess(app.query_one('#dashboard-level').region.y, app.query_one('#dashboard-grade').region.y)
                             last_detail = '#dashboard-grade' if card.has_class('compact-profile') else '#dashboard-campus'
                             self.assertLessEqual(app.query_one(last_detail).region.bottom, app.query_one('#dashboard-balances').region.y)
@@ -148,8 +148,10 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(str(app.query_one('#dashboard-correction-points', Static).render()), '7 🪙')
                     self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 7758')
                     self.assertEqual(str(app.query_one('#dashboard-coalition-rank', Static).render()), 'Rank: 5')
-                    self.assertEqual(app.query_one('#dashboard-wallet').region.y, app.query_one('#dashboard-coalition-score').region.y)
-                    self.assertEqual(app.query_one('#dashboard-correction-points').region.y, app.query_one('#dashboard-coalition-rank').region.y)
+                    self.assertEqual(app.query_one('#dashboard-wallet').region.y,
+                                     app.query_one('#dashboard-coalition-name').region.y)
+                    self.assertEqual(app.query_one('#dashboard-correction-points').region.y,
+                                     app.query_one('#dashboard-coalition-score').region.y)
                     self.assertEqual(app.query_one('#dashboard-correction-stat').tooltip, 'Correction points')
                     self.assertTrue(app.query('#dashboard-portrait'))
                     page = app.query_one('#dashboard-page')
@@ -157,9 +159,11 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     page.scroll_end(animate=False)
                     await pilot.pause()
                     self.assertLessEqual(app.query_one('#dashboard-progress-card').region.bottom, page.region.bottom)
-                    for card_id in ('continue', 'notes', 'needs'):
+                    for card_id in ('continue', 'needs'):
                         card = app.query_one(f'#dashboard-{card_id}-card')
                         self.assertEqual(card.region.height, 14)
+                    self.assertEqual(app.query_one('#dashboard-notes-card').region.height, 10)
+                    self.assertEqual(app.query_one('#dashboard-evaluations-card').region.height, 14)
                     for button_id in ('dashboard-open-editor', 'dashboard-view-project'):
                         button = app.query_one(f'#{button_id}')
                         card = app.query_one('#dashboard-continue-card')
@@ -382,5 +386,100 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.goals_scope = (app.account_generation, 'other-account', 21)
                     app._update_black_hole()
                     self.assertIn('Unavailable', str(app.query_one('#dashboard-blackhole-days', Static).render()))
+            finally:
+                factory.kw['bind'].dispose()
+
+
+class CoalitionSnapshotTests(unittest.TestCase):
+    def test_available_snapshot_wins_and_foreign_or_malformed_values_are_rejected(self):
+        from ft_tui.features.dashboard.views.home import coalition_values
+        profile = {'coalition': {'score': 10, 'rank': 4}}
+        snapshot = {'account_id': '42', 'cursus_id': 21, 'status': 'available', 'stale': False,
+                    'coalition': {'score': 9000, 'rank': 3, 'name': 'Coalition'}}
+        self.assertEqual(coalition_values(profile, snapshot, account_id='42', cursus_id=21)['score'], 9000)
+        for value in (
+            {**snapshot, 'status': 'pending'},
+            {**snapshot, 'account_id': '99'},
+            {**snapshot, 'cursus_id': 9},
+            {**snapshot, 'coalition': {'score': -1, 'rank': 3}},
+            {**snapshot, 'coalition': {'score': True, 'rank': 3}},
+            {**snapshot, 'coalition': {'score': 9000, 'rank': 0}},
+        ):
+            self.assertEqual(coalition_values(profile, value, account_id='42', cursus_id=21),
+                             profile['coalition'])
+
+
+class DashboardCoalitionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_snapshot_score_and_rank_are_displayed_and_pending_falls_back(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "coalition.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'default_cursus_id': '21'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    app.account_connected = True
+                    app.account_id = '42'
+                    app.account_profile = {'coalition': {'score': 1, 'rank': 9}}
+                    app.account_coalition = {'account_id': '42', 'cursus_id': 21, 'status': 'available',
+                                             'stale': False,
+                                             'coalition': {'score': 9000, 'rank': 3, 'name': 'Les Chats', 'color': '#12ab34'}}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 9000')
+                    name = app.query_one('#dashboard-coalition-name', Static)
+                    self.assertEqual(str(name.render()), 'Les Chats - #3')
+                    self.assertEqual(name.styles.color.hex.lower(), '#12ab34')
+                    self.assertFalse(app.query_one('#dashboard-coalition-rank', Static).display)
+                    app.account_coalition = {'account_id': '42', 'cursus_id': 21, 'status': 'pending', 'stale': False}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 1')
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-name', Static).render()), '#9')
+            finally:
+                if 'app' in locals():
+                    pass
+                factory.kw['bind'].dispose()
+
+
+class DashboardEvaluationGroupTests(unittest.TestCase):
+    def test_groups_split_roles_and_only_subscribed_events(self):
+        from datetime import datetime, timezone
+        from ft_tui.features.agenda.views import dashboard_evaluation_groups
+        now = datetime(2026, 11, 2, 12, tzinfo=timezone.utc)
+        rows = [
+            {'id': 1, 'kind': 'evaluating', 'begin_at': '2026-11-03T10:00:00+00:00', 'title': 'Eval A'},
+            {'id': 2, 'kind': 'evaluated', 'begin_at': '2026-11-03T11:00:00+00:00', 'title': 'Eval B'},
+            {'id': 7, 'kind': 'event', 'begin_at': '2026-11-04T10:00:00+00:00', 'title': 'Subscribed'},
+            {'id': 8, 'kind': 'event', 'begin_at': '2026-11-04T11:00:00+00:00', 'title': 'Other'},
+            {'id': 9, 'kind': 'exam', 'begin_at': '2026-11-05T10:00:00+00:00', 'title': 'Exam'},
+            {'id': 10, 'kind': 'evaluating', 'begin_at': '2026-11-01T10:00:00+00:00', 'title': 'Past'},
+        ]
+        groups = dashboard_evaluation_groups(rows, {7, 9}, now)
+        self.assertEqual([row['title'] for row in groups['evaluating']], ['Eval A'])
+        self.assertEqual([row['title'] for row in groups['evaluated']], ['Eval B'])
+        self.assertEqual([row['title'] for row in groups['subscribed']], ['Subscribed', 'Exam'])
+
+    def test_dashboard_evaluation_copy_is_translated(self):
+        from ft_tui.i18n import translate
+        for language in ('fr', 'es'):
+            for source in ('Subscribed', 'Nothing scheduled'):
+                self.assertNotEqual(translate(source, language), source, source)
+
+
+class DashboardEvaluationsLayoutTests(unittest.IsolatedAsyncioTestCase):
+    async def test_card_uses_dashboard_section_headings(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "evals.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'default_cursus_id': '21'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    await pilot.pause()
+                    labels = [str(widget.render()) for widget in app.query('.dashboard-eval-kicker')]
+                    self.assertEqual(labels, ['I evaluate', 'I am evaluated on', 'Subscribed'])
             finally:
                 factory.kw['bind'].dispose()

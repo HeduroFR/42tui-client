@@ -706,3 +706,58 @@ class UpcomingEvaluations(AgendaWorkspace):
             self.app.query_one('#main-tabs', TabbedContent).active = 'agenda'
         else:
             await super().on_button_pressed(event)
+
+
+def dashboard_evaluation_groups(rows, subscribed, now):
+    """Split agenda rows into the dashboard evaluation and subscription sections."""
+    groups = {'evaluating': [], 'evaluated': [], 'subscribed': []}
+    for row in rows:
+        try:
+            begin = datetime.fromisoformat(row['begin_at'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if begin < now:
+            continue
+        kind = row.get('kind')
+        if kind in {'event', 'exam'}:
+            if row.get('id') in subscribed:
+                groups['subscribed'].append(row)
+        elif kind in groups:
+            groups[kind].append(row)
+    for values in groups.values():
+        values.sort(key=lambda item: item['begin_at'])
+    return groups
+
+
+class DashboardEvaluations(AgendaWorkspace):
+    """Compact evaluation and subscription summary for the dashboard."""
+    DEFAULT_CSS = '''
+    DashboardEvaluations { height: 1fr; background: transparent; color: $text; }
+    DashboardEvaluations.week-agenda { padding: 0; }
+    DashboardEvaluations .agenda-toolbar, DashboardEvaluations .agenda-main,
+    DashboardEvaluations .agenda-status, DashboardEvaluations .agenda-period { display: none; }
+    DashboardEvaluations .dashboard-eval-kicker { height: 1; color: $accent; text-style: bold; }
+    DashboardEvaluations .dashboard-eval-section { height: 2; color: $text-muted; }
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.week = datetime.now(self.zone).date()
+
+    def compose(self):
+        yield from super().compose()
+        for key, label in (('evaluating', 'I evaluate'), ('evaluated', 'I am evaluated on'), ('subscribed', 'Subscribed')):
+            yield Static(self.t(label), classes='dashboard-eval-kicker')
+            yield Static('', id=f'dashboard-eval-{key}', classes='dashboard-eval-section')
+
+    async def render_rows(self):
+        await super().render_rows()
+        groups = dashboard_evaluation_groups(
+            self.rows, getattr(self.app, 'event_subscriptions', set()), datetime.now(self.zone))
+        for key in ('evaluating', 'evaluated', 'subscribed'):
+            lines = []
+            for row in groups[key][:2]:
+                local = datetime.fromisoformat(row['begin_at']).astimezone(self.zone)
+                lines.append(f"{local:%a %d %b %H:%M} · {row['title']}")
+            if not lines:
+                lines.append(self.t('Nothing scheduled'))
+            self.query_one(f'#dashboard-eval-{key}', Static).update('\n'.join(lines))

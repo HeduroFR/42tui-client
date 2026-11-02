@@ -361,8 +361,8 @@ or in its uncommitted worktree and still require review and CI before merging.
   curriculum and level where reliable data is available. Avoid repeating project
   completion counts; handle missing or stale values and narrow terminals.
   Implemented locally: workstation moved to Cluster Radar; grade, level and
-  primary campus added. The card layout needs further review; coalition score
-  and rank are not connected to the backend snapshot yet.
+  primary campus added; coalition score and rank now come from `/v1/me/coalition`
+  with a profile fallback. The card layout still needs review.
 - [ ] Let the activity card switch between coding time and campus workstation log
   time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
   worker endpoint for the connected user's own Intra `locations_stats.json`,

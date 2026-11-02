@@ -89,6 +89,13 @@ class DashboardServiceTests(unittest.TestCase):
         self.assertEqual(model.deadline.next_label, 'Project 2 · In progress')
         self.assertEqual(len(model.setup_candidates), 2)
 
+    def test_exams_are_never_setup_candidates(self):
+        exam = replace(project(1, 'in_progress'),
+                       catalog_data={'track': 'new', 'section': 'common-core', 'rank': 0,
+                                     'kind': 'exam', 'slug': 'exam-rank-02'})
+        model = self.compose([exam, project(2)])
+        self.assertEqual([candidate.id for candidate in model.setup_candidates], [2])
+
     def test_active_heartbeat_timeout_includes_boundary_and_rejects_future(self):
         at = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
         self.assertEqual(self.service.activity(at+timedelta(seconds=120)).active_project_id, 1)

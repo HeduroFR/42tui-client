@@ -13,6 +13,29 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Exclude exam projects from the dashboard's Needs Attention setup
+  candidates and its setup button, matching the existing resume filter, while
+  keeping exams in the curriculum journey. Patch impact toward 0.7.0. Nine
+  dashboard service tests passed, including the exam exclusion.
+
+- 2026-11-02: Rework the dashboard's action row: My evaluations now groups the
+  sessions the user evaluates, the sessions where they are evaluated, and the
+  events/exams they subscribed to, with dashboard-style section headings; recent
+  notes move beside the progress bar.
+  Requires the backend subscribed-event-ids endpoint. Minor impact toward 0.7.0.
+  Seventy-nine agenda/dashboard tests passed, including role grouping,
+  subscription filtering, past-item exclusion and the new card heights. Live
+  layout review and backend deployment of the new endpoint remain outstanding.
+
+- 2026-11-02: Read the dashboard coalition name, score and rank from the deployed
+  `/v1/me/coalition` snapshot, scoped to the connected account and cursus, with
+  a profile fallback while pending or unavailable and a 60-second refresh. The
+  coalition name and rank (`Name - #N`) use the coalition color above the score.
+  Patch impact toward 0.7.0.
+  Thirty-three dashboard tests passed, including snapshot precedence,
+  foreign-account/cursus rejection and malformed values. Live snapshot timing
+  remains unverified.
+
 - 2026-11-02: Launch a Flatpak-installed editor when its executable is not on
   PATH (VS Code `com.visualstudio.code`, Zed `dev.zed.Zed`, Neovim
   `io.neovim.nvim`, Vim `org.vim.Vim`), while native installs keep priority.

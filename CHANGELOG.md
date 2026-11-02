@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Stop proposing exam projects in Needs Attention for local folder setup.
+
+- Group the dashboard into My evaluations — sessions you will evaluate, sessions
+  where you are evaluated, and events/exams you subscribed to — and move recent
+  notes beside the progress bar.
+
+- Show your coalition name, score and rank on the dashboard from the backend
+  snapshot, falling back to the live profile while the snapshot is pending.
+
 - Open projects in VS Code, Zed, Neovim or Vim installed through Flatpak when
   the executable is not on PATH, while still preferring native installations.
 

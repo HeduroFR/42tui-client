@@ -164,6 +164,17 @@ class HttpProjectProvider:
         if not isinstance(value,dict) or not isinstance(value.get('account_id'),str) or not value['account_id'].isdigit() or not isinstance(value.get('login'),str):raise ValueError('Invalid account profile')
         return value
 
+    def get_coalition(self):
+        value=self.api.request('GET','/v1/me/coalition')
+        if not isinstance(value,dict):raise ValueError('Invalid coalition response')
+        return value
+
+    def get_event_subscriptions(self):
+        value=self.api.request('GET','/v1/me/events/subscriptions')
+        ids=value.get('event_ids') if isinstance(value,dict) else None
+        if not isinstance(ids,list) or not all(type(item) is int and item>0 for item in ids):raise ValueError('Invalid event subscriptions')
+        return value
+
     def search_students(self, query, *, limit=20, exclude_ids=()):
         from ft_tui.features.friends.models import student_search_result
         if not isinstance(query, str) or len(query) > 128 or sum(c.isalnum() for c in query) < 2 or type(limit) is not int or not 1 <= limit <= 20:

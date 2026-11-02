@@ -51,6 +51,7 @@ class DashboardService:
         seconds = self.reader.tracked(resume.id) if resume is not None and resume.id is not None else 0.0
         resume_has_folder = bool(resume is not None and self.folder_exists(resume.local_path))
         setup = tuple(p for p in ordered if p.status.casefold() in {'available', 'in_progress'}
+                      and project_kind(p.catalog_data.get('kind', ''), p.catalog_data.get('slug', '')) != 'exam'
                       and not self.folder_exists(p.local_path))
         keys = {}
         for p in rows:

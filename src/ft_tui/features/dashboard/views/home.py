@@ -1,6 +1,8 @@
 """Dashboard UI composition and behavior."""
 
+import asyncio
 import math
+import re
 
 from textual.css.query import NoMatches
 
@@ -25,6 +27,22 @@ from ft_tui.ui.components import (
     timezone,
     translate,
 )
+
+
+def coalition_values(profile, snapshot, *, account_id=None, cursus_id=None):
+    """Prefer a valid backend coalition snapshot, else the live profile value."""
+    profile = profile.get('coalition') if isinstance(profile, dict) else None
+    profile = profile if isinstance(profile, dict) else {}
+    snapshot = snapshot if isinstance(snapshot, dict) else {}
+    value = snapshot.get('coalition')
+    if (snapshot.get('status') == 'available'
+            and (account_id is None or snapshot.get('account_id') == account_id)
+            and (cursus_id is None or snapshot.get('cursus_id') == cursus_id)
+            and isinstance(value, dict)
+            and type(value.get('score')) is int and value['score'] >= 0
+            and type(value.get('rank')) is int and value['rank'] >= 1):
+        return value
+    return profile
 
 
 class DashboardMixin:
@@ -106,6 +124,95 @@ class DashboardMixin:
                         self._refresh_dashboard_portrait()
                 self.set_timer(retry, refresh)
 
+    def _render_coalition(self, profile):
+        cursus_id = self.profile_service.cursus_id()
+        snapshot = getattr(self, 'account_coalition', None) if getattr(self, 'account_connected', False) else None
+        coalition = coalition_values(profile, snapshot,
+                                     account_id=self.account_id, cursus_id=cursus_id)
+        name = coalition.get('name')
+        rank = coalition.get('rank')
+        label = name.strip() if isinstance(name, str) else ''
+        if label and type(rank) is int and rank >= 1:
+            label = f"{label} - #{rank}"
+        elif type(rank) is int and rank >= 1:
+            label = f"#{rank}"
+        name_widget = self.query_one('#dashboard-coalition-name', Static)
+        name_widget.update(label)
+        color = coalition.get('color')
+        name_widget.styles.color = (color if isinstance(color, str) and re.fullmatch(r'#[0-9a-fA-F]{6}', color)
+                                    else self.app.theme_variables.get('accent', '#ffffff'))
+        rank_widget = self.query_one('#dashboard-coalition-rank', Static)
+        rank_widget.update('')
+        rank_widget.display = False
+        for field, label in (('score', 'Score'), ('rank', 'Rank')):
+            value = coalition.get(field)
+            text = f"{translate(label, self.language)}: {value}" if type(value) is int and value >= (1 if field == 'rank' else 0) else ''
+            widget = self.query_one(f'#dashboard-coalition-{field}', Static)
+            widget.update(text)
+            widget.tooltip = text or None
+
+    def _start_coalition_refresh(self):
+        provider = getattr(self, 'provider', None)
+        if (not getattr(self, 'account_connected', False) or not getattr(self, 'account_id', None)
+                or not callable(getattr(provider, 'get_coalition', None))
+                or getattr(self, '_coalition_busy', False)):
+            return
+        now = asyncio.get_running_loop().time()
+        if getattr(self, '_coalition_account', None) != self.account_id:
+            self._coalition_account = self.account_id
+            self._coalition_checked = 0.0
+        if now - getattr(self, '_coalition_checked', 0.0) < 60:
+            return
+        self._coalition_busy = True
+        self.run_worker(self._fetch_coalition(provider, self.account_id, self.account_generation),
+                        group='dashboard-coalition', exclusive=True)
+
+    async def _fetch_coalition(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_coalition)
+            if account == self.account_id and generation == self.account_generation:
+                self.account_coalition = value if isinstance(value, dict) else {}
+                self._coalition_checked = asyncio.get_running_loop().time()
+                self._render_coalition(self.account_profile if self.account_connected else {})
+        except Exception:
+            pass
+        finally:
+            self._coalition_busy = False
+
+    def _start_event_subscriptions_refresh(self):
+        provider = getattr(self, 'provider', None)
+        if (not getattr(self, 'account_connected', False) or not getattr(self, 'account_id', None)
+                or not callable(getattr(provider, 'get_event_subscriptions', None))
+                or getattr(self, '_subscriptions_busy', False)):
+            return
+        now = asyncio.get_running_loop().time()
+        if getattr(self, '_subscriptions_account', None) != self.account_id:
+            self._subscriptions_account = self.account_id
+            self._subscriptions_checked = 0.0
+        if now - getattr(self, '_subscriptions_checked', 0.0) < 60:
+            return
+        self._subscriptions_busy = True
+        self.run_worker(self._fetch_event_subscriptions(provider, self.account_id, self.account_generation),
+                        group='dashboard-subscriptions', exclusive=True)
+
+    async def _fetch_event_subscriptions(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_event_subscriptions)
+            if account == self.account_id and generation == self.account_generation:
+                ids = value.get('event_ids') if isinstance(value, dict) else None
+                self.event_subscriptions = {item for item in ids if type(item) is int and item > 0} if isinstance(ids, list) else set()
+                self._subscriptions_checked = asyncio.get_running_loop().time()
+                try:
+                    self.query_one('#dashboard-evaluations').run_worker(
+                        self.query_one('#dashboard-evaluations').render_rows(),
+                        group='dashboard-evaluations-render', exclusive=True)
+                except NoMatches:
+                    pass
+        except Exception:
+            pass
+        finally:
+            self._subscriptions_busy = False
+
     async def _refresh_dashboard(self) -> None:
         """Refresh project shortcuts, recent notes, local activity, and cursus progress."""
         if not self.is_running or not self.query("#dashboard-login"):
@@ -161,14 +268,9 @@ class DashboardMixin:
             value = model.stats.wallet if field == 'wallet' else model.stats.correction_points
             label = f"{value}{suffix}" if type(value) is int and value >= 0 else "Unavailable"
             self.query_one(selector, Static).update(label)
-        coalition = profile.get('coalition')
-        coalition = coalition if isinstance(coalition, dict) else {}
-        for field, label in (('score', 'Score'), ('rank', 'Rank')):
-            value = coalition.get(field)
-            text = f"{translate(label, self.language)}: {value}" if type(value) is int and value >= (1 if field == 'rank' else 0) else ''
-            widget = self.query_one(f'#dashboard-coalition-{field}', Static)
-            widget.update(text)
-            widget.tooltip = text or None
+        self._render_coalition(profile)
+        self._start_coalition_refresh()
+        self._start_event_subscriptions_refresh()
         continue_project = model.resume
         active_project = continue_project if model.active_now else None
         recent_project = continue_project if model.recent_activity else None

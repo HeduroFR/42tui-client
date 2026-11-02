@@ -5,23 +5,28 @@ DASHBOARD_CSS = r"""#dashboard-page { height: 1fr; overflow-y: auto; padding: 0 
     #dashboard-title { width: 1fr; color: $accent; text-style: bold; }
     #dashboard-cards { height: 14; min-height: 14; }
     #dashboard-action-cards { height: 14; min-height: 14; margin-top: 1; }
+    #dashboard-bottom { height: 10; margin-top: 1; }
+    #dashboard-evaluations { height: 1fr; }
+    #dashboard-evaluations-card .dashboard-kicker { display: none; }
     #dashboard-action-cards .dashboard-card { padding: 1 2; }
     #dashboard-action-cards .dashboard-kicker { margin-bottom: 1; }
     #dashboard-profile-data { height: 1fr; }
     #dashboard-profile-card .dashboard-kicker { height: 1; }
-    #dashboard-identity { height: 5; }
+    #dashboard-identity { height: 4; }
     #dashboard-portrait { width: 8; height: 4; margin-right: 2; background: $boost; }
-    #dashboard-identity-text { width: 1fr; height: 5; }
+    #dashboard-identity-text { width: 1fr; height: 4; }
     #dashboard-login { height: 1; color: $accent; text-style: bold; }
     #dashboard-level, #dashboard-grade, #dashboard-campus { height: 1; color: $text-muted; text-overflow: ellipsis; }
-    #dashboard-level { margin-top: 1; }
-    #dashboard-balances { height: 2; }
-    .compact-profile #dashboard-identity { height: 6; layout: vertical; }
+    #dashboard-level { margin-top: 0; }
+    #dashboard-balances { height: 2; margin-top: 1; }
+    #dashboard-coalition-name { height: 1; text-style: bold; color: $accent; }
+    .compact-profile #dashboard-identity { height: 5; layout: vertical; }
     .compact-profile #dashboard-portrait { width: 6; height: 2; margin-right: 0; }
-    .compact-profile #dashboard-identity-text { width: 1fr; height: 4; }
+    .compact-profile #dashboard-identity-text { width: 1fr; height: 3; }
     .compact-profile #dashboard-campus { display: none; }
+    .compact-profile #dashboard-balances { margin-top: 0; }
     .dashboard-stat-column { width: 1fr; height: 2; }
-    #dashboard-coalition-stats { border-left: solid $secondary; padding-left: 1; }
+    #dashboard-coalition-stats { padding-left: 1; }
     .dashboard-stat { width: 1fr; height: 1; }
     .dashboard-stat-value { height: 1; text-style: bold; text-overflow: ellipsis; }
     .dashboard-card {
@@ -79,10 +84,11 @@ DASHBOARD_CSS = r"""#dashboard-page { height: 1fr; overflow-y: auto; padding: 0 
         color: $text; content-align: left top;
     }
     #dashboard-progress-card {
-        width: 1fr; height: auto; min-height: 8; margin-top: 1;
-        margin-right: 0; padding: 0 2; border: round $primary;
+        width: 2fr; height: 1fr; min-height: 8; margin-top: 0; margin-right: 1;
+        padding: 0 2; border: round $primary;
         background: $surface;
     }
+    #dashboard-notes-card { width: 1fr; height: 1fr; margin-top: 0; margin-right: 0; }
     #dashboard-progress-topline { height: 1; }
     #dashboard-progress-topline .dashboard-kicker { width: 1fr; margin: 0; }
     #dashboard-progress-context { width: auto; color: $text-muted; }
