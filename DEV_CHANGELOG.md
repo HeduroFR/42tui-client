@@ -13,6 +13,10 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Align the two dashboard layout checks with the scrollable dashboard
+  page; its five blocks cannot fit 46 rows and the page uses `overflow-y: auto`.
+  Test-only; no release impact. Dashboard profile scope passed 8 tests.
+
 - 2026-11-02: Keep the user-facing Unreleased notes aligned with committed code;
   notes for the still-uncommitted performance work remain in the worktree with
   that code. Documentation only; no release impact.

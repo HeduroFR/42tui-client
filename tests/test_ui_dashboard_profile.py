@@ -153,7 +153,10 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(app.query_one('#dashboard-correction-stat').tooltip, 'Correction points')
                     self.assertTrue(app.query('#dashboard-portrait'))
                     page = app.query_one('#dashboard-page')
-                    self.assertLessEqual(page.virtual_size.height, page.size.height)
+                    self.assertLessEqual(page.virtual_size.width, page.size.width)
+                    page.scroll_end(animate=False)
+                    await pilot.pause()
+                    self.assertLessEqual(app.query_one('#dashboard-progress-card').region.bottom, page.region.bottom)
                     for card_id in ('continue', 'notes', 'needs'):
                         card = app.query_one(f'#dashboard-{card_id}-card')
                         self.assertEqual(card.region.height, 14)
@@ -366,7 +369,10 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn('M T W T F S S', str(app.query_one('#dashboard-activity-heatmap', Static).render()))
                     self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
                     page = app.query_one('#dashboard-page')
-                    self.assertLessEqual(page.virtual_size.height, page.size.height)
+                    self.assertLessEqual(page.virtual_size.width, page.size.width)
+                    page.scroll_end(animate=False)
+                    await pilot.pause()
+                    self.assertLessEqual(app.query_one('#dashboard-progress-card').region.bottom, page.region.bottom)
                     app.account_goals['cc_validated'] = True
                     app._update_black_hole()
                     self.assertIn('Completed', str(app.query_one('#dashboard-blackhole-days', Static).render()))
