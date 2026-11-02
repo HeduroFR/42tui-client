@@ -13,6 +13,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Launch a Flatpak-installed editor when its executable is not on
+  PATH (VS Code `com.visualstudio.code`, Zed `dev.zed.Zed`, Neovim
+  `io.neovim.nvim`, Vim `org.vim.Vim`), while native installs keep priority.
+  Patch impact toward 0.7.0. Five focused resolver tests, one navigation launch
+  test and the project-tester editor scope passed (31 tests). Live Flatpak
+  launch on Linux remains unverified.
+
 - 2026-11-02: Align the two dashboard layout checks with the scrollable dashboard
   page; its five blocks cannot fit 46 rows and the page uses `overflow-y: auto`.
   Test-only; no release impact. Dashboard profile scope passed 8 tests.

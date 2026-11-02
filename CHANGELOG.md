@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Open projects in VS Code, Zed, Neovim or Vim installed through Flatpak when
+  the executable is not on PATH, while still preferring native installations.
+
 - Show saved friend ranks, levels and project counts immediately after a refresh
   while fresher data loads, update friend details two at a time, and replace the
   clipped rank placeholder with a short label plus the full explanation.

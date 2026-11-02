@@ -6,6 +6,7 @@ from textual.widgets import DataTable, Input as TextInput, Tabs
 from ft_tui.ui.select import AppSelect
 from ft_tui.features.projects.adapters.explorer import open_project_folder
 from ft_tui.features.projects.adapters.checkout import CheckoutSetupError, CheckoutReviewRequired, EditorCheckoutCache
+from ft_tui.features.projects.adapters.editor import editor_launch
 from ft_tui.features.projects.views.git_push import ProjectGitPushScreen
 from ft_tui.features.projects.views.git_review import ProjectGitReviewScreen
 from ft_tui.features.projects.views.checkout_progress import ProjectCheckoutProgressScreen
@@ -18,7 +19,6 @@ from ft_tui.ui.components import (
     Path,
     TabbedContent,
     TextArea,
-    shutil,
     subprocess,
 )
 
@@ -158,19 +158,16 @@ class ProjectNavigationMixin:
 
     def _open_path_in_editor(self, project_name: str, project_path: Path) -> None:
         directory = project_path if project_path.is_dir() else project_path.parent
-        editor_commands = {
-            "nvim": ("nvim", True),
-            "vim": ("vim", True),
-            "vscode": ("code", False),
-            "zed": ("zed", False),
-        }
-        command, terminal_editor = editor_commands[self.favorite_editor]
-        executable = shutil.which(command)
-        if executable is None:
-            self.notify(f"{command} was not found on PATH.", severity="error")
+        launch, terminal_editor, missing = editor_launch(self.favorite_editor)
+        if launch is None:
+            command, app_id = missing
+            if app_id:
+                self.notify(f"{command} was not found on PATH or as a Flatpak ({app_id}).", severity="error")
+            else:
+                self.notify(f"{command} was not found on PATH.", severity="error")
             return
 
-        args = [executable]
+        args = list(launch)
         if terminal_editor:
             args.append("." if project_path.is_dir() else str(project_path))
         elif self.favorite_editor == "vscode":
@@ -209,7 +206,7 @@ class ProjectNavigationMixin:
                     start_new_session=True,
                 )
         except OSError as error:
-            self.notify(f"Could not open {project_name} in {command}: {error}", severity="error")
+            self.notify(f"Could not open {project_name} in {self.favorite_editor}: {error}", severity="error")
 
     def action_move_project_down(self) -> None:
         self._move_project_cursor(1)

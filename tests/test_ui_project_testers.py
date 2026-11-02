@@ -604,7 +604,7 @@ class TesterLogEditorTests(unittest.TestCase):
             host.suspend.return_value = nullcontext()
             for editor, command in (("vscode", "code"), ("zed", "zed"), ("vim", "vim"), ("nvim", "nvim")):
                 host.favorite_editor = editor
-                with patch("ft_tui.features.projects.views.navigation.shutil.which", return_value=f"/bin/{command}"), \
+                with patch("ft_tui.features.projects.adapters.editor.shutil.which", return_value=f"/bin/{command}"), \
                      patch("ft_tui.features.projects.views.navigation.subprocess.Popen") as opened, \
                      patch("ft_tui.features.projects.views.navigation.subprocess.run", return_value=Mock(returncode=0)) as ran:
                     ProjectNavigationMixin._open_file_in_editor(host, log_path)
@@ -618,7 +618,7 @@ class TesterLogEditorTests(unittest.TestCase):
                     ProjectNavigationMixin._open_project_in_editor(host, "Synthetic", log_path.parent)
                     self.assertEqual(launch.call_args.args[0][-1], "." if editor in ("vim", "nvim") else str(log_path.parent))
                     self.assertEqual(launch.call_args.kwargs["cwd"], log_path.parent)
-            with patch("ft_tui.features.projects.views.navigation.shutil.which", return_value=None):
+            with patch("ft_tui.features.projects.adapters.editor.shutil.which", return_value=None):
                 ProjectNavigationMixin._open_file_in_editor(host, log_path)
                 host.notify.assert_called_with("nvim was not found on PATH.", severity="error")
             log_path.unlink()

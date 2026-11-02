@@ -438,6 +438,10 @@ or in its uncommitted worktree and still require review and CI before merging.
   Detect and launch the installed editor appropriately, preserve existing native
   installations, and provide actionable feedback when the editor is unavailable.
   Validate both Flatpak and PATH-based launches with the intended project folder.
+  Implemented locally: native first, then `flatpak run` for VS Code
+  (`com.visualstudio.code`), Zed (`dev.zed.Zed`), Neovim (`io.neovim.nvim`) and
+  Vim (`org.vim.Vim`); resolver and launch tests pass. Live Flatpak launch on
+  Linux remains unverified.
 - [x] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
 - [x] Add a Discord button in Settings opening the project's Discord invite, plus
