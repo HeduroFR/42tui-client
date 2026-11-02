@@ -84,6 +84,7 @@ For each completed feature, fix or documentation task:
 # Client
 
 Python >=3.12. Package name ft-tui; commands 42tui, 42goto, 42tui-zed-lsp.
+For local verification, run only the focused tests or `release/regression_scopes.py --scope <affected-scope>` covering the changed feature. Do not run the full unittest suite locally; PR CI owns the full run.
 Use AppButton from src/ft_tui/ui/button.py and AppSelect from src/ft_tui/ui/select.py
 (or their localized wrappers); never import these widgets directly elsewhere.
 project.version in pyproject.toml is authoritative. Repository separation does not authorize a version bump.

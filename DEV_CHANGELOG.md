@@ -13,6 +13,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Document that local verification uses only the focused tests or
+  `release/regression_scopes.py --scope <affected-scope>` for the changed
+  feature; the full suite stays in PR CI and is reserved for release-candidate
+  validation or cross-cutting failures. No runtime impact.
+
 - 2026-11-02: Add managed editor integrations for Vim, Neovim, VS Code and Zed.
   Assets ship inside the wheel and install offline into native `pack/start`
   directories (Vim/Neovim), a generated VSIX or extension folder (VS Code), and
