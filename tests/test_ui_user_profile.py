@@ -40,6 +40,147 @@ async def settle(screen,pilot):
 
 
 class ProfileUITests(unittest.IsolatedAsyncioTestCase):
+    async def test_friend_seed_projects_show_before_slow_profile(self):
+        gate = threading.Event()
+        app = Harness()
+        app.provider = Provider()
+        app.provider.gate = gate
+        seed = snapshot('alice', user_id='50', items=[attempt(name='Saved project')])
+        try:
+            async with app.run_test(size=(100, 36)) as pilot:
+                open_user_profile(app, 'alice', '50', seed=seed)
+                screen = app.screen
+                await pilot.pause(.1)
+                self.assertIsNone(screen.core)
+                self.assertEqual(screen.query_one('#profile-projects', DataTable).row_count, 1)
+                self.assertIn('stale', str(screen.query_one('#profile-project-status', Static).render()).lower())
+                gate.set()
+                await settle(screen, pilot)
+                self.assertEqual(screen.query_one('#profile-projects', DataTable).row_count, 2)
+        finally:
+            gate.set()
+
+    async def test_profile_does_not_show_unverified_or_incomplete_seed_projects(self):
+        for change in ({'user_id': '51'}, {'login': 'other'}, {'cursus_id': None},
+                       {'details_complete': False, 'projects_loaded': False}):
+            gate = threading.Event()
+            app = Harness()
+            app.provider = Provider()
+            app.provider.gate = gate
+            seed = snapshot('alice', user_id='50', items=[attempt(name='Saved project')])
+            seed.update(change)
+            try:
+                async with app.run_test(size=(100, 36)) as pilot:
+                    open_user_profile(app, 'alice', '50', seed=seed)
+                    await pilot.pause(.05)
+                    self.assertEqual(app.screen.query_one('#profile-projects', DataTable).row_count, 0)
+            finally:
+                gate.set()
+
+    async def test_offline_friend_seed_is_identified_as_saved_data(self):
+        from ft_tui.db.database import make_session_factory
+        from ft_tui.features.friends.adapters.sqlite import SqliteFriendsRepository
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            repo = SqliteFriendsRepository(factory)
+            repo.save('42', snapshot('alice', user_id='50', items=[attempt(name='Saved project')]))
+            seed = repo.cached('42', 21)['alice']
+            app = Harness()
+            app.provider = Provider()
+            app.account_connected = False
+            async with app.run_test(size=(100, 36)) as pilot:
+                open_user_profile(app, 'alice', '50', seed=seed)
+                await pilot.pause()
+                screen = app.screen
+                self.assertEqual(screen.query_one('#profile-projects', DataTable).row_count, 1)
+                self.assertIn('offline', str(screen.query_one('#profile-status', Static).render()).lower())
+        finally:
+            factory.kw['bind'].dispose()
+
+    async def test_profile_denial_clears_seed_projects(self):
+        import httpx
+        gate = threading.Event()
+        started = threading.Event()
+        class Denied(Provider):
+            def get_student_profile(self, user_id, **options):
+                started.set()
+                gate.wait(3)
+                request = httpx.Request('GET', 'https://example.test/profile')
+                raise httpx.HTTPStatusError('restricted', request=request, response=httpx.Response(403, request=request))
+        app = Harness()
+        app.provider = Denied()
+        seed = snapshot('alice', user_id='50', items=[attempt(name='Saved project')])
+        try:
+            async with app.run_test(size=(100, 36)) as pilot:
+                open_user_profile(app, 'alice', '50', seed=seed)
+                screen = app.screen
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                self.assertEqual(screen.query_one('#profile-projects', DataTable).row_count, 1)
+                gate.set()
+                await settle(screen, pilot)
+                self.assertIsNone(screen.project_data)
+                self.assertEqual(screen.query_one('#profile-projects', DataTable).row_count, 0)
+        finally:
+            gate.set()
+
+    async def test_profile_denial_discards_prior_saved_profile(self):
+        import httpx
+        class LaterDenied(Provider):
+            denied = False
+            def get_student_profile(self, user_id, **options):
+                if self.denied:
+                    request = httpx.Request('GET', 'https://example.test/profile')
+                    raise httpx.HTTPStatusError('restricted', request=request, response=httpx.Response(403, request=request))
+                return super().get_student_profile(user_id, **options)
+        app = Harness()
+        app.provider = LaterDenied()
+        async with app.run_test(size=(100, 36)) as pilot:
+            open_user_profile(app, 'alice', '50')
+            screen = app.screen
+            await settle(screen, pilot)
+            self.assertTrue(app._student_profile_cache)
+            app.provider.denied = True
+            screen.action_refresh()
+            await settle(screen, pilot)
+            self.assertFalse(app._student_profile_cache)
+            self.assertFalse(screen.query_one('#profile-scroll').display)
+            self.assertIsNone(screen.core)
+            self.assertIsNone(screen.project_data)
+            app.provider.denied = False
+            screen.action_refresh()
+            await settle(screen, pilot)
+            self.assertTrue(screen.query_one('#profile-scroll').display)
+            self.assertIsNotNone(screen.core)
+
+    async def test_slow_project_read_does_not_hold_attendance_or_goals(self):
+        gate = threading.Event()
+        started = threading.Event()
+        class SlowProjects(Provider):
+            def get_friend(self, *args, **kwargs):
+                started.set()
+                gate.wait(5)
+                return super().get_friend(*args, **kwargs)
+        app = Harness()
+        app.provider = SlowProjects()
+        try:
+            async with app.run_test(size=(100, 36)) as pilot:
+                open_user_profile(app, 'alice', '50')
+                screen = app.screen
+                for _ in range(100):
+                    await pilot.pause(.02)
+                    if started.is_set() and screen.attendance_data and screen.goals_data:
+                        break
+                self.assertTrue(started.is_set())
+                self.assertIsNotNone(screen.attendance_data)
+                self.assertEqual(screen.goals_data['status'], 'available')
+                self.assertTrue(screen.loading)
+                self.assertIsNone(screen.project_data)
+                gate.set()
+                await settle(screen, pilot)
+                self.assertIsNotNone(screen.project_data)
+        finally:
+            gate.set()
+
     async def test_project_row_opens_preview_and_returns_to_student_profile(self):
         from ft_tui.features.friends.views.project import FriendProjectPreview
         app=Harness();app.provider=Provider()

@@ -44,13 +44,14 @@ SCOPES = {
         'test_project_activity_feature_boundaries', 'test_activity_presentation', 'test_activity_provider', 'test_project_kind',
         'test_registration_cache', 'test_registration_presentation',
         'test_registration_provider', 'test_subject_sync', 'test_ui_fuzzy_projects',
-        'test_ui_project_activity', 'test_ui_project_browser', 'test_ui_project_details_layout',
+        'test_ui_project_activity', 'test_editor_launch', 'test_ui_project_browser', 'test_ui_project_details_layout',
         'test_ui_project_rank', 'test_ui_project_registration', 'test_ui_project_team',
         'test_ui_subject_refresh',
     ),
     'dashboard': (
         'test_dashboard_cache', 'test_goals_types', 'test_dashboard_service',
         'test_dashboard_repository', 'test_dashboard_feature_wiring',
+        'test_activity_heatmap',
         'test_ui_dashboard_portrait', 'test_ui_dashboard_profile',
     ),
     'cluster': (
@@ -59,7 +60,7 @@ SCOPES = {
         'test_current_location', 'test_ui_cluster_issue', 'test_ui_cluster_map',
         'test_ui_cluster_workstation',
     ),
-    'corrections': ('test_corrections_feature_service', 'test_slots_*', 'test_ui_correction_slots', 'test_ui_slots_calendar'),
+    'corrections': ('test_agenda', 'test_corrections_feature_service', 'test_slots_*', 'test_ui_correction_slots', 'test_ui_slots_calendar'),
     'widgets': (
         'test_fuzzy_search', 'test_ui_buttons', 'test_ui_modals',
         'test_ui_selects', 'test_ui_tab_navigation',

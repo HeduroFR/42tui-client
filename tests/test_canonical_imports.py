@@ -7,7 +7,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1] / 'src/ft_tui'
 SHARED_UI = {
     '__init__', 'app', 'button', 'commands', 'components', 'layout', 'modal',
-    'navigation', 'onboarding', 'select', 'shortcuts', 'terminal_capabilities', 'username',
+    'navigation', 'onboarding', 'select', 'shortcuts', 'terminal_capabilities', 'theme_preview', 'username',
 }
 TRANSPORT = {'__init__', 'client_factory', 'client_interface', 'http_client', 'oauth_client'}
 

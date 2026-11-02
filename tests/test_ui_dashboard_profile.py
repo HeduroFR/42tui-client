@@ -21,24 +21,58 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.query_one(TabbedContent).active = 'dashboard'
                     app.account_login = 'mabarrer'
                     app.account_connected = True
-                    app.account_profile = {'location': 'e1r2p3', 'wallet': 40, 'correction_point': 5}
+                    app.account_profile = {'location': 'e1r2p3', 'wallet': 40, 'correction_point': 5, 'coalition': {'score': 7758, 'rank': 5}}
                     app.icon_mode = 'text'
                     await app._refresh_dashboard()
+                    self.assertFalse(app.query("#dashboard-subtitle"))
+                    self.assertTrue(app.query("Header"))
                     # Exercise both growing and shrinking without restarting the full app.
                     for width in (80, 120, 160, 80):
                         with self.subTest(width=width):
                             await pilot.resize_terminal(width, 46)
                             await pilot.pause()
                             card = app.query_one('#dashboard-profile-card')
-                            for name in ('login', 'workstation', 'wallet', 'correction-points', 'portrait'):
+                            for name in ('login', 'level', 'grade', 'wallet', 'correction-points', 'portrait'):
                                 widget = app.query_one(f'#dashboard-{name}')
                                 self.assertGreater(widget.region.width, 0)
                                 self.assertLessEqual(widget.region.right, card.content_region.right)
                                 self.assertLessEqual(widget.region.bottom, card.content_region.bottom)
                             self.assertGreaterEqual(app.query_one('#dashboard-login').region.width, len('mabarrer'))
+                            if not card.has_class('compact-profile'):
+                                self.assertEqual(app.query_one('#dashboard-login').region.y, app.query_one('#dashboard-portrait').region.y)
+                            for name in ('wallet', 'correction-points', 'coalition-score'):
+                                widget = app.query_one(f'#dashboard-{name}')
+                                self.assertTrue(app.query_one('#dashboard-balances').content_region.contains_region(widget.region))
+                            self.assertEqual(app.query_one('#dashboard-level').region.y - app.query_one('#dashboard-login').region.bottom, 0)
+                            self.assertLess(app.query_one('#dashboard-level').region.y, app.query_one('#dashboard-grade').region.y)
+                            last_detail = '#dashboard-grade' if card.has_class('compact-profile') else '#dashboard-campus'
+                            self.assertLessEqual(app.query_one(last_detail).region.bottom, app.query_one('#dashboard-balances').region.y)
                             self.assertFalse(app.query('#dashboard-wallet-label, #dashboard-correction-label'))
             finally:
                 factory.kw['bind'].dispose()
+
+    async def test_progress_list_scrolls_and_closes_on_small_terminal(self):
+        from textual.app import App
+        from textual.containers import VerticalScroll
+        from ft_tui.features.dashboard.views.progress import ProgressProjects
+
+        class Harness(App):
+            language = 'en'
+
+        app = Harness()
+        async with app.run_test(size=(40, 20)) as pilot:
+            app.push_screen(ProgressProjects('Completed', tuple(f'Project {i}' for i in range(50))))
+            await pilot.pause()
+            listing = app.screen.query_one('#progress-projects-list', VerticalScroll)
+            self.assertGreater(listing.max_scroll_y, 0)
+            self.assertLessEqual(app.screen.query_one('#progress-projects-close').region.bottom, 20)
+            listing.focus()
+            await pilot.press('end')
+            await pilot.pause()
+            self.assertGreater(listing.scroll_y, 0)
+            await pilot.press('escape')
+            await pilot.pause()
+            self.assertEqual(len(app.screen_stack), 1)
 
     def test_deadline_summary_uses_current_rank_and_track(self):
         from types import SimpleNamespace
@@ -70,7 +104,7 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('Current project', str(summary.render()))
         self.assertIn('Unavailable', str(summary.render()))
 
-    async def test_identity_workstation_and_balances_fit_dashboard(self):
+    async def test_identity_grade_and_balances_fit_dashboard(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory(f'sqlite:///{Path(directory) / "dashboard.sqlite"}')
             with factory() as session:
@@ -83,27 +117,53 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.query_one(TabbedContent).active = "dashboard"
                     await pilot.pause()
                     app.account_connected = True
-                    app.account_profile = {'last_name': 'Doe', 'first_name': 'Jane', 'location': 'e1r2p3', 'wallet': 0, 'correction_point': 7, 'cursus_users': [
+                    app.account_profile = {'last_name': 'Doe', 'first_name': 'Jane', 'location': 'e1r2p3', 'wallet': 0, 'correction_point': 7, 'coalition': {'score': 7758, 'rank': 5}, 'campuses': [{'name': 'Paris', 'is_primary': True}], 'cursus_users': [
                         {'cursus_id': 9, 'name': 'Other', 'grade': 'Wrong'},
-                        {'cursus_id': 21, 'name': '42cursus', 'grade': 'Learner'}]}
+                        {'cursus_id': 21, 'name': '42cursus', 'grade': 'Cadet', 'level': 12.34}]}
                     await app._refresh_dashboard()
                     await pilot.pause()
                     console = Console(width=40, color_system=None)
                     with console.capture() as captured:
                         console.print(app.query_one('#dashboard-cluster-status', Static).render()._renderable)
                     self.assertIn('e1r2p3', captured.get())
-                    self.assertFalse(app.query('#dashboard-first-name, #dashboard-last-name, #dashboard-grade'))
-                    self.assertEqual(str(app.query_one('#dashboard-workstation', Static).render()), 'e1r2p3')
-                    self.assertGreater(app.query_one('#dashboard-workstation').region.y, app.query_one('#dashboard-login').region.y)
+                    self.assertFalse(app.query('#dashboard-first-name, #dashboard-last-name, #dashboard-workstation'))
+                    self.assertEqual(str(app.query_one('#dashboard-grade', Static).render()), 'Grade: Cadet')
+                    self.assertEqual(str(app.query_one('#dashboard-level', Static).render()), 'Level: 12.34')
+                    self.assertGreater(app.query_one('#dashboard-level').region.y, app.query_one('#dashboard-login').region.y)
+                    self.assertGreater(app.query_one('#dashboard-grade').region.y, app.query_one('#dashboard-level').region.y)
+                    self.assertEqual(str(app.query_one('#dashboard-campus', Static).render()), 'Campus: Paris')
+                    self.assertGreater(app.query_one('#dashboard-campus').region.y, app.query_one('#dashboard-grade').region.y)
+                    with factory() as session:
+                        save_settings(session, {'default_cursus_id': '9'})
+                    await app._refresh_dashboard()
+                    self.assertEqual(str(app.query_one('#dashboard-grade', Static).render()), 'Grade: Wrong')
+                    self.assertEqual(str(app.query_one('#dashboard-level', Static).render()), 'Level: Unavailable')
+                    for language, expected in (('fr', 'Grade: Wrong'), ('es', 'Grado: Wrong')):
+                        app.language = language
+                        await app._refresh_dashboard()
+                        self.assertEqual(str(app.query_one('#dashboard-grade', Static).render()), expected)
+                    app.language = 'en'
+                    await app._refresh_dashboard()
                     self.assertEqual(str(app.query_one('#dashboard-wallet', Static).render()), '0 ₳')
                     self.assertEqual(str(app.query_one('#dashboard-correction-points', Static).render()), '7 🪙')
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 7758')
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-rank', Static).render()), 'Rank: 5')
+                    self.assertEqual(app.query_one('#dashboard-wallet').region.y,
+                                     app.query_one('#dashboard-coalition-name').region.y)
+                    self.assertEqual(app.query_one('#dashboard-correction-points').region.y,
+                                     app.query_one('#dashboard-coalition-score').region.y)
                     self.assertEqual(app.query_one('#dashboard-correction-stat').tooltip, 'Correction points')
                     self.assertTrue(app.query('#dashboard-portrait'))
                     page = app.query_one('#dashboard-page')
-                    self.assertLessEqual(page.virtual_size.height, page.size.height)
-                    for card_id in ('continue', 'notes', 'needs'):
+                    self.assertLessEqual(page.virtual_size.width, page.size.width)
+                    page.scroll_end(animate=False)
+                    await pilot.pause()
+                    self.assertLessEqual(app.query_one('#dashboard-progress-card').region.bottom, page.region.bottom)
+                    for card_id in ('continue', 'needs'):
                         card = app.query_one(f'#dashboard-{card_id}-card')
                         self.assertEqual(card.region.height, 14)
+                    self.assertEqual(app.query_one('#dashboard-notes-card').region.height, 10)
+                    self.assertEqual(app.query_one('#dashboard-evaluations-card').region.height, 14)
                     for button_id in ('dashboard-open-editor', 'dashboard-view-project'):
                         button = app.query_one(f'#{button_id}')
                         card = app.query_one('#dashboard-continue-card')
@@ -116,7 +176,8 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn('Unavailable', str(app.query_one('#dashboard-blackhole-date', Static).render()))
                     app.account_profile = {}
                     await app._refresh_dashboard()
-                    self.assertEqual(str(app.query_one('#dashboard-workstation', Static).render()), 'Unavailable')
+                    self.assertEqual(str(app.query_one('#dashboard-grade', Static).render()), 'Grade: Unavailable')
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), '')
                     self.assertEqual(str(app.query_one('#dashboard-wallet', Static).render()), 'Unavailable')
                     self.assertEqual(str(app.query_one('#dashboard-cluster-status', Static).render()), 'Unavailable')
                     cluster_button = app.query_one('#dashboard-cluster-map')
@@ -129,6 +190,7 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.account_connected = False
                     await app._refresh_dashboard()
                     self.assertEqual(str(app.query_one('#dashboard-cluster-status', Static).render()), 'Unavailable')
+                    self.assertEqual(str(app.query_one('#dashboard-grade', Static).render()), 'Grade: Unavailable')
             finally:
                 factory.kw['bind'].dispose()
 
@@ -166,9 +228,38 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(str(app.query_one('#dashboard-progress-next-name', Static).render()), next_name)
                         self.assertIn('ACTIVE 1', str(app.query_one('#dashboard-progress-active', Static).render()))
                     await check('Core next')
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    await pilot.pause()
+                    self.assertIn('Core completed', str(app.query_one('#dashboard-progress-segment-done').tooltip))
+                    self.assertIn('green', str(app.query_one('#dashboard-progress-segment-done').tooltip.spans[0].style))
+                    self.assertIn('#15d3c1', str(app.query_one('#dashboard-progress-active').tooltip.spans[0].style))
+                    self.assertIn('Core next', str(app.query_one('#dashboard-progress-active').tooltip))
+                    for width in (80, 160):
+                        await pilot.resize_terminal(width, 46)
+                        await pilot.pause()
+                        bar = app.query_one('#dashboard-progress-bar')
+                        done = app.query_one('#dashboard-progress-segment-done')
+                        active = app.query_one('#dashboard-progress-segment-active')
+                        self.assertEqual(bar.region.height, 2)
+                        self.assertEqual(done.region.height, bar.content_region.height)
+                        self.assertLessEqual(abs(done.region.width - active.region.width), 1)
+                        self.assertEqual(done.region.width + active.region.width, bar.content_region.width)
+                    app.query_one('#dashboard-progress-active').focus()
+                    await pilot.press('enter')
+                    await pilot.pause()
+                    self.assertIn('Core next', str(app.screen.query_one('#progress-projects-list Static').render()))
+                    await pilot.press('escape')
+                    await pilot.pause()
+                    app.query_one('#dashboard-progress-locked').focus()
+                    await pilot.press('enter')
+                    await pilot.pause()
+                    self.assertIn('No projects', str(app.screen.query_one('#progress-projects-list Static').render()))
+                    await pilot.press('escape')
+                    await pilot.pause()
                     # Authoritative quest completion changes the stage.
                     app.project_curriculum['selected_rank']['completed'] = True
                     await check('Spec next')
+                    self.assertIn('Spec next', str(app.query_one('#dashboard-progress-active').tooltip))
                     # The scoped CC completion checkbox also changes the stage.
                     app.project_curriculum['selected_rank']['completed'] = False
                     app.account_connected = True
@@ -282,7 +373,10 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn('M T W T F S S', str(app.query_one('#dashboard-activity-heatmap', Static).render()))
                     self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
                     page = app.query_one('#dashboard-page')
-                    self.assertLessEqual(page.virtual_size.height, page.size.height)
+                    self.assertLessEqual(page.virtual_size.width, page.size.width)
+                    page.scroll_end(animate=False)
+                    await pilot.pause()
+                    self.assertLessEqual(app.query_one('#dashboard-progress-card').region.bottom, page.region.bottom)
                     app.account_goals['cc_validated'] = True
                     app._update_black_hole()
                     self.assertIn('Completed', str(app.query_one('#dashboard-blackhole-days', Static).render()))
@@ -292,5 +386,185 @@ class DashboardProfileTests(unittest.IsolatedAsyncioTestCase):
                     app.goals_scope = (app.account_generation, 'other-account', 21)
                     app._update_black_hole()
                     self.assertIn('Unavailable', str(app.query_one('#dashboard-blackhole-days', Static).render()))
+            finally:
+                factory.kw['bind'].dispose()
+
+
+class DashboardWorkstationActivityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_toggle_switches_between_coding_and_workstation_states(self):
+        from datetime import datetime, timedelta, timezone
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "activity.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    await pilot.pause()
+                    app.account_connected = True
+                    app.account_id = '42'
+                    today = datetime.now(timezone.utc).date()
+                    monday = today - timedelta(days=today.weekday())
+                    app.account_attendance = {
+                        'user_id': '42', 'status': 'available', 'begin': '2026-07-01',
+                        'end': today.isoformat(), 'collected_at': '2026-10-27T10:00:00Z',
+                        'stale': False, 'days': {monday.isoformat(): 3600,
+                                                 (monday + timedelta(days=1)).isoformat(): 7200}}
+                    await app._refresh_dashboard()
+                    self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    await pilot.click('#dashboard-activity-toggle')
+                    await pilot.pause()
+                    self.assertEqual(app.attendance_mode, 'workstation')
+                    button = app.query_one('#dashboard-activity-toggle')
+                    area = app.query_one('#dashboard-activity-toggle-area')
+                    self.assertEqual(button.region.height, 3)
+                    self.assertLessEqual(abs(button.region.x + button.region.width / 2
+                                             - area.content_region.x - area.content_region.width / 2), 1)
+                    self.assertIn('LOG TIME', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    self.assertIn('3h 00m', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap
+                    heatmap = app.query_one('#dashboard-activity-heatmap', ActivityHeatmap)
+                    self.assertEqual(heatmap.cell_tooltip(3, 0), '1h00 (1h00)')
+                    self.assertEqual(heatmap.cell_tooltip(3, 1), '2h00 (3h00)')
+                    app.account_attendance = {**app.account_attendance, 'stale': True}
+                    await app._refresh_dashboard()
+                    self.assertIn('stale', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    app.account_attendance = {**app.account_attendance, 'user_id': '99'}
+                    await app._refresh_dashboard()
+                    self.assertIn('Loading…', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    app.account_attendance = {'user_id': '42', 'status': 'unavailable', 'stale': True}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertIn('Workstation time unavailable.', str(app.query_one('#dashboard-activity-heatmap', Static).render()))
+                    class PendingResponse:
+                        status_code = 503
+                        headers = {'retry-after': '5'}
+                        def json(self):
+                            return {'error': 'attendance_pending'}
+                    class PendingError(Exception):
+                        response = PendingResponse()
+                    class PendingProvider:
+                        def get_my_attendance(self, account):
+                            raise PendingError()
+                    app.account_attendance = None
+                    app.provider = PendingProvider()
+                    await app._fetch_attendance(app.provider, '42', app.account_generation)
+                    self.assertEqual(app.account_attendance['status'], 'pending')
+                    self.assertIn('Loading…', str(app.query_one('#dashboard-activity-title', Static).render()))
+                    if getattr(app, '_attendance_timer', None) is not None:
+                        app._attendance_timer.stop()
+                        app._attendance_timer = None
+                    class Failing:
+                        def get_my_attendance(self, account):
+                            raise RuntimeError('offline')
+                    app.account_attendance = {
+                        'user_id': '42', 'status': 'available', 'begin': '2026-07-01',
+                        'end': today.isoformat(), 'collected_at': '2026-10-27T10:00:00Z',
+                        'stale': False, 'days': {monday.isoformat(): 3600}}
+                    app.provider = Failing()
+                    await app._fetch_attendance(app.provider, '42', app.account_generation)
+                    self.assertTrue(app.account_attendance['stale'])
+                    self.assertEqual(app.account_attendance['days'], {monday.isoformat(): 3600})
+                    await pilot.pause()
+                    await pilot.click('#dashboard-activity-toggle')
+                    await pilot.pause()
+                    self.assertEqual(app.attendance_mode, 'coding')
+                    self.assertIn('WEEKLY CODING', str(app.query_one('#dashboard-activity-title', Static).render()))
+            finally:
+                factory.kw['bind'].dispose()
+
+
+class CoalitionSnapshotTests(unittest.TestCase):
+    def test_available_snapshot_wins_and_foreign_or_malformed_values_are_rejected(self):
+        from ft_tui.features.dashboard.views.home import coalition_values
+        profile = {'coalition': {'score': 10, 'rank': 4}}
+        snapshot = {'account_id': '42', 'cursus_id': 21, 'status': 'available', 'stale': False,
+                    'coalition': {'score': 9000, 'rank': 3, 'name': 'Coalition'}}
+        self.assertEqual(coalition_values(profile, snapshot, account_id='42', cursus_id=21)['score'], 9000)
+        for value in (
+            {**snapshot, 'status': 'pending'},
+            {**snapshot, 'account_id': '99'},
+            {**snapshot, 'cursus_id': 9},
+            {**snapshot, 'coalition': {'score': -1, 'rank': 3}},
+            {**snapshot, 'coalition': {'score': True, 'rank': 3}},
+            {**snapshot, 'coalition': {'score': 9000, 'rank': 0}},
+        ):
+            self.assertEqual(coalition_values(profile, value, account_id='42', cursus_id=21),
+                             profile['coalition'])
+
+
+class DashboardCoalitionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_snapshot_score_and_rank_are_displayed_and_pending_falls_back(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "coalition.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'default_cursus_id': '21'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    app.account_connected = True
+                    app.account_id = '42'
+                    app.account_profile = {'coalition': {'score': 1, 'rank': 9}}
+                    app.account_coalition = {'account_id': '42', 'cursus_id': 21, 'status': 'available',
+                                             'stale': False,
+                                             'coalition': {'score': 9000, 'rank': 3, 'name': 'Les Chats', 'color': '#12ab34'}}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 9000')
+                    name = app.query_one('#dashboard-coalition-name', Static)
+                    self.assertEqual(str(name.render()), 'Les Chats - #3')
+                    self.assertEqual(name.styles.color.hex.lower(), '#12ab34')
+                    self.assertFalse(app.query_one('#dashboard-coalition-rank', Static).display)
+                    app.account_coalition = {'account_id': '42', 'cursus_id': 21, 'status': 'pending', 'stale': False}
+                    await app._refresh_dashboard()
+                    await pilot.pause()
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-score', Static).render()), 'Score: 1')
+                    self.assertEqual(str(app.query_one('#dashboard-coalition-name', Static).render()), '#9')
+            finally:
+                if 'app' in locals():
+                    pass
+                factory.kw['bind'].dispose()
+
+
+class DashboardEvaluationGroupTests(unittest.TestCase):
+    def test_groups_split_roles_and_only_subscribed_events(self):
+        from datetime import datetime, timezone
+        from ft_tui.features.agenda.views import dashboard_evaluation_groups
+        now = datetime(2026, 11, 2, 12, tzinfo=timezone.utc)
+        rows = [
+            {'id': 1, 'kind': 'evaluating', 'begin_at': '2026-11-03T10:00:00+00:00', 'title': 'Eval A'},
+            {'id': 2, 'kind': 'evaluated', 'begin_at': '2026-11-03T11:00:00+00:00', 'title': 'Eval B'},
+            {'id': 7, 'kind': 'event', 'begin_at': '2026-11-04T10:00:00+00:00', 'title': 'Subscribed'},
+            {'id': 8, 'kind': 'event', 'begin_at': '2026-11-04T11:00:00+00:00', 'title': 'Other'},
+            {'id': 9, 'kind': 'exam', 'begin_at': '2026-11-05T10:00:00+00:00', 'title': 'Exam'},
+            {'id': 10, 'kind': 'evaluating', 'begin_at': '2026-11-01T10:00:00+00:00', 'title': 'Past'},
+        ]
+        groups = dashboard_evaluation_groups(rows, {7, 9}, now)
+        self.assertEqual([row['title'] for row in groups['evaluating']], ['Eval A'])
+        self.assertEqual([row['title'] for row in groups['evaluated']], ['Eval B'])
+        self.assertEqual([row['title'] for row in groups['subscribed']], ['Subscribed', 'Exam'])
+
+    def test_dashboard_evaluation_copy_is_translated(self):
+        from ft_tui.i18n import translate
+        for language in ('fr', 'es'):
+            for source in ('Subscribed', 'Nothing scheduled'):
+                self.assertNotEqual(translate(source, language), source, source)
+
+
+class DashboardEvaluationsLayoutTests(unittest.IsolatedAsyncioTestCase):
+    async def test_card_uses_dashboard_section_headings(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "evals.sqlite"}')
+            try:
+                with factory() as session:
+                    save_settings(session, {'onboarding_completed': 'true', 'default_cursus_id': '21'})
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(160, 46)) as pilot:
+                    app.query_one(TabbedContent).active = 'dashboard'
+                    await pilot.pause()
+                    labels = [str(widget.render()) for widget in app.query('.dashboard-eval-kicker')]
+                    self.assertEqual(labels, ['I evaluate', 'I am evaluated on', 'Subscribed'])
             finally:
                 factory.kw['bind'].dispose()

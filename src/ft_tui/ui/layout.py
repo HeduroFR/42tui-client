@@ -1,5 +1,7 @@
 """MainLayout UI composition and behavior."""
 
+from ft_tui.features.agenda.views import AgendaWorkspace, DashboardEvaluations
+
 from ft_tui.ui.components import (
     Button,
     ComposeResult,
@@ -15,6 +17,8 @@ from ft_tui.ui.components import (
     Vertical,
 )
 from textual.containers import VerticalScroll
+from ft_tui.features.dashboard.views.progress import ProgressLegend, ProgressSegment
+from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap
 from ft_tui.features.corrections.views import CorrectionSlotsWorkspace
 from ft_tui.features.friends.views.workspace import FriendsWorkspace
 from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
@@ -48,7 +52,6 @@ class MainLayoutMixin:
                 with Vertical(id="dashboard-page"):
                     with Horizontal(id="dashboard-heading"):
                         yield Static("STUDENT OVERVIEW", id="dashboard-title")
-                        yield Static("LOCAL WORKSPACE · OFFLINE MODE", id="dashboard-subtitle")
                     with Horizontal(id="dashboard-cards"):
                         with DashboardProfileCard(classes="dashboard-card", id="dashboard-profile-card"):
                             yield Static("STUDENT PROFILE", classes="dashboard-kicker")
@@ -59,14 +62,21 @@ class MainLayoutMixin:
                                     yield portrait
                                     with Vertical(id="dashboard-identity-text"):
                                         yield Static("Local profile", id="dashboard-login", markup=False, localize=False)
-                                        yield Static("Unavailable", id="dashboard-workstation", markup=False, localize=False)
+                                        yield Static("", id="dashboard-level", markup=False, localize=False)
+                                        yield Static("", id="dashboard-grade", markup=False, localize=False)
+                                        yield Static("", id="dashboard-campus", markup=False, localize=False)
                                 with Horizontal(id="dashboard-balances"):
-                                    with Vertical(classes="dashboard-stat", id="dashboard-wallet-stat") as wallet:
-                                        wallet.tooltip = 'Wallet'
-                                        yield Static("Unavailable", id="dashboard-wallet", classes="dashboard-stat-value")
-                                    with Vertical(classes="dashboard-stat", id="dashboard-correction-stat") as points:
-                                        points.tooltip = 'Correction points'
-                                        yield Static("Unavailable", id="dashboard-correction-points", classes="dashboard-stat-value")
+                                    with Vertical(classes="dashboard-stat-column"):
+                                        with Vertical(classes="dashboard-stat", id="dashboard-wallet-stat") as wallet:
+                                            wallet.tooltip = 'Wallet'
+                                            yield Static("Unavailable", id="dashboard-wallet", classes="dashboard-stat-value")
+                                        with Vertical(classes="dashboard-stat", id="dashboard-correction-stat") as points:
+                                            points.tooltip = 'Correction points'
+                                            yield Static("Unavailable", id="dashboard-correction-points", classes="dashboard-stat-value")
+                                    with Vertical(classes="dashboard-stat-column", id="dashboard-coalition-stats"):
+                                        yield Static("", id="dashboard-coalition-name", markup=False, localize=False)
+                                        yield Static("", id="dashboard-coalition-score", classes="dashboard-stat-value", markup=False, localize=False)
+                                        yield Static("", id="dashboard-coalition-rank", classes="dashboard-stat-value", markup=False, localize=False)
                         with Vertical(classes="dashboard-card", id="dashboard-activity-card"):
                             yield Static(
                                 "WEEKLY CODING",
@@ -74,7 +84,9 @@ class MainLayoutMixin:
                                 classes="dashboard-kicker",
                                 localize=False,
                             )
-                            yield Static("", id="dashboard-activity-heatmap")
+                            yield ActivityHeatmap(id="dashboard-activity-heatmap")
+                            with Vertical(id="dashboard-activity-toggle-area"):
+                                yield Button("Log time", id="dashboard-activity-toggle")
                         with Vertical(classes="dashboard-card", id="dashboard-cluster-card"):
                             yield Static("CLUSTER RADAR", classes="dashboard-kicker")
                             yield Static("Unavailable", id="dashboard-cluster-status")
@@ -103,10 +115,8 @@ class MainLayoutMixin:
                                     disabled=True,
                                 )
                                 yield Button("View project", id="dashboard-view-project", disabled=True)
-                        with Vertical(classes="dashboard-card", id="dashboard-notes-card"):
-                            yield Static("RECENT NOTES", classes="dashboard-kicker")
-                            yield ListView(id="dashboard-recent-notes", initial_index=None)
-                            yield Static("No notes saved yet.", id="dashboard-notes-empty")
+                        with Vertical(classes="dashboard-card", id="dashboard-evaluations-card"):
+                            yield DashboardEvaluations(id="dashboard-evaluations")
                         with Vertical(classes="dashboard-card", id="dashboard-needs-card"):
                             yield Static("NEEDS ATTENTION", classes="dashboard-kicker")
                             yield Static("All projects are set up", id="dashboard-needs-summary")
@@ -118,34 +128,42 @@ class MainLayoutMixin:
                                 variant="primary",
                                 disabled=True,
                             )
-                    with Vertical(id="dashboard-progress-card"):
-                        with Horizontal(id="dashboard-progress-topline"):
-                            yield Static("YOUR 42 JOURNEY", classes="dashboard-kicker")
-                            yield Static("LOCAL CURSUS SNAPSHOT", id="dashboard-progress-context")
-                        with Horizontal(id="dashboard-progress-heading"):
-                            yield Static("0 / 0", id="dashboard-progress-value")
-                            yield Static("projects completed · 0%", id="dashboard-progress-caption")
-                        yield Static("", id="dashboard-progress-bar")
-                        with Horizontal(id="dashboard-progress-legend"):
-                            yield Static("● DONE 0", id="dashboard-progress-done", classes="dashboard-progress-stat")
-                            yield Static(
-                                "● ACTIVE 0",
-                                id="dashboard-progress-active",
-                                classes="dashboard-progress-stat",
-                            )
-                            yield Static(
-                                "● AVAILABLE 0",
-                                id="dashboard-progress-available",
-                                classes="dashboard-progress-stat",
-                            )
-                            yield Static(
-                                "● LOCKED 0",
-                                id="dashboard-progress-locked",
-                                classes="dashboard-progress-stat",
-                            )
-                        with Horizontal(id="dashboard-progress-next"):
-                            yield Static("NEXT UP", id="dashboard-progress-next-label")
-                            yield Static("No project in catalog", id="dashboard-progress-next-name")
+                    with Horizontal(id="dashboard-bottom"):
+                        with Vertical(id="dashboard-progress-card"):
+                            with Horizontal(id="dashboard-progress-topline"):
+                                yield Static("YOUR 42 JOURNEY", classes="dashboard-kicker")
+                                yield Static("LOCAL CURSUS SNAPSHOT", id="dashboard-progress-context")
+                            with Horizontal(id="dashboard-progress-heading"):
+                                yield Static("0 / 0", id="dashboard-progress-value")
+                                yield Static("projects completed · 0%", id="dashboard-progress-caption")
+                            with Horizontal(id="dashboard-progress-bar"):
+                                for status in ("done", "active", "available", "locked"):
+                                    yield ProgressSegment("", id=f"dashboard-progress-segment-{status}")
+                                yield Static("", id="dashboard-progress-unknown", markup=False, localize=False)
+                            with Horizontal(id="dashboard-progress-legend"):
+                                yield ProgressLegend("● DONE 0", id="dashboard-progress-done", classes="dashboard-progress-stat")
+                                yield ProgressLegend(
+                                    "● ACTIVE 0",
+                                    id="dashboard-progress-active",
+                                    classes="dashboard-progress-stat",
+                                )
+                                yield ProgressLegend(
+                                    "● AVAILABLE 0",
+                                    id="dashboard-progress-available",
+                                    classes="dashboard-progress-stat",
+                                )
+                                yield ProgressLegend(
+                                    "● LOCKED 0",
+                                    id="dashboard-progress-locked",
+                                    classes="dashboard-progress-stat",
+                                )
+                            with Horizontal(id="dashboard-progress-next"):
+                                yield Static("NEXT UP", id="dashboard-progress-next-label")
+                                yield Static("No project in catalog", id="dashboard-progress-next-name")
+                        with Vertical(classes="dashboard-card", id="dashboard-notes-card"):
+                            yield Static("RECENT NOTES", classes="dashboard-kicker")
+                            yield ListView(id="dashboard-recent-notes", initial_index=None)
+                            yield Static("No notes saved yet.", id="dashboard-notes-empty")
             with TabPane("Projects", icon="\uf07b", id="projects-tab"):
                 with Horizontal(id="workspace"):
                     with Vertical(id="project-list"):
@@ -182,7 +200,10 @@ class MainLayoutMixin:
                                             yield Button("Register", id="registration-action", disabled=True)
                                             yield Button("Refresh status", id="registration-refresh", disabled=True)
                                         yield Button("Open project on Intra", id="registration-intra-link")
-                                    yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
+                                        yield Button("Attempts & evaluations", id="show-project-activity", disabled=True)
+                                        with Horizontal(id="project-evaluation-actions"):
+                                            yield Button("Subscribe to defense", id="show-project-slots", tooltip="Subscribe to defense", disabled=True)
+                                            yield Button("Set as finished", id="finish-project-intra", tooltip="Set project as finished", variant="primary", disabled=True)
                                     yield ProjectTesters(id="project-testers")
                                 with Vertical(id="project-workspace"):
                                     yield Static("Workspace", classes="panel-title")
@@ -210,6 +231,8 @@ class MainLayoutMixin:
                             yield ListView(id="project-notes-list", initial_index=None)
                             yield Static("No notes saved for this project.", id="project-notes-empty")
                         yield Static("o Editor · e Configure · d Details · t Testers · F4 Refresh Git", id="project-details-help")
+            with TabPane("Agenda", icon="\uf073", id="agenda"):
+                yield AgendaWorkspace()
             with TabPane("Correction Slots", icon="\uf073", id="correction-slots"):
                 yield CorrectionSlotsWorkspace()
             with TabPane("Friends", icon="\uf0c0", id="friends"):

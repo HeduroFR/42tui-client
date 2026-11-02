@@ -11,6 +11,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import Checkbox, DataTable
 
 from ft_tui.app.read_cache import app_cache, backend_origin
+from ft_tui.i18n import translate
 from ft_tui.ui.components import Button, Input, Select, Static
 from ft_tui.ui.modal import AppModal
 
@@ -271,6 +272,7 @@ class SocialInbox(Vertical):
         if not context[1] or not context[3] or not callable(getattr(self.app.provider, 'get_social', None)):
             return
         self.polling = True
+        self.query_one('#social-status', Static).update(translate('Refreshing inbox…', getattr(self.app, 'language', 'en')))
         self.resync_pending = False
         revision = self.revision
         try:
@@ -319,8 +321,14 @@ class SocialInbox(Vertical):
                 from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
                 for workspace in self.app.query(ClusterMapWorkspace):
                     await workspace.reload()
-        except Exception:
-            if context == self.scope():
+        except Exception as error:
+            if context == self.scope() and revision == self.revision:
+                if getattr(getattr(error, 'response', None), 'status_code', None) in (401, 403):
+                    self.snapshot = {}
+                    self.seen.clear()
+                    self.selected = None
+                    self.render_data()
+                    await self.show_pokes()
                 self.query_one('#social-status', Static).update('Friends inbox unavailable. Saved friendships may be out of date; refresh to retry.')
         finally:
             self.polling = False
@@ -455,7 +463,8 @@ class SocialInbox(Vertical):
         host.query_one('#social-toggle', Button).variant = 'primary' if self.open and kind != 'pokes' else 'default'
         if self.external_toggle:
             host.query_one('#friends-pokes', Button).variant = 'primary' if self.open and kind == 'pokes' else 'default'
-        await self.sync()
+        if self.open:
+            self.run_worker(self.sync(), group='social-open-sync')
 
     @on(Button.Pressed)
     async def pressed(self, event):
@@ -467,7 +476,7 @@ class SocialInbox(Vertical):
         if action == 'toggle':
             await self.toggle()
         elif action == 'refresh':
-            await self.sync()
+            self.run_worker(self.sync(), group='social-manual-sync')
         elif action == 'compose':
             self.compose_poke()
         elif self.selected in self.rows:

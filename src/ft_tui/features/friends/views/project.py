@@ -142,10 +142,10 @@ class FriendProjectPreview(ProjectActivityScreen, AppModal):
             if data.get(field) is not None:
                 value={'solo':'Solo','group':'Group','unknown':'Team size unavailable'}.get(data[field],str(data[field])) if field=='project_mode' else str(data[field])
                 facts.append(f"{self.t(label)}: {self.t(value)}")
-        if data.get('team_size') is not None:
+        if data.get('team_size') is not None and data.get('project_mode') != 'solo':
             facts.append(f"{self.t('Members')}: {data['team_size']}")
         description = data.get('description') or self.t('Project description unavailable.')
-        lines = [' · '.join(facts), description]
+        lines = [description]
         for clause in data.get('clauses', []):
             condition = readable_condition(clause.get('expression', {}), getattr(self.app, 'language', 'en'))
             if condition:

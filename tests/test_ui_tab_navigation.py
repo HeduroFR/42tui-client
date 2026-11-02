@@ -107,14 +107,15 @@ class FullAppNavigationTests(unittest.IsolatedAsyncioTestCase):
                 async with app.run_test(size=(140,50)) as pilot:
                     content=app.query_one(TabbedContent)
                     settings_tab = content.query_one(Tabs).get_content_tab('settings')
-                    self.assertEqual(settings_tab.region.right, content.region.right)
+                    self.assertFalse(content.query('#my-evaluations'))
+                    self.assertTrue(content.query('#agenda'))
                     self.assertIn('\uf013', str(settings_tab.label))
-                    for key,expected in [('l','correction-slots'),('h','dashboard')]:
+                    for key,expected in [('l','agenda'),('h','dashboard')]:
                         content.active='projects-tab';await pilot.pause()
                         app.query_one('#project-list-view',ListView).focus();await pilot.pause()
                         await pilot.press(key);await pilot.pause()
                         self.assertEqual(content.active,expected)
-                    await pilot.press('l','l','l','l');await pilot.pause()
+                    await pilot.press('l','l','l','l','l');await pilot.pause()
                     self.assertEqual(content.active,'clubs')
                     await pilot.press('l');await pilot.pause()
                     self.assertEqual(content.active,'dev-log')
@@ -147,6 +148,7 @@ class FullAppNavigationTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.pause()
                         self.assertTrue(settings_tab.is_on_screen)
                         if width >= 140:
-                            self.assertEqual(settings_tab.region.right, content.region.right)
+                            self.assertFalse(content.query('#my-evaluations'))
+                    self.assertTrue(content.query('#agenda'))
             finally:
                 factory.kw['bind'].dispose()

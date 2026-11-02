@@ -7,8 +7,8 @@ from ft_tui.ui.components import Button, Input, Select, Static
 from ft_tui.features.corrections.calendar import SlotsCalendar
 from ft_tui.features.corrections.model import Slot, earliest_start, interval, local_datetime, local_zone
 from ft_tui.i18n import translate
+from ft_tui.app.read_cache import ReadInvalidated, account_scope, app_cache
 from .service import CorrectionsService, MutationFailure, StaleCorrectionsContext
-
 
 def rounded_slot_time(value, zone):
     """Round valid local input to the nearest quarter, including day rollover."""
@@ -109,8 +109,9 @@ class SlotPicker(ModalScreen):
     '''
     BINDINGS = [('escape', 'cancel', 'Cancel')]
 
-    def __init__(self, slots, zone):
+    def __init__(self, slots, zone, *, action_label='Edit'):
         super().__init__(); self.slots = slots; self.zone = zone
+        self.action_label = action_label
 
     def compose(self):
         with Vertical():
@@ -119,7 +120,7 @@ class SlotPicker(ModalScreen):
                           for i, s in enumerate(self.slots)], value=0, allow_blank=False,
                          localize_options=False, id='slot-picker-choice')
             with Horizontal():
-                yield Button('Edit', id='slot-picker-edit', variant='primary')
+                yield Button(self.action_label, id='slot-picker-edit', variant='primary')
                 yield Button('Cancel', id='slot-picker-cancel')
 
     def action_cancel(self):
@@ -165,7 +166,7 @@ class CorrectionSlotsWorkspace(Vertical):
         self.context = None
         self.epoch = 0
         self.busy = False
-        self.loading = False
+        self.slots_loading = False
         self.trusted = False
         self.can_write = False
         self.loaded = False
@@ -215,6 +216,7 @@ class CorrectionSlotsWorkspace(Vertical):
     def on_mount(self):
         self.set_interval(.5, self.tick)
         self.tick(); self.update_heading()
+        self.call_after_refresh(self.tick)
         now = datetime.now(self.zone)
         cal = self.query_one(SlotsCalendar)
         cal.set_day(now.weekday()); cal.row = max(32, now.hour * 4)
@@ -247,15 +249,15 @@ class CorrectionSlotsWorkspace(Vertical):
         scope = self.scope()
         if self.context != scope:
             self.context = scope; self.epoch += 1
-            self.busy = self.loading = self.loaded = self.trusted = self.can_write = False
+            self.busy = self.slots_loading = self.loaded = self.trusted = self.can_write = False
             cal = self.query_one(SlotsCalendar)
-            cal.action_cancel(); cal.set_slots(()); cal.pending = None
+            cal.action_cancel(); cal.set_slots(()); cal.set_skeleton(False); cal.pending = None
             self.query_one('#slots-detail', Static).update(self.legend())
             self.query_one('#slots-status', Static).update('Connect your 42 account to manage correction slots.')
             self.controls()
         # Warm the first week while another tab is visible, rather than waiting
         # for the user to open this tab and then paying the entire network wait.
-        if self.connected() and not self.loaded and not self.loading and not self.busy:
+        if self.is_mounted and self.connected() and not self.loaded and not self.slots_loading and not self.busy:
             self.loaded = True
             self.run_worker(self.reload(), group='slots-load')
 
@@ -263,28 +265,36 @@ class CorrectionSlotsWorkspace(Vertical):
         return self.is_mounted and epoch == self.epoch and context == self.scope()
 
     def controls(self):
-        writable = bool(self.connected() and self.trusted and self.can_write and not self.busy and not self.loading)
+        writable = bool(self.connected() and self.trusted and self.can_write and not self.busy and not self.slots_loading)
         cal = self.query_one(SlotsCalendar); cal.writable = writable; cal.refresh()
         self.query_one('#slots-add', Button).disabled = not writable
         for key in ('prev', 'next', 'today', 'refresh'):
-            self.query_one('#slots-' + key, Button).disabled = self.busy or self.loading
+            self.query_one('#slots-' + key, Button).disabled = self.busy or self.slots_loading
 
     def window(self):
         return (local_datetime(f'{self.week}T00:00', self.zone),
                 local_datetime(f'{self.week + timedelta(days=7)}T00:00', self.zone))
 
-    async def reload(self):
-        if not self.connected() or self.loading:
+    async def reload(self, *, refresh=True):
+        if not self.connected() or self.slots_loading:
             return
         self.epoch += 1; epoch = self.epoch; context = self.scope()
-        self.loading = True; self.trusted = False; self.controls()
+        self.slots_loading = True; self.trusted = False; self.controls()
         self.query_one('#slots-status', Static).update('Loading correction slots…')
         provider = self.app.provider
         try:
             begin, end = self.window()
-            snapshot = await self.service().snapshot(
-                begin, end, account_id=context[1], provider=provider,
-                current=lambda: self.valid(epoch, context))
+            key = (account_scope(self.app), 'correction-week', begin.isoformat(), end.isoformat())
+            cached = app_cache(self.app).peek(key)
+            if cached:
+                self.query_one(SlotsCalendar).set_slots(cached['slots'])
+            self.query_one(SlotsCalendar).set_skeleton(not cached and not self.query_one(SlotsCalendar).slots)
+            async def load():
+                return await self.service().snapshot(
+                    begin, end, account_id=context[1], provider=provider,
+                    current=lambda: self.valid(epoch, context))
+            snapshot = await app_cache(self.app).read(key, load, refresh=refresh, ttl=30,
+                                                    current=lambda: self.valid(epoch, context))
             if not self.valid(epoch, context):
                 return
             if snapshot['account_id'] != str(context[1]):
@@ -298,6 +308,13 @@ class CorrectionSlotsWorkspace(Vertical):
                 message = ('Select availability to edit. Booked corrections are read-only.' if snapshot['slots']
                            else 'No correction slots this week. Click or drag to add availability.')
             self.query_one('#slots-status', Static).update(message)
+        except ReadInvalidated:
+            if epoch == self.epoch and context == self.scope():
+                self.slots_loading = False
+                self.loaded = False
+                if self.is_mounted:
+                    self.query_one(SlotsCalendar).set_skeleton(False)
+                    self.controls()
         except Exception as error:
             if self.valid(epoch, context):
                 try:
@@ -310,7 +327,7 @@ class CorrectionSlotsWorkspace(Vertical):
                 self.query_one('#slots-status', Static).update(message)
         finally:
             if self.valid(epoch, context):
-                self.loading = False; self.controls()
+                self.slots_loading = False; self.query_one(SlotsCalendar).set_skeleton(False); self.controls()
 
     async def change(self, slot, begin=None, end=None, *, delete=False, delete_slots=None):
         if self.context != self.scope():
@@ -332,6 +349,7 @@ class CorrectionSlotsWorkspace(Vertical):
         context = self.scope(); epoch = self.epoch; provider = self.app.provider
         self.busy = True; self.trusted = False
         cal = self.query_one(SlotsCalendar)
+        app_cache(self.app).invalidate(lambda key: len(key) > 1 and key[1] == 'correction-week' and key[0] == account_scope(self.app))
         previous = cal.slots
         if delete:
             removed = {identity for target in targets for identity in target.ids}
@@ -460,7 +478,7 @@ class CorrectionSlotsWorkspace(Vertical):
         if key.startswith('slots-day-'):
             cal.set_day(cal.day + (-1 if key.endswith('prev') else 1))
             return
-        if self.busy or self.loading:
+        if self.busy or self.slots_loading:
             return
         if key == 'slots-refresh':
             await self.reload()
@@ -469,7 +487,7 @@ class CorrectionSlotsWorkspace(Vertical):
                 today = datetime.now(self.zone).date(); self.week = today - timedelta(days=today.weekday()); cal.set_day(today.weekday())
             else:
                 self.week += timedelta(days=-7 if key == 'slots-prev' else 7)
-            cal.set_week(self.week); cal.set_slots(()); self.update_heading(); await self.reload()
+            cal.set_week(self.week); cal.set_slots(()); self.update_heading(); await self.reload(refresh=False)
             if key == 'slots-today':
                 cal.row = datetime.now(self.zone).hour * 4
                 cal.show_time(cal.row)

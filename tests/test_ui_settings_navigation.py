@@ -38,6 +38,169 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
             await pilot.pause()
             self.assertIsNone(app.settings_status_timer)
 
+    async def test_account_storage_moves_session_without_saving_other_drafts(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from ft_tui.infrastructure.security.keychain import CredentialStore, SessionCredentialStore
+        from tests.test_keychain import FakeKeyring
+
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true"})
+            app = FortyTwoTuiApp(factory, None)
+            try:
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    source = SessionCredentialStore()
+                    source.save({'access_token': 'synthetic'})
+                    app.oauth_client = SimpleNamespace(store=source, _credentials=None, _credential_lock=lambda: nullcontext())
+                    app.account_connected = True
+                    app._update_account_connection_widgets()
+                    self.assertTrue(app.query_one('#settings-storage-card').display)
+                    selector = app.query_one('#settings-storage', Select)
+                    await pilot.pause()
+                    button = app.query_one('#settings-storage-apply')
+                    self.assertEqual(selector.region.y, button.region.y)
+                    self.assertGreater(button.region.x - selector.region.right, 0)
+                    self.assertEqual(selector.value, 'session')
+                    selector.value = 'keyring'
+                    backend = FakeKeyring()
+                    with patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=Path(directory) / 'missing'), patch.object(CredentialStore, '_backend', return_value=backend):
+                        app.query_one('#settings-storage-apply').press()
+                        for _ in range(30):
+                            await pilot.pause(.05)
+                            if isinstance(app.oauth_client.store, CredentialStore):
+                                break
+                        self.assertIsInstance(app.oauth_client.store, CredentialStore)
+                        self.assertEqual(app.oauth_client.store.load(), {'access_token': 'synthetic'})
+                        self.assertIn('updated', str(app.query_one('#settings-storage-status', Static).render()))
+                        await pilot.resize_terminal(64, 24)
+                        await pilot.pause()
+                        self.assertEqual(selector.region.y, button.region.y)
+                        self.assertGreater(button.region.x - selector.region.right, 0)
+                        await pilot.resize_terminal(45, 24)
+                        await pilot.pause()
+                        self.assertGreaterEqual(button.region.y, selector.region.bottom)
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_community_links_and_notifications_persist_independently(self):
+        from unittest.mock import patch
+        from ft_tui.features.settings.views.workspace import SettingsWorkspace
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true"})
+            try:
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    app.query_one(SettingsWorkspace).show_category(len(SETTINGS_CATEGORIES) - 1)
+                    await pilot.pause()
+                    self.assertEqual(app.query_one('#settings-categories', ListView).index, len(SETTINGS_CATEGORIES) - 1)
+                    github = app.query_one('#community-github-card')
+                    discord = app.query_one('#community-discord-card')
+                    self.assertEqual(github.region.y, discord.region.y)
+                    self.assertLessEqual(github.region.right, discord.region.x)
+                    self.assertTrue(github.content_region.contains_region(app.query_one('#community-github').region))
+                    self.assertTrue(discord.content_region.contains_region(app.query_one('#community-discord').region))
+                    with patch('ft_tui.features.settings.views.workspace.webbrowser.open', return_value=True) as browser:
+                        app.query_one('#community-github').press()
+                        await pilot.pause()
+                        browser.assert_called_with('https://tui.42wip.in/github')
+                        self.assertIn('Opened in your browser.', str(app.query_one('#community-status', Static).render()))
+                        workspace = app.query_one(SettingsWorkspace)
+                        self.assertEqual(workspace._community_status_timer._interval, 5)
+                        first_timer = workspace._community_status_timer
+                        app.query_one('#community-discord').press()
+                        await pilot.pause()
+                        browser.assert_called_with('https://tui.42wip.in/discord')
+                        self.assertIsNot(first_timer, workspace._community_status_timer)
+                        workspace._community_status_timer._callback()
+                        await pilot.pause()
+                        self.assertEqual(str(app.query_one('#community-status', Static).render()), '')
+                    app._show_community_reminder('github')
+                    await pilot.pause()
+                    self.assertFalse(app.query('#community-reminder'))
+                    app.account_connected = True
+                    focused = app.focused
+                    tabs_region = app.query_one('#main-tabs').region
+                    app._show_community_reminder('github')
+                    await pilot.pause()
+                    card = app.query_one('#community-reminder-card')
+                    self.assertGreater(card.region.x, 0)
+                    self.assertGreater(card.region.y, 0)
+                    self.assertEqual(app.focused, focused)
+                    self.assertEqual(app.query_one('#main-tabs').region, tabs_region)
+                    self.assertIn('GitHub', str(app.query_one('#community-reminder-heading', Static).render()))
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'community_github_reminder_seen'), 'true')
+                        self.assertNotEqual(get_setting(session, 'community_discord_reminder_seen'), 'true')
+                    with patch('ft_tui.features.settings.views.community.webbrowser.open', return_value=True) as browser:
+                        app.query_one('#community-reminder-open').press()
+                        await pilot.pause()
+                        browser.assert_called_once_with('https://tui.42wip.in/github')
+                    self.assertFalse(app.query('#community-reminder'))
+                    app._show_community_reminder('discord')
+                    await pilot.pause()
+                    self.assertIn('Discord', str(app.query_one('#community-reminder-heading', Static).render()))
+                    await pilot.resize_terminal(64, 24)
+                    await pilot.pause()
+                    card = app.query_one('#community-reminder-card')
+                    self.assertLessEqual(card.region.right, 64)
+                    self.assertLessEqual(card.region.bottom, 24)
+                    with patch('ft_tui.features.settings.views.community.webbrowser.open', return_value=False):
+                        app.query_one('#community-reminder-open').press()
+                        await pilot.pause()
+                        self.assertIn('Could not open', str(app.query_one('#community-reminder-status', Static).render()))
+                    app.query_one('#community-reminder-close').press()
+                    await pilot.pause()
+                    self.assertFalse(app.query('#community-reminder'))
+                    with factory() as session:
+                        self.assertEqual(get_setting(session, 'community_discord_reminder_seen'), 'true')
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    await pilot.resize_terminal(64, 24)
+                    app.query_one(SettingsWorkspace).show_category(len(SETTINGS_CATEGORIES) - 1)
+                    await pilot.pause()
+                    github = app.query_one('#community-github-card')
+                    discord = app.query_one('#community-discord-card')
+                    self.assertGreaterEqual(discord.region.y, github.region.bottom)
+                    self.assertLessEqual(github.region.right, app.query_one('#settings-content').content_region.right)
+                    app.account_connected = True
+                    app._show_community_reminder('github')
+                    app._show_community_reminder('discord')
+                    await pilot.pause()
+                    self.assertFalse(app.query('#community-reminder'))
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_tdf_help_tracks_viewer_selection(self):
+        from ft_tui.features.settings.views.workspace import SettingsWorkspace
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true", "favorite_subject_viewer": "tdf"})
+            try:
+                app = FortyTwoTuiApp(factory, None)
+                async with app.run_test(size=(100, 36)) as pilot:
+                    await pilot.press('f5')
+                    app.query_one(SettingsWorkspace).show_category(3)
+                    await pilot.pause()
+                    help_text = app.query_one('#subject-tdf-help')
+                    self.assertTrue(help_text.display)
+                    app.query_one('#subject-viewer', Select).value = 'system'
+                    await pilot.pause()
+                    self.assertFalse(help_text.display)
+                    app.query_one('#subject-viewer', Select).value = 'tdf'
+                    await pilot.pause()
+                    self.assertTrue(help_text.display)
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_categories_edit_save_and_return_with_keyboard(self):
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")
@@ -59,7 +222,17 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                         await pilot.pause()
                         visible = [panel.id for panel in app.query(".settings-panel") if panel.display]
                         self.assertEqual(visible, [f"settings-panel-{key}"])
-                    await pilot.press("up", "up", "enter")
+                        self.assertEqual(str(app.query_one('#settings-category-title', Static).render()), SETTINGS_CATEGORIES[index][1])
+                        self.assertTrue(str(app.query_one('#settings-category-description', Static).render()))
+                        if key == 'curriculum':
+                            catalog = app.query_one('#settings-catalog-card')
+                            app.query_one('#settings-content').scroll_to_widget(catalog, animate=False)
+                            await pilot.pause()
+                            selector = app.query_one('#cc-default-track')
+                            refresh = app.query_one('#settings-refresh-catalog')
+                            self.assertEqual(selector.region.y, refresh.region.y)
+                            self.assertGreater(refresh.region.x - selector.region.right, 0)
+                    await pilot.press(*(["up"] * (len(SETTINGS_CATEGORIES) - 3)), "enter")
                     field = app.query_one("#projects-root", Input)
                     self.assertIs(app.focused, field)
                     field.value = str(Path(directory) / "projects")
@@ -86,6 +259,7 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.resize_terminal(64, 24)
                     await pilot.pause()
                     self.assertTrue(app.query_one("#settings-workspace").has_class("compact"))
+                    self.assertGreater(app.query_one('#settings-category-title').region.width, 0)
                     save = app.query_one("#save-settings")
                     self.assertGreater(save.region.width, 0)
                     self.assertLessEqual(save.region.bottom, 24)

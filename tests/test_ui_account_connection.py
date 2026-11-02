@@ -488,6 +488,24 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(screen.query_one("#account-manual-link").display)
             self.assertEqual(screen._authorization_url, "")
 
+    async def test_copy_login_link_reports_native_success_or_unconfirmed(self):
+        from unittest.mock import patch
+        from textual.app import App
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        client = FakeOAuthClient()
+        client.pairing_status = 'pending'
+        async with App().run_test(size=(120, 45)) as pilot:
+            app = pilot.app
+            screen = AccountConnectionScreen(client, start_pairing=True)
+            app.push_screen(screen)
+            await pilot.pause()
+            for copied, message in ((True, 'Login link copied.'), (False, 'Clipboard not confirmed')):
+                with patch('ft_tui.features.accounts.adapters.clipboard.copy_login_link', return_value=copied) as copy:
+                    screen.query_one('#account-copy-link').press()
+                    await pilot.pause()
+                    copy.assert_called_once_with(screen._authorization_url)
+                    self.assertIn(message, str(screen.query_one('#account-connection-status').render()))
+
     async def test_expired_session_prompts_once_with_centered_reconnect_and_quit(self):
         from unittest.mock import patch
         from ft_tui.features.accounts.views.connection import SessionExpiredScreen
@@ -1071,3 +1089,19 @@ class CursusPersistenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ClipboardAdapterTests(unittest.TestCase):
+    def test_native_copy_uses_stdin_and_failure_is_reported(self):
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+        from ft_tui.features.accounts.adapters.clipboard import copy_login_link
+        with patch('ft_tui.features.accounts.adapters.clipboard.sys.platform', 'darwin'), \
+             patch('ft_tui.features.accounts.adapters.clipboard.shutil.which', return_value='/usr/bin/pbcopy'), \
+             patch('ft_tui.features.accounts.adapters.clipboard.subprocess.run', return_value=CompletedProcess([], 0)) as run:
+            self.assertTrue(copy_login_link('https://example.test/pair?token=synthetic'))
+            self.assertEqual(run.call_args.args[0], ['/usr/bin/pbcopy'])
+            self.assertEqual(run.call_args.kwargs['input'], b'https://example.test/pair?token=synthetic')
+            self.assertNotIn('token', str(run.call_args.args[0]))
+        with patch('ft_tui.features.accounts.adapters.clipboard.sys.platform', 'darwin'), \
+             patch('ft_tui.features.accounts.adapters.clipboard.shutil.which', return_value=None):
+            self.assertFalse(copy_login_link('https://example.test/pair'))

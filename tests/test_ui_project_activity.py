@@ -27,6 +27,7 @@ class ActivityScreenTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause(); await pilot.pause()
             screen = app.screen
+            self.assertGreaterEqual(screen.region.bottom - screen.query_one('#activity-controls').region.bottom, 1)
             self.assertEqual(screen.selected_team_id, 8)
             self.assertIn('125%', str(screen.query_one('#activity-team-summary', Static).render()))
             self.assertIn('Scheduled', str(screen.query_one('#activity-evaluations').children[0].render()))
@@ -44,6 +45,7 @@ class ActivityScreenTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(('history', True), provider.calls); self.assertIn((7, True), provider.calls)
             await pilot.resize_terminal(80, 40); await pilot.pause()
             self.assertGreaterEqual(screen.query_one('#activity-detail').region.y, screen.query_one('#activity-sidebar').region.bottom)
+            self.assertGreaterEqual(screen.region.bottom - screen.query_one('#activity-controls').region.bottom, 1)
             await pilot.press('escape'); await pilot.pause(); self.assertNotIsInstance(app.screen, ProjectActivityScreen)
     async def test_missing_current_team_selects_newest_without_current_label(self):
         p = Provider(); p.history_value['current_team_id'] = 99

@@ -350,16 +350,20 @@ Status: **planned; implementation and release validation pending**.
 
 ## 0.7.0 — Dashboard and interface cleanup
 
-Status: **scope agreed; implementation and release validation pending**.
+Status: **implementation in progress; review, integration and release validation pending**.
 
 Priority: evaluations and agenda, dashboard, Settings, loading and caching, then
-editor time tracking.
+editor time tracking. Implemented items are on the local 0.7.0 interface branch
+or in its uncommitted worktree and still require review and CI before merging.
 
 - [ ] Rework the student-profile card: keep portrait, login, wallet and correction
   points, remove the workstation duplicated in Cluster Radar, and consider campus,
   curriculum and level where reliable data is available. Avoid repeating project
   completion counts; handle missing or stale values and narrow terminals.
-- [ ] Let the activity card switch between coding time and campus workstation log
+  Implemented locally: workstation moved to Cluster Radar; grade, level and
+  primary campus added; coalition score and rank now come from `/v1/me/coalition`
+  with a profile fallback. The card layout still needs review.
+- [x] Let the activity card switch between coding time and campus workstation log
   time; retain Cluster Radar and its Cluster Map link. Investigate an authenticated
   worker endpoint for the connected user's own Intra `locations_stats.json`,
   The user reports that an authenticated account can request other users' data;
@@ -370,34 +374,62 @@ editor time tracking.
   sessions. Distinguish reported zero from missing, unavailable or stale data.
   Assess API compatibility and deploy the required backend before a dependent
   client release.
-- [ ] Show project names for each progress-bar status on hover, including Done,
+  Implemented locally: `GET /v1/me/attendance` has no user/login parameter and
+  queues the authenticated Intra worker read of the connected account's
+  `locations_stats.json`; the dashboard toggle, four-week totals,
+  missing-versus-zero cells, pending/loading, stale retention and unavailable
+  states are covered by focused tests. Backend/worker deployment, live campus
+  permissions/timezone behavior and the ongoing-session boundary still require
+  validation.
+- [x] Show project names for each progress-bar status on hover, including Done,
   Active, Available and Locked; provide keyboard access to the same information.
-- [ ] Remove the dashboard's top-right connected-account/local-projects label;
+- [x] Remove the dashboard's top-right connected-account/local-projects label;
   verify its exact location separately from the app header changed in 0.4.0.
-- [ ] Review project details and the View project action before deciding what
-  interface changes are needed beyond the 0.5.0 Git work.
+- [ ] Review project details and the View project action beyond the 0.5.0 Git work.
+  Implemented locally: move the friend project preview action below its list and
+  remove duplicate preview facts, including the solo-project member count.
+- [ ] Provide a Set project as finished action that opens the project's Intra
+  `/mine` page, where the user can review and confirm the irreversible finish.
+  Implemented locally: the action opens the existing `/mine` URL; browser failure
+  is reported. Live campus verification and release validation remain pending.
 - [ ] Book a correction/evaluation slot for an eligible project from its details:
   show available times, review the selected slot and confirm the booking. Reuse
   existing project/evaluation context; handle unavailable slots and uncertain
   booking results by refreshing before retrying. Existing Correction Slots
   availability editing does not cover booking an evaluation for one's project.
+  Implemented locally: read available project slots and open Intra to book.
+  Native booking remains blocked on a verified write contract.
 - [ ] Show upcoming evaluations on the dashboard, both as evaluator and evaluated
   student, with project, counterpart, local date/time and a link to the details.
   Reflect rescheduling/cancellation and distinguish loading, empty and stale data.
+  Implemented locally: next-three preview and role-filtered evaluation list/week
+  views, shared short-lived reads and periodic refresh. Live verification pending.
 - [ ] Display Intra events for the selected campus in an agenda list and weekly
   calendar, with a detail view and a link to the event on Intra. Validate source
   coverage and account visibility, use explicit local times and distinguish
   loading, empty, unavailable and stale data. Assess reuse of the correction
   calendar's navigation/layout without carrying over slot-editing behavior.
+  Implemented locally: event and exam sources, weekly agenda and detail views.
+  Past days and half-hours have a shaded background, with a current-time marker
+  in empty cells.
+  Implemented locally: events open `https://profile.intra.42.fr/events/<event_id>`
+  and exams open `https://profile.intra.42.fr/exams/<exam_id>`. Validate both links
+  and first-load retry behavior on campus.
 - [ ] Include upcoming evaluations in the personal agenda, both as evaluator and
   evaluated student, reusing the dashboard's evaluation data. Visually distinguish
   Intra events from evaluations and provide filters for each; reflect schedule
   changes/cancellations consistently across the agenda and dashboard.
+  Implemented locally: campus event source, role/event filters, list/week views
+  and detail links. Availability remains in Correction Slots; live permissions,
+  event links and schedule-change behavior still require campus validation.
 - [ ] Rework the full Settings interface: review category grouping, navigation,
   labels and layout, including simplifying Curriculum and Appearance. Preserve
   existing preferences, account/curriculum scope and validation; make save state
   and feedback clear. Validate keyboard access, small-terminal layouts and
   French/Spanish coverage. Keep the later Discord RPC toggle within this structure.
+  Implemented locally: reorganized categories and responsive layout, immediate theme
+  preview, account session-storage controls and simplified help text. Complete
+  visual, keyboard, localization and storage security validation before closing.
 - [ ] Stabilize time-tracking extensions and their installation for Vim, Neovim,
   VS Code and Zed. Review each existing integration, provide reproducible install,
   update and uninstall instructions, and make executable-path setup and a working
@@ -406,11 +438,23 @@ editor time tracking.
   without duplicate time or disruptive errors. Preserve local tracking without
   reading file contents or retaining file paths. Validate fresh installation,
   upgrade/removal and time attribution on Linux/macOS for each supported editor.
-- [ ] Add a GitHub button in Settings opening the project repository, plus a
+  During onboarding, offer to install the selected editor's extension, with a
+  skip option and clear installation failure feedback.
+- [ ] Fix Open in Editor when the configured editor is installed through Flatpak
+  and its executable is not on PATH, including VS Code on campus workstations.
+  Detect and launch the installed editor appropriately, preserve existing native
+  installations, and provide actionable feedback when the editor is unavailable.
+  Validate both Flatpak and PATH-based launches with the intended project folder.
+  Implemented locally: native first, then `flatpak run` for VS Code
+  (`com.visualstudio.code`), Zed (`dev.zed.Zed`), Neovim (`io.neovim.nvim`) and
+  Vim (`org.vim.Vim`); resolver and launch tests pass. Live Flatpak launch on
+  Linux remains unverified.
+- [x] Add a GitHub button in Settings opening the project repository, plus a
   one-time reminder to star the project, remembered across app restarts.
-- [ ] Add a Discord button in Settings opening the project's Discord invite, plus
+- [x] Add a Discord button in Settings opening the project's Discord invite, plus
   a one-time reminder to join the community, remembered across app restarts.
-  Confirm the official invite URL before implementation.
+  The project redirect is `https://tui.42wip.in/discord`; confirm it remains valid
+  when preparing the release.
 - [ ] Rework information loading and caching across projects, friends and the
   dashboard, including project/evaluation details and friend profiles. Measure
   startup, navigation and refresh delays before and after the rework; investigate
@@ -420,6 +464,24 @@ editor time tracking.
   network failures. Do not treat the caching shipped in 0.3.0 as completion.
   Assess backend/API changes and compatibility if needed, and validate loading,
   refresh, account switching and offline/error behavior before release.
+  In progress locally: shared evaluation reads; parallel account, catalog and
+  friend reads; progressive agenda and friend loading; saved friend snapshots;
+  background inbox refresh; portrait deduplication and dashboard aggregation.
+  The backend performance branch overlaps evaluation-context reads. Synthetic
+  measurements and focused checks are recorded in DEV_CHANGELOG.md; review the
+  uncommitted work and measure real backend and UI performance before closing.
+  Agenda week navigation and unchanged background refreshes are improved locally;
+  event and exam reads start concurrently, revisited weeks show cached data while
+  refreshing, and pending worker results retry with bounded backoff. Verify live
+  loading and source timing. Empty calendar views use pulsing full-width loading
+  cards distributed across hours until results arrive, while partial results
+  remain visible. Correction Slots uses the same loading treatment.
+
+- [ ] Review and integrate the client and required backend changes, then deploy
+  the backend first and verify the exact client/backend pair and live campus data.
+  Resolve the two dashboard viewport-height failures recorded in full discovery,
+  rerun the full suite and release CI on the final candidate, and reconcile the
+  verified release baseline before preparing publication.
 
 ## 0.8.0 — Notifications, presence and pokes
 

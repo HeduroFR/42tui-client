@@ -128,6 +128,8 @@ class AccountControllerMixin:
             self.call_later(self._reload_project_catalog)
             self.call_later(self._load_friends)
         self._update_account_connection_widgets()
+        if result == 'connected' and self._settings_operations().get('onboarding_completed') == 'true':
+            self._schedule_community_reminders()
 
         if self._session_expiry_prompt_pending:
             self._session_expiry_prompt_pending = False
@@ -162,17 +164,18 @@ class AccountControllerMixin:
         for selector in ("#account-connection-state", "#onboarding-account-state"):
             for widget in [widget for screen in self.screen_stack for widget in screen.query(selector)]:
                 widget.update(state)
+        from ft_tui.features.accounts.adapters.storage_transfer import storage_kind
+        store = getattr(getattr(self, 'oauth_client', None), 'store', None)
+        kind = storage_kind(store)
+        for widget in self.query('#settings-storage-card'):
+            widget.display = bool(self.account_connected and kind)
+        if self.query('#settings-storage') and kind:
+            with self.prevent(Select.Changed):
+                self.query_one('#settings-storage', Select).value = kind
         connect_label = "Manage 42 account" if self.account_connected else "Connect 42 account"
         for selector in ("#settings-connect-account", "#onboarding-connect-account"):
             for button in [widget for screen in self.screen_stack for widget in screen.query(selector)]:
                 button.set_source_label(connect_label)
-        dashboard_state = (
-            "CONNECTED ACCOUNT · LOCAL PROJECTS"
-            if self.account_connected
-            else "LOCAL WORKSPACE · OFFLINE MODE"
-        )
-        for widget in self.query("#dashboard-subtitle"):
-            widget.update(translate(dashboard_state, self.language))
         provider_title = (
             "Connected 42 account"
             if self.account_connected
@@ -180,13 +183,6 @@ class AccountControllerMixin:
         )
         for widget in self.query("#provider-title"):
             widget.update(translate(provider_title, self.language))
-        provider_description = (
-            "Your projects sync from the centralized 42 API. The local catalog stays available offline."
-            if self.account_connected
-            else "Your saved projects and activity stay on this device. Connect your 42 account to sync your real projects."
-        )
-        for widget in self.query("#provider-description"):
-            widget.update(translate(provider_description, self.language))
 
     def _configured_cursus_id(self, session=None) -> int | None:
         return AccountControllerMixin._account_shell(self).configured_cursus(session)

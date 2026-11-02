@@ -70,6 +70,8 @@ class OnboardingScreen(AppModal[dict[str, str]]):
         self.themes = themes
         self.account_connected = account_connected
         self.account_login = account_login
+        self._initial_theme = None
+        self._completed = False
 
     def _t(self, message: str) -> str:
         return translate(message, getattr(self.app, "language", "en"))
@@ -160,8 +162,19 @@ class OnboardingScreen(AppModal[dict[str, str]]):
                     yield Button(self._t("Finish setup"), variant="primary", id="onboarding-finish")
 
     def on_mount(self) -> None:
+        from ft_tui.ui.theme_preview import watch_theme_preview
+        watch_theme_preview(self, self.query_one('#onboarding-theme', Select))
+        self._initial_theme = self.app.theme
         self._show_step()
         self.query_one("#onboarding-connect-account", Button).focus()
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == 'onboarding-theme' and event.value in self.app.available_themes:
+            self.app.theme = event.value
+
+    def on_unmount(self) -> None:
+        if not self._completed and self._initial_theme in self.app.available_themes:
+            self.app.theme = self._initial_theme
 
     def _show_step(self) -> None:
         selectors = (
@@ -241,6 +254,7 @@ class OnboardingScreen(AppModal[dict[str, str]]):
             self._show_step()
             self._focus_current_step()
             return
+        self._completed = True
         self.dismiss({
             "projects_root": str(
                 Path(

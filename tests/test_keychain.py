@@ -233,3 +233,105 @@ class SessionVaultTests(unittest.TestCase):
         for operation in (store.load, lambda: store.save({}), store.delete):
             with self.assertRaises(SecureStoreError):
                 operation()
+
+class SessionStorageTransferTests(unittest.TestCase):
+    def test_moves_session_without_overwriting_existing_keyring(self):
+        from contextlib import nullcontext
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        source = SessionCredentialStore()
+        source.save({'access_token': 'secret'})
+        client = SimpleNamespace(store=source, _credentials='cached', _credential_lock=lambda: nullcontext())
+        backend = FakeKeyring()
+        with TemporaryDirectory() as directory, patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=Path(directory) / 'vault'), patch.object(CredentialStore, '_backend', return_value=backend):
+            backend.set_password('42tui.oauth', 'device', '{"other":true}')
+            with self.assertRaises(SecureStoreError):
+                move_session(client, 'keyring')
+            self.assertEqual(source.load(), {'access_token': 'secret'})
+            backend.delete_password('42tui.oauth', 'device')
+            move_session(client, 'keyring')
+            self.assertEqual(client.store.load(), {'access_token': 'secret'})
+            self.assertIsNone(source.load())
+            self.assertIsNone(client._credentials)
+
+    def test_failed_source_deletion_leaves_original_active_and_verified_destination(self):
+        from contextlib import nullcontext
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        source = SessionCredentialStore()
+        source.save({'access_token': 'secret'})
+        client = SimpleNamespace(store=source, _credentials='cached', _credential_lock=lambda: nullcontext())
+        backend = FakeKeyring()
+        with TemporaryDirectory() as directory, patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=Path(directory) / 'vault'), patch.object(CredentialStore, '_backend', return_value=backend), patch.object(source, 'delete', side_effect=SecureStoreError('failed')):
+            with self.assertRaises(SecureStoreError):
+                move_session(client, 'keyring')
+            self.assertIs(client.store, source)
+            self.assertEqual(source.load(), {'access_token': 'secret'})
+            self.assertEqual(CredentialStore().load(), {'access_token': 'secret'})
+
+    def test_session_can_move_to_vault_when_keyring_is_unavailable(self):
+        from contextlib import nullcontext
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        from ft_tui.infrastructure.security.session_vault import SessionVault
+        source = SessionCredentialStore()
+        source.save({'access_token': 'secret'})
+        client = SimpleNamespace(store=source, _credentials=None, _credential_lock=lambda: nullcontext())
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'credentials' / 'vault'
+            with patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=path), patch.object(CredentialStore, '_backend', side_effect=SecureStoreError('unavailable')):
+                move_session(client, 'vault', 'long test passphrase')
+                self.assertIsInstance(client.store, SessionVault)
+                self.assertEqual(client.store.load(), {'access_token': 'secret'})
+                self.assertIsNone(source.load())
+
+    def test_changed_source_is_never_moved(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        old, current = SessionCredentialStore(), SessionCredentialStore()
+        current.save({'access_token': 'other'})
+        client = SimpleNamespace(store=current, _credentials=None, _credential_lock=lambda: nullcontext())
+        with self.assertRaises(SecureStoreError):
+            move_session(client, 'keyring', expected_source=old)
+        self.assertEqual(current.load(), {'access_token': 'other'})
+
+    def test_keyring_to_session_only_removes_the_saved_copy(self):
+        from contextlib import nullcontext
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        backend = FakeKeyring()
+        with TemporaryDirectory() as directory, patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=Path(directory) / 'missing'), patch.object(CredentialStore, '_backend', return_value=backend):
+            source = CredentialStore()
+            source.save({'access_token': 'secret'})
+            client = SimpleNamespace(store=source, _credentials=None, _credential_lock=lambda: nullcontext())
+            move_session(client, 'session')
+            self.assertIsInstance(client.store, SessionCredentialStore)
+            self.assertEqual(client.store.load(), {'access_token': 'secret'})
+            self.assertIsNone(source.load())
+
+    def test_existing_vault_prevents_switch_to_keyring(self):
+        from contextlib import nullcontext
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session
+        source = SessionCredentialStore()
+        source.save({'access_token': 'secret'})
+        client = SimpleNamespace(store=source, _credentials=None, _credential_lock=lambda: nullcontext())
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'vault'
+            path.write_text('existing')
+            with patch('ft_tui.features.accounts.adapters.storage_transfer.session_vault_path', return_value=path):
+                with self.assertRaises(SecureStoreError):
+                    move_session(client, 'keyring')
+            self.assertEqual(path.read_text(), 'existing')
+            self.assertIs(client.store, source)

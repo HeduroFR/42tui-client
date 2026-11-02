@@ -135,6 +135,29 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     self.assertNotIn('Libft completed', overview)
                     self.assertNotIn('Snapshot', overview)
                     self.assertNotIn('Classification', overview)
+                    await pilot.pause()
+                    self.assertFalse(app.query('#my-evaluations'))
+                    self.assertTrue(app.query('#agenda'))
+                    registration = app.query_one('#project-registration')
+                    activity = app.query_one('#show-project-activity')
+                    slots = app.query_one('#show-project-slots')
+                    finish = app.query_one('#finish-project-intra')
+                    row = app.query_one('#project-evaluation-actions')
+                    self.assertIs(activity.parent, registration)
+                    self.assertIs(row.parent, registration)
+                    self.assertIs(slots.parent, row)
+                    self.assertIs(finish.parent, row)
+                    row.display = slots.display = finish.display = True
+                    slots.styles.column_span = finish.styles.column_span = 1
+                    await pilot.pause()
+                    self.assertEqual(slots.region.y, finish.region.y)
+                    self.assertLessEqual(abs(slots.region.width - finish.region.width), 1)
+                    self.assertEqual(finish.region.x - slots.region.right, 2)
+                    self.assertGreater(slots.region.y, activity.region.bottom)
+                    self.assertEqual(str(slots.label), 'Subscribe to defense')
+                    self.assertEqual(str(finish.label), 'Set as finished')
+                    self.assertEqual(finish.variant, 'primary')
+
                     self.assertNotIn('Local path', overview)
                     await pilot.pause()
                     self.assertGreater(app.query_one('#project-workspace').region.x,
@@ -161,6 +184,12 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause()
                     self.assertGreaterEqual(app.query_one('#project-workspace').region.y,
                                             app.query_one('#project-overview').region.bottom)
+                    slots = app.query_one('#show-project-slots')
+                    finish = app.query_one('#finish-project-intra')
+                    self.assertEqual(slots.region.y, finish.region.y)
+                    self.assertEqual(finish.region.x - slots.region.right, 2)
+                    self.assertEqual(slots.styles.text_wrap, 'nowrap')
+
             finally:
                 factory.kw['bind'].dispose()
 

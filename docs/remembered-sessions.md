@@ -13,6 +13,12 @@ only connection pairs again after restarting. From a connected keyring session,
 new vault before removing the old keyring entry. If migration reports an error,
 check both stores before retrying; a vault may have been created.
 
+While connected, use **Settings → Account → Session storage** and select **Move
+session** to move the current session between these options. The destination is
+verified before the previous copy is removed; an existing saved destination is
+never overwritten. Moving to session-only removes the saved copy from this device.
+If the move fails, check both stores before retrying.
+
 A forgotten passphrase cannot be recovered. Choose **Discard saved session** and
 confirm to remove the local vault, then connect again. This does not delete local
 projects and does not revoke the old server session. Disconnect while an unlocked

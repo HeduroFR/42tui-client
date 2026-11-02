@@ -1,4 +1,5 @@
 """Read-only bridge to local worklog data until that feature is migrated."""
+from datetime import date
 from sqlalchemy import select, func
 from ft_tui.db.models import Project, DevNote, ActivityHeartbeat, TimeLog
 from ft_tui.features.worklog.adapters.accounting import tracked_seconds
@@ -21,11 +22,13 @@ class SqliteActivityReader:
             ).all()
             return [tuple(row) for row in rows]
 
-    def heartbeats_since(self, start):
+    def daily_heartbeats_since(self, start):
+        day = func.date(ActivityHeartbeat.occurred_at)
         with self.session_factory() as session:
-            rows = session.execute(select(ActivityHeartbeat.occurred_at, ActivityHeartbeat.credited_seconds)
-                                   .where(ActivityHeartbeat.occurred_at >= start)).all()
-            return [tuple(row) for row in rows]
+            rows = session.execute(select(day, func.sum(ActivityHeartbeat.credited_seconds))
+                                   .where(ActivityHeartbeat.occurred_at >= start)
+                                   .group_by(day).order_by(day)).all()
+            return [(date.fromisoformat(value), seconds) for value, seconds in rows]
 
     def activity(self):
         with self.session_factory() as session:

@@ -79,7 +79,7 @@ def cached_observations(session, account_id, cursus_id, *, origin=''):
         # A disk snapshot must never advertise an old workstation as current.
         data['location'] = None
         data['presence'] = {'status': 'unavailable', 'cached_at': None}
-        data['meta']['stale'] = True
+        data['meta'].update(cache='stale', stale=True)
         result[row.login] = data
     return result
 
@@ -92,6 +92,20 @@ def save_observation(session, account_id, data, *, origin=''):
         watch.user_id = data['user_id']
     row = session.scalar(select(FriendObservation).where(FriendObservation.account_id == account_id,
         FriendObservation.cursus_id == data['cursus_id'], FriendObservation.login == data['login']))
+    # A summary must not replace a complete snapshot for the same identity and origin.
+    envelope = row.data if row and isinstance(row.data, dict) else {}
+    previous = envelope.get('snapshot')
+    if (data.get('details_complete') is False and envelope.get('version') == 1
+            and envelope.get('origin') == normalize_origin(origin) and isinstance(previous, dict)
+            and previous.get('user_id') == data['user_id'] and previous.get('login') == data['login']
+            and previous.get('details_complete') is not False):
+        try:
+            friend_snapshot(previous, data['login'], data['cursus_id'])
+        except (ValueError, TypeError):
+            pass
+        else:
+            session.commit()
+            return
     # Presence is deliberately not retained on disk.
     saved = deepcopy(data)
     saved['location'] = None

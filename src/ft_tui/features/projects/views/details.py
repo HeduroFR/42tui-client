@@ -133,6 +133,9 @@ class ProjectDetailsMixin(SubjectMixin):
             and self.provider is not None and hasattr(self.provider, 'get_project_activity')
             and hasattr(self.provider, 'get_team_evaluations')
         )
+        self._render_project_evaluation_actions()
+        self.query_one('#show-project-slots', Button).disabled = not bool(project.official_project_id and self.account_id)
+        self.query_one('#finish-project-intra', Button).disabled = not bool(project.slug)
         overview = escape(data.get("description") or translate("No description available.", self.language))
         self.query_one("#details-content", Static).update(overview)
         registration_state=getattr(self,"_registration_state",None)
@@ -166,6 +169,8 @@ class ProjectDetailsMixin(SubjectMixin):
         self._clear_project_registration()
         self._project_technical_details = ()
         self.query_one("#show-project-activity", Button).disabled = True
+        self.query_one("#show-project-slots", Button).disabled = True
+        self.query_one("#finish-project-intra", Button).disabled = True
         for selector, text in (
             ("#project-heading", "Select a project"), ("#project-summary", ""),
             ("#project-workspace-status", "Select a project to see workspace actions."),
@@ -187,6 +192,27 @@ class ProjectDetailsMixin(SubjectMixin):
         if self._can_manage_project_team() and callable(getattr(self.provider, 'get_project_team', None)):
             self.push_screen(ProjectTeamScreen(project.official_project_id, project.name, scope, self.account_id,
                                              self.provider, self.account_generation, project.slug))
+
+    def action_project_slots(self, *, finish=False):
+        from ft_tui.features.agenda.views import ProjectSlotsScreen
+        project = self.projects.get(self.selected_project_key or '')
+        if not project or not project.slug:
+            return
+        url = f"https://projects.intra.42.fr/{quote(project.slug, safe='')}/mine"
+        if finish:
+            import webbrowser
+            async def open_intra():
+                try:
+                    if not await asyncio.to_thread(webbrowser.open, url):
+                        raise OSError()
+                except Exception:
+                    self.notify(translate('Could not open the project page.', self.language), severity='error')
+            self.run_worker(open_intra())
+        elif (project.official_project_id
+              and getattr(self, '_registration_state', None)
+              and self._registration_state['project_id'] == project.official_project_id
+              and self._registration_state['relationship'].get('phase') == 'waiting_for_correction'):
+            self.push_screen(ProjectSlotsScreen(project.official_project_id, url, project.name))
 
     def action_project_activity(self) -> None:
         from ft_tui.features.projects.views.activity import open_project_activity

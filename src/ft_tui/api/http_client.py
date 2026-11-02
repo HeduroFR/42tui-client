@@ -15,6 +15,22 @@ from ft_tui.features.projects.subjects.models import SubjectPendingError
 
 
 class HttpProjectProvider:
+    def get_agenda(self, begin, end, kind, target=None, campus_id=None):
+        params = {'begin_at': begin.isoformat(), 'end_at': end.isoformat(), 'kind': kind}
+        if target is not None:
+            params['target'] = str(target)
+        if campus_id is not None:
+            params['campus_id'] = str(campus_id)
+        return self.api.request('GET', '/v1/me/agenda', params=params)
+
+    def get_event_subscription(self, event_id):
+        return self.api.request('GET', f'/v1/me/events/{event_id}/subscription')
+
+    def change_event_subscription(self, event_id, subscribed):
+        from uuid import uuid4
+        return self.api.request('POST', f'/v1/me/events/{event_id}/subscription',
+                                json={'subscribed': subscribed}, headers={'Idempotency-Key': str(uuid4())})
+
     def get_correction_slots(self, begin, end):
         from ft_tui.features.corrections.types import slot_snapshot
         return slot_snapshot(self.api.request('GET', '/v1/me/slots', params={
@@ -146,6 +162,22 @@ class HttpProjectProvider:
     def get_profile(self):
         value=self.api.request('GET','/v1/me')
         if not isinstance(value,dict) or not isinstance(value.get('account_id'),str) or not value['account_id'].isdigit() or not isinstance(value.get('login'),str):raise ValueError('Invalid account profile')
+        return value
+
+    def get_coalition(self):
+        value=self.api.request('GET','/v1/me/coalition')
+        if not isinstance(value,dict):raise ValueError('Invalid coalition response')
+        return value
+
+    def get_my_attendance(self, account_id):
+        from ft_tui.features.profiles.models import student_id, student_attendance
+        student_id(account_id)
+        return student_attendance(self.api.request('GET','/v1/me/attendance'), account_id)
+
+    def get_event_subscriptions(self):
+        value=self.api.request('GET','/v1/me/events/subscriptions')
+        ids=value.get('event_ids') if isinstance(value,dict) else None
+        if not isinstance(ids,list) or not all(type(item) is int and item>0 for item in ids):raise ValueError('Invalid event subscriptions')
         return value
 
     def search_students(self, query, *, limit=20, exclude_ids=()):

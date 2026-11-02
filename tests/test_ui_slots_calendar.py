@@ -31,6 +31,22 @@ def position(cal, day, row):
 
 
 class CalendarTests(unittest.IsolatedAsyncioTestCase):
+    async def test_skeleton_pulses_at_different_hours_and_stops(self):
+        app = Harness()
+        async with app.run_test(size=(110, 30)) as pilot:
+            cal = app.query_one(SlotsCalendar)
+            cal.set_skeleton(True)
+            cal.scroll_to(y=32, animate=False, force=True)
+            await pilot.pause()
+            self.assertTrue(cal.skeleton_timer._active.is_set())
+            lines = [cal.render_line(y) for y in range(cal.size.height)]
+            self.assertTrue(any('▎ ━' in line.text for line in lines))
+            phase = cal.skeleton_bright
+            await pilot.pause(.8)
+            self.assertNotEqual(phase, cal.skeleton_bright)
+            cal.set_skeleton(False)
+            self.assertFalse(cal.skeleton_timer._active.is_set())
+
     def setUp(self):
         clock = patch('ft_tui.features.corrections.calendar.datetime', wraps=datetime)
         self.clock = clock.start()

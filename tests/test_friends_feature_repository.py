@@ -26,12 +26,30 @@ class FriendsFeatureRepositoryTests(unittest.TestCase):
         self.assertIsNone(cached['location'])
         self.assertEqual(cached['presence'],{'status':'unavailable','cached_at':None})
         self.assertTrue(cached['meta']['stale'])
+        self.assertEqual(cached['meta']['cache'], 'stale')
+        from ft_tui.features.friends.models import friend_snapshot
+        self.assertIs(friend_snapshot(cached, 'alice', 21), cached)
         self.assertEqual(self.repo.cached('42',21,origin='https://two.test/api'),{})
         self.assertEqual(self.repo.cached('42',9,origin='https://one.test/api'),{})
         self.repo.forget('42',21,'alice',origin='https://two.test/api')
         self.assertIn('alice',self.repo.cached('42',21,origin='https://one.test/api'))
         self.repo.forget('42',21,'alice',origin='https://one.test/api')
         self.assertEqual(self.repo.cached('42',21,origin='https://one.test/api'),{})
+
+    def test_summary_keeps_complete_observation_and_still_checks_identity(self):
+        from ft_tui.features.friends.adapters.storage import FriendIdentityChanged
+        with self.factory() as session:
+            cache_mutual_friends(session, '42', [{'account_id': '50', 'login': 'alice'}], origin='https://one.test')
+        self.repo.save('42', snapshot(), origin='https://one.test')
+        partial = snapshot(items=[])
+        partial.update(details_complete=False, projects_loaded=False)
+        self.repo.save('42', partial, origin='https://one.test')
+        self.assertEqual(len(self.repo.cached('42', 21, origin='https://one.test')['alice']['items']), 1)
+        partial['user_id'] = '51'
+        with self.assertRaises(FriendIdentityChanged):
+            self.repo.save('42', partial, origin='https://one.test')
+        self.repo.save('42', partial, origin='https://two.test')
+        self.assertEqual(self.repo.cached('42', 21, origin='https://two.test')['alice']['user_id'], '51')
 
     def test_custom_selection_capability_is_invoked_inside_repository_session(self):
         calls=[]

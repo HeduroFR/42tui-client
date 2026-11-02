@@ -82,6 +82,145 @@ class Harness(App):
 
 
 class SocialUiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_opening_cached_inbox_does_not_wait_for_slow_refresh(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')
+            app = Harness()
+            app.session_factory = factory
+            app.provider = Provider()
+            gate = threading.Event()
+            try:
+                async with app.run_test(size=(80, 35)) as pilot:
+                    inbox = app.query_one(SocialInbox)
+                    await pilot.pause()
+                    await inbox.sync()
+                    app.provider.gate = gate
+                    await asyncio.wait_for(inbox.toggle(kind='requests'), .5)
+                    self.assertTrue(inbox.open)
+                    self.assertEqual(app.query_one('#social-table', DataTable).row_count, 1)
+                    await pilot.pause(.05)
+                    self.assertIn('Refreshing', str(app.query_one('#social-status').render()))
+                    gate.set()
+                    await pilot.pause(.1)
+            finally:
+                gate.set()
+                factory.kw['bind'].dispose()
+
+    async def test_manual_refresh_does_not_block_inbox_controls(self):
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')
+            app = Harness()
+            app.session_factory = factory
+            app.provider = Provider()
+            gate = threading.Event()
+            try:
+                async with app.run_test(size=(80, 35)) as pilot:
+                    inbox = app.query_one(SocialInbox)
+                    await pilot.pause()
+                    await inbox.sync()
+                    await inbox.toggle(kind='requests')
+                    await pilot.pause()
+                    app.provider.gate = gate
+                    event = Button.Pressed(app.query_one('#social-refresh', Button))
+                    await asyncio.wait_for(inbox.pressed(event), .5)
+                    await pilot.pause(.05)
+                    self.assertTrue(inbox.polling)
+                    self.assertEqual(app.query_one('#social-table', DataTable).row_count, 1)
+                    await asyncio.wait_for(inbox.toggle(kind='requests'), .5)
+                    self.assertFalse(inbox.open)
+                    gate.set()
+                    await inbox.workers.wait_for_complete()
+            finally:
+                gate.set()
+                factory.kw['bind'].dispose()
+
+    async def test_offline_refresh_retains_inbox_with_unavailable_status(self):
+        class Offline(Provider):
+            offline = False
+            def get_social(self):
+                if self.offline:
+                    raise OSError('offline')
+                return super().get_social()
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')
+            app = Harness()
+            app.session_factory = factory
+            app.provider = Offline()
+            try:
+                async with app.run_test(size=(80, 35)) as pilot:
+                    inbox = app.query_one(SocialInbox)
+                    await pilot.pause()
+                    await inbox.sync()
+                    self.assertTrue(inbox.snapshot)
+                    app.provider.offline = True
+                    await inbox.sync()
+                    self.assertTrue(inbox.snapshot)
+                    self.assertIn('unavailable', str(app.query_one('#social-status').render()).lower())
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_obsolete_denial_does_not_clear_newer_inbox_revision(self):
+        import httpx
+        gate = threading.Event()
+        started = threading.Event()
+        class LateDenied(Provider):
+            denied = False
+            def get_social(self):
+                if self.denied:
+                    started.set()
+                    gate.wait(3)
+                    request = httpx.Request('GET', 'https://example.test/social')
+                    raise httpx.HTTPStatusError('unauthorized', request=request, response=httpx.Response(401, request=request))
+                return super().get_social()
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')
+            app = Harness()
+            app.session_factory = factory
+            app.provider = LateDenied()
+            try:
+                async with app.run_test(size=(80, 35)) as pilot:
+                    inbox = app.query_one(SocialInbox)
+                    await pilot.pause()
+                    await inbox.sync()
+                    self.assertTrue(inbox.snapshot)
+                    app.provider.denied = True
+                    worker = inbox.run_worker(inbox.sync())
+                    self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                    inbox.revision += 1
+                    gate.set()
+                    await worker.wait()
+                    self.assertTrue(inbox.snapshot)
+            finally:
+                gate.set()
+                factory.kw['bind'].dispose()
+
+    async def test_authorization_loss_clears_previously_displayed_inbox(self):
+        import httpx
+        class Expired(Provider):
+            expired = False
+            def get_social(self):
+                if self.expired:
+                    request = httpx.Request('GET', 'https://example.test/social')
+                    raise httpx.HTTPStatusError('unauthorized', request=request, response=httpx.Response(401, request=request))
+                return super().get_social()
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')
+            app = Harness()
+            app.session_factory = factory
+            app.provider = Expired()
+            try:
+                async with app.run_test(size=(80, 35)) as pilot:
+                    inbox = app.query_one(SocialInbox)
+                    await pilot.pause()
+                    await inbox.sync()
+                    self.assertTrue(inbox.snapshot)
+                    app.provider.expired = True
+                    await inbox.sync()
+                    self.assertFalse(inbox.snapshot)
+                    self.assertEqual(app.query_one('#social-table', DataTable).row_count, 0)
+            finally:
+                factory.kw['bind'].dispose()
+
     async def test_inbox_accepts_requests_displays_all_senders_and_deduplicates_sound(self):
         with TemporaryDirectory() as directory:
             factory = make_session_factory('sqlite:///' + directory + '/social.sqlite')

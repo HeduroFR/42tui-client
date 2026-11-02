@@ -1,5 +1,5 @@
 """Compose dashboard values from explicit snapshots and read-only capabilities."""
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from collections.abc import Callable
 from ft_tui.features.catalog.read_models import curriculum_projects
 from ft_tui.features.catalog.kind import project_kind
@@ -33,6 +33,30 @@ class DashboardService:
                 active = project_id
         return Activity(latest, active)
 
+    @staticmethod
+    def attendance_weeks(days, now):
+        """Map reported date -> seconds into four local weeks; missing stays None."""
+        today = now.date()
+        monday = today - timedelta(days=today.weekday())
+        weeks = tuple(monday - timedelta(weeks=offset) for offset in range(3, -1, -1))
+        day_seconds = {week + timedelta(days=day): None for week in weeks for day in range(7)}
+        for key, seconds in (days or {}).items():
+            day = date.fromisoformat(key)
+            if day in day_seconds:
+                day_seconds[day] = float(seconds)
+        week_seconds = {
+            week: sum(value for value in
+                      (day_seconds[week + timedelta(days=day)] for day in range(7))
+                      if value is not None)
+            for week in weeks
+        }
+        known = {
+            week: sum(day_seconds[week + timedelta(days=day)] is not None
+                      for day in range(7))
+            for week in weeks
+        }
+        return weeks, day_seconds, week_seconds, known
+
     def compose(self, *, projects, profile, goals, curriculum, activity,
                 active_project_id, selected_project_key, now):
         rows = [DashboardProject.from_project(project) for project in projects]
@@ -51,6 +75,7 @@ class DashboardService:
         seconds = self.reader.tracked(resume.id) if resume is not None and resume.id is not None else 0.0
         resume_has_folder = bool(resume is not None and self.folder_exists(resume.local_path))
         setup = tuple(p for p in ordered if p.status.casefold() in {'available', 'in_progress'}
+                      and project_kind(p.catalog_data.get('kind', ''), p.catalog_data.get('slug', '')) != 'exam'
                       and not self.folder_exists(p.local_path))
         keys = {}
         for p in rows:
@@ -61,19 +86,18 @@ class DashboardService:
         monday = today - timedelta(days=today.weekday())
         weeks = tuple(monday-timedelta(weeks=offset) for offset in range(3, -1, -1))
         days = {week+timedelta(days=day): 0.0 for week in weeks for day in range(7)}
-        for at, credited in self.reader.heartbeats_since(datetime.combine(weeks[0], datetime.min.time())):
-            if at.date() in days:
-                days[at.date()] += credited
+        for day, credited in self.reader.daily_heartbeats_since(datetime.combine(weeks[0], datetime.min.time())):
+            if day in days:
+                days[day] += credited
         week_seconds = {week: sum(days[week+timedelta(days=i)] for i in range(7)) for week in weeks}
         journey_scope = 'specialization' if goals.get('status') == 'available' and goals.get('cc_validated') is True else 'all'
         selected = curriculum_projects(rows, curriculum=curriculum, scope=journey_scope)
-        counts = {name: sum(p.status.casefold() == name for p in selected)
-                  for name in ('completed', 'done', 'in_progress', 'available', 'locked')}
+        groups = tuple(tuple(p.name for p in selected if p.status.casefold() in statuses) for statuses in
+                       (('completed', 'done'), ('in_progress',), ('available',), ('locked',)))
         next_project = next((p for p in self.sorted_projects(selected, activity, active_project_id)
                              if p.status.casefold() in {'in_progress', 'available'}), None)
-        journey = Journey(len(selected), counts['completed']+counts['done'], counts['in_progress'],
-                          counts['available'], counts['locked'],
-                          next_project.name if next_project else 'All catalog projects completed')
+        journey = Journey(len(selected), *(len(group) for group in groups),
+                          next_project.name if next_project else 'All catalog projects completed', groups)
         deadline = self.deadline_summary(curriculum, ordered)
         stats = ProfileStats(
             profile.get('wallet') if type(profile.get('wallet')) is int and profile['wallet'] >= 0 else None,

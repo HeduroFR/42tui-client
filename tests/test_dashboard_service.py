@@ -9,7 +9,7 @@ from ft_tui.features.dashboard.service import DashboardService
 class Reader:
     def tracked(self, project_id): return 3660
     def recent_notes(self): return [(7, 99, 'Outside', 'Latest note', datetime(2026, 10, 26))]
-    def heartbeats_since(self, start): return [(datetime(2026, 10, 26, 10), 120), (datetime(2026, 10, 26, 11), 180)]
+    def daily_heartbeats_since(self, start): return [(datetime(2026, 10, 26).date(), 300)]
     def activity(self): return {1: datetime(2026, 10, 26, 12)}, (1, datetime(2026, 10, 26, 12))
 
 
@@ -71,6 +71,7 @@ class DashboardServiceTests(unittest.TestCase):
                 project(4, 'available', section='specialization')]
         model = self.compose(rows)
         self.assertEqual((model.journey.total, model.journey.completed, model.journey.next_name), (2, 1, 'Project 2'))
+        self.assertEqual(model.journey.groups, (('Project 1',), ('Project 2',), (), ()))
         model = self.compose(rows, goals={'status': 'available', 'cc_validated': True})
         self.assertEqual((model.journey.total, model.journey.next_name), (1, 'Project 4'))
 
@@ -82,11 +83,29 @@ class DashboardServiceTests(unittest.TestCase):
         self.assertEqual(model.week_seconds[model.week_starts[-1]], 300)
         self.assertEqual(model.day_seconds[self.now.date()-timedelta(days=1)], 300)
 
+    def test_attendance_weeks_keep_missing_days_distinct_and_sum_reports(self):
+        weeks, days, totals, known = DashboardService.attendance_weeks(
+            {'2026-10-26': '3600', '2026-10-22': '0'}, self.now)
+        self.assertEqual(weeks[-1].isoformat(), '2026-10-26')
+        self.assertEqual(days[weeks[-1]], 3600.0)
+        self.assertIsNone(days[self.now.date()])
+        self.assertEqual(known[weeks[-1]], 1)
+        self.assertEqual(totals[weeks[-1]], 3600.0)
+        self.assertEqual((totals[weeks[-2]], known[weeks[-2]]), (0.0, 1))
+        self.assertTrue(all(known[week] == 0 for week in weeks[:2]))
+
     def test_deadline_uses_current_rank_and_in_progress_over_available(self):
         model = self.compose([project(1), project(2, 'in_progress')])
         self.assertEqual(model.deadline.milestone, 'Rank 00')
         self.assertEqual(model.deadline.next_label, 'Project 2 · In progress')
         self.assertEqual(len(model.setup_candidates), 2)
+
+    def test_exams_are_never_setup_candidates(self):
+        exam = replace(project(1, 'in_progress'),
+                       catalog_data={'track': 'new', 'section': 'common-core', 'rank': 0,
+                                     'kind': 'exam', 'slug': 'exam-rank-02'})
+        model = self.compose([exam, project(2)])
+        self.assertEqual([candidate.id for candidate in model.setup_candidates], [2])
 
     def test_active_heartbeat_timeout_includes_boundary_and_rejects_future(self):
         at = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)

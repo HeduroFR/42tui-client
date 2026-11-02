@@ -106,6 +106,7 @@ class PortraitCache:
         self.semaphore=asyncio.Semaphore(3)
         self.cache_dir=Path(cache_dir) if cache_dir is not None else None
         self._expires={}
+        self._inflight={}
 
     def _path(self,url):return self.cache_dir/(sha256(url.encode()).hexdigest()+'.image')
 
@@ -142,6 +143,18 @@ class PortraitCache:
         return image
 
     async def load(self,url,loader):
+        if not isinstance(url,str):return None
+        task=self._inflight.get(url)
+        if task is None:
+            task=asyncio.create_task(self._load(url,loader))
+            self._inflight[url]=task
+            def finished(done):
+                if self._inflight.get(url) is done:self._inflight.pop(url,None)
+                if not done.cancelled():done.exception()
+            task.add_done_callback(finished)
+        return await asyncio.shield(task)
+
+    async def _load(self,url,loader):
         if not isinstance(url,str):return None
         try:
             parsed=urlsplit(url)

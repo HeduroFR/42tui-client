@@ -210,8 +210,8 @@ class FriendsUITests(unittest.IsolatedAsyncioTestCase):
                         access = workspace.query_one('#friend-project-access')
                         caption = workspace.query_one('#friend-project-caption')
                         projects = workspace.query_one('#friend-projects')
-                        self.assertEqual(access.region.y, caption.region.y)
-                        self.assertLessEqual(access.region.bottom, projects.region.y)
+                        self.assertLessEqual(caption.region.bottom, projects.region.y)
+                        self.assertGreaterEqual(access.region.y, projects.region.bottom)
                         actions = workspace.query_one('#friend-details-actions')
                         for control in actions.query(Button):
                             if control.display:

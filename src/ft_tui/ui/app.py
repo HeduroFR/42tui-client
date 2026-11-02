@@ -280,6 +280,8 @@ class FortyTwoTuiApp(
         self.dev_log_previewing = False
         self.dashboard_continue_key: str | None = None
         self.dashboard_setup_key: str | None = None
+        self.attendance_mode = "coding"
+        self.account_attendance: dict | None = None
         self.dashboard_recent_notes_signature: tuple[tuple[object, ...], ...] = ()
         self.pending_dashboard_project_key: str | None = None
         self.shortcuts_visible = False
@@ -349,7 +351,7 @@ class FortyTwoTuiApp(
         self.query_one("#favorite-theme", Select).value = favorite_theme
         self.query_one("#interface-language", Select).value = self.language
         self._apply_language()
-        self._refresh_terminal_preview()
+        self._refresh_username_preview()
         self._configure_markdown_editor()
 
         project_select = self.query_one("#dev-log-project", Select)
@@ -395,6 +397,8 @@ class FortyTwoTuiApp(
         if not self.account_connected and (locked_vault or not onboarding_pending):
             self.call_after_refresh(lambda: self.open_account_connection(start_vault=locked_vault, required=not onboarding_pending))
         self.call_after_refresh(self._start_updates)
+        if self.account_connected and not onboarding_pending:
+            self._schedule_community_reminders()
         if self.account_connected:
             self.run_worker(
                 self._sync_online_provider(self.provider, self.account_generation),
@@ -418,8 +422,34 @@ class FortyTwoTuiApp(
         self._apply_language()
         self._update_editor_button()
         await self._refresh_dashboard()
+        self._schedule_community_reminders()
 
+    def _schedule_community_reminders(self):
+        self.set_timer(3, lambda: self._show_community_reminder('github'))
+        self.set_timer(18, lambda: self._show_community_reminder('discord'))
 
+    def _show_community_reminder(self, name):
+        if not self.is_running or not self.screen_stack:
+            return
+        if not self.account_connected or self._settings_operations().get('onboarding_completed') != 'true':
+            return
+        if len(self.screen_stack) > 1:
+            self.set_timer(5, lambda: self._show_community_reminder(name))
+            return
+        if self.screen.query('#community-reminder'):
+            self.set_timer(5, lambda: self._show_community_reminder(name))
+            return
+        key = f'community_{name}_reminder_seen'
+        settings = self._settings_operations()
+        if settings.get(key) == 'true':
+            return
+        from ft_tui.features.settings.views.community import CommunityReminder
+        reminder = CommunityReminder(name)
+        try:
+            settings.save_values({key: 'true'})
+        except Exception:
+            return
+        self.screen.mount(reminder)
 
 
 
@@ -526,6 +556,7 @@ class FortyTwoTuiApp(
             "projects-tab": "Projects",
             "friends": "Friends",
             "correction-slots": "Correction Slots",
+            "agenda": "Agenda",
             "clubs": "Clubs",
             "dev-log": "Dev Log / Notes",
             "cluster-map": "Cluster Map",
@@ -607,6 +638,9 @@ class FortyTwoTuiApp(
             return
         if await self._handle_friend_button(event.button.id):
             return
+        if event.button.id in {"show-project-slots", "finish-project-intra"}:
+            self.action_project_slots(finish=event.button.id == "finish-project-intra")
+            return
         if event.button.id == "show-project-activity":
             self.action_project_activity()
             return
@@ -651,6 +685,12 @@ class FortyTwoTuiApp(
             return
         if event.button.id == "dashboard-cluster-map":
             self.query_one(TabbedContent).active = "cluster-map"
+            return
+        if event.button.id == "dashboard-activity-toggle":
+            self.attendance_mode = "coding" if self.attendance_mode == "workstation" else "workstation"
+            if self.attendance_mode == "workstation":
+                self._start_attendance_refresh(force=True)
+            await self._refresh_dashboard()
             return
         if event.button.id == "dashboard-view-project":
             if self.dashboard_continue_key:

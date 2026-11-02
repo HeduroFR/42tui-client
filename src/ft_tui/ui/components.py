@@ -155,6 +155,8 @@ class LocalizedButton(Button):
         """Refresh a dynamic tooltip through the same locale path as its label."""
         self._source_tooltip = tooltip
         self.apply_language()
+        if tooltip is None:
+            self.tooltip = None
 
 
 class LocalizedInput(Input):

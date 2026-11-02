@@ -1,11 +1,13 @@
 """Settings UI composition and behavior."""
 
+import asyncio
+import webbrowser
 from collections.abc import Iterable
 from ft_tui.ui.username import USERNAME_GRADIENTS, username_text
 
 from ft_tui.api.client_interface import CursusSnapshot
 from ft_tui.ui.terminal_capabilities import (
-    IMAGE_MODES, ICON_MODES, image_mode, icon_mode, icon_prefix, valid_mode,
+    IMAGE_MODES, ICON_MODES, valid_mode,
 )
 from ft_tui.ui.components import (
     Button,
@@ -35,7 +37,17 @@ SETTINGS_CATEGORIES = (
     ("workspace", "Workspace"),
     ("subjects", "Subjects"),
     ("appearance", "Appearance"),
+    ("community", "Community"),
 )
+
+SETTINGS_DESCRIPTIONS = {
+    "account": "Manage your 42 connection and data source.",
+    "curriculum": "Choose the cursus, campus and catalog used for projects.",
+    "workspace": "Choose project folders, your editor and updates.",
+    "subjects": "Configure subject downloads and the PDF viewer.",
+    "appearance": "Personalize the interface and terminal display.",
+    "community": "Visit the project and its community.",
+}
 
 
 class SettingsCategories(ListView):
@@ -53,14 +65,24 @@ class SettingsWorkspace(Vertical):
     ]
 
     def on_mount(self) -> None:
+        from ft_tui.ui.theme_preview import watch_theme_preview
+        watch_theme_preview(self, self.query_one('#favorite-theme', Select))
         self.show_category(0)
+        self.query_one('#subject-tdf-help').display = self.query_one('#subject-viewer', Select).value == 'tdf'
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
+        self.set_class(self.size.width < 52, "narrow-storage")
 
     def show_category(self, index: int) -> None:
+        categories = self.query_one('#settings-categories', ListView)
+        if categories.index != index:
+            categories.index = index
         for position, (key, _) in enumerate(SETTINGS_CATEGORIES):
             self.query_one(f"#settings-panel-{key}").display = position == index
+        key, label = SETTINGS_CATEGORIES[index]
+        self.query_one("#settings-category-title", Static).update(label)
+        self.query_one("#settings-category-description", Static).update(SETTINGS_DESCRIPTIONS[key])
         self.query_one("#settings-content", VerticalScroll).scroll_home(animate=False)
         self.app._refresh_username_preview()
 
@@ -86,11 +108,79 @@ class SettingsWorkspace(Vertical):
     async def action_save(self) -> None:
         await self.app._save_settings_and_refresh_projects()
 
-    @on(Select.Changed, '#terminal-images')
-    @on(Select.Changed, '#terminal-icons')
-    def terminal_preview_changed(self, event):
+    @on(Select.Changed, '#settings-storage')
+    def storage_selection_changed(self, event):
+        self.query_one('#settings-storage-status', Static).update(
+            'Moving to this session only removes the saved session from this device.' if event.value == 'session' else '')
         event.stop()
-        self.app._refresh_terminal_preview()
+
+    @on(Button.Pressed, '#settings-storage-apply')
+    def change_session_storage(self, event):
+        from ft_tui.features.accounts.adapters.storage_transfer import storage_kind
+        from ft_tui.features.accounts.views.connection import VaultPassphraseScreen
+        event.stop()
+        client = self.app.oauth_client
+        kind = self.query_one('#settings-storage', Select).value
+        if not self.app.account_connected or client is None or kind == storage_kind(client.store):
+            return
+        self._storage_source = client.store
+        if kind == 'vault':
+            self.app.push_screen(VaultPassphraseScreen(False), self._storage_passphrase)
+        else:
+            self.run_worker(self._move_storage(kind), group='settings-session-storage', exclusive=True)
+
+    def _storage_passphrase(self, value):
+        if value is not None and self.is_mounted:
+            self.run_worker(self._move_storage('vault', value), group='settings-session-storage', exclusive=True)
+
+    async def _move_storage(self, kind, passphrase=None):
+        from ft_tui.features.accounts.adapters.storage_transfer import move_session, storage_kind
+        button = self.query_one('#settings-storage-apply', Button)
+        selector = self.query_one('#settings-storage', Select)
+        status = self.query_one('#settings-storage-status', Static)
+        button.disabled = selector.disabled = True
+        client = self.app.oauth_client
+        try:
+            await asyncio.to_thread(move_session, client, kind, passphrase, self._storage_source)
+        except Exception:
+            status.update('Could not move the session. Check both stores before retrying.')
+        else:
+            status.update('Session storage updated.')
+        finally:
+            if self.is_mounted:
+                current = storage_kind(client.store)
+                if current:
+                    with self.prevent(Select.Changed):
+                        selector.value = current
+                button.disabled = selector.disabled = False
+
+    @on(Button.Pressed, '#community-github, #community-discord')
+    async def community_action(self, event):
+        event.stop()
+        name = 'github' if 'github' in event.button.id else 'discord'
+        status = self.query_one('#community-status', Static)
+        from ft_tui.features.settings.views.community import COMMUNITY_LINKS
+        url = COMMUNITY_LINKS[name]
+        try:
+            opened = await asyncio.to_thread(webbrowser.open, url)
+        except Exception:
+            opened = False
+        status.update('Opened in your browser.' if opened else 'Could not open a browser. Use the displayed link.')
+        timer = getattr(self, '_community_status_timer', None)
+        if timer is not None:
+            timer.stop()
+        self._community_status_timer = self.set_timer(5, lambda: status.update('') if status.is_mounted else None)
+
+    @on(Select.Changed, '#subject-viewer')
+    def subject_viewer_changed(self, event):
+        self.query_one('#subject-tdf-help').display = event.value == 'tdf'
+        event.stop()
+
+    @on(Select.Changed, '#favorite-theme')
+    def theme_preview_changed(self, event):
+        if event.value in self.app.available_themes:
+            self.app.theme = event.value
+        event.stop()
 
     @on(Select.Changed, '#username-gradient')
     def username_preview_changed(self, event):
@@ -109,43 +199,39 @@ class SettingsMixin:
     def compose_settings(self):
         """Keep every field mounted so drafts survive category changes."""
         with SettingsWorkspace(id="settings-workspace"):
-            yield Static("SETTINGS", id="settings-heading")
-            yield Static("Make this workspace yours.", id="settings-intro")
+            with Horizontal(id="settings-topbar"):
+                yield Static("SETTINGS", id="settings-heading")
             with Horizontal(id="settings-body"):
                 with Vertical(id="settings-sidebar"):
-                    yield Static("CATEGORIES", classes="section-kicker")
+                    yield Static("CATEGORIES", id="settings-nav-heading", classes="section-kicker")
                     yield SettingsCategories(
                         *(ListItem(Static(label), id=f"settings-nav-{key}") for key, label in SETTINGS_CATEGORIES),
                         id="settings-categories",
                     )
                 with VerticalScroll(id="settings-content"):
+                    yield Static("Account", id="settings-category-title")
+                    yield Static(SETTINGS_DESCRIPTIONS["account"], id="settings-category-description")
                     with Vertical(id="settings-panel-account", classes="settings-panel"):
                         with Vertical(id="settings-profile-card", classes="settings-section"):
                             yield Static("PROFILE", classes="section-kicker")
                             yield Static("42 account", classes="settings-label")
                             yield Static("Not connected", id="account-connection-state")
                             yield Button("Connect 42 account", id="settings-connect-account", variant="primary")
-                            yield Static(
-                                "Connect securely in your browser. Your password and OAuth code stay with 42.",
-                                classes="field-help",
-                            )
+                        with Vertical(id="settings-storage-card", classes="settings-section"):
+                            yield Static("Session storage", classes="section-kicker")
+                            with Horizontal(id="settings-storage-row"):
+                                yield Select([("OS keyring", "keyring"), ("This session only", "session"),
+                                              ("Remember with a passphrase", "vault")],
+                                             value="keyring", allow_blank=False, id="settings-storage")
+                                yield Button("Move session", id="settings-storage-apply")
+                            yield Static("", id="settings-storage-status")
                         with Vertical(id="provider-card"):
                             yield Static("DATA SOURCE", classes="section-kicker")
                             yield Static("42 account not connected", id="provider-title")
-                            yield Static(
-                                "Your saved projects and activity stay on this device. Connect your "
-                                "42 account to sync your real projects.",
-                                id="provider-description",
-                                classes="field-help",
-                            )
                     with Vertical(id="settings-panel-curriculum", classes="settings-panel"):
                         with Vertical(id="settings-cursus-card", classes="settings-section"):
                             yield Static("Curriculum", classes="section-kicker")
                             yield Static("Default cursus", classes="settings-label")
-                            yield Static(
-                                "Choose the cursus used to filter your project list.",
-                                classes="field-help",
-                            )
                             saved_cursus_id = self._settings_operations().get("default_cursus_id")
                             saved_cursus_options = (
                                 [
@@ -166,20 +252,17 @@ class SettingsMixin:
                             yield Static("Loading cursus list…", id="default-cursus-status")
                             yield Static("Campus", classes="settings-label")
                             yield Select([], prompt="Select campus", localize_options=False, id="catalog-campus")
+                        with Vertical(id="settings-catalog-card", classes="settings-section"):
+                            yield Static("Catalog", classes="section-kicker")
                             yield Static("Common Core fallback", classes="settings-label")
-                            yield Select([("Automatic evidence", "auto"), ("Old", "old"), ("New", "new")], value="auto", allow_blank=False, id="cc-default-track")
-                            yield Static("", id="cc-context-status")
-                            yield Button("Refresh catalog", id="settings-refresh-catalog")
-                            yield Static("Download the latest catalog, bypassing the local cache.", classes="field-help")
+                            with Horizontal(id="settings-catalog-row"):
+                                yield Select([("Automatic evidence", "auto"), ("Old", "old"), ("New", "new")], value="auto", allow_blank=False, id="cc-default-track")
+                                yield Button("Refresh catalog", id="settings-refresh-catalog")
                     with Vertical(id="settings-panel-workspace", classes="settings-panel"):
                         with Vertical(id="settings-workspace-card", classes="settings-section"):
                             yield Static("PROJECT WORKSPACE", classes="section-kicker")
                             yield Static("Default projects folder", classes="settings-label")
                             yield Input(placeholder="/home/user/42", id="projects-root")
-                            yield Static(
-                                "New project setups will suggest this folder.",
-                                classes="field-help",
-                            )
                         with Vertical(id="settings-editor-card", classes="settings-section"):
                             yield Static("EDITOR", classes="section-kicker")
                             yield Static("Favorite code editor", classes="settings-label")
@@ -193,18 +276,12 @@ class SettingsMixin:
                                 value="nvim",
                                 id="favorite-editor",
                             )
-                            yield Static(
-                                "Used by the Open in editor action in project details.",
-                                classes="field-help",
-                            )
                         with Vertical(classes="settings-section"):
                             yield Static("Automatic updates", classes="settings-label")
                             automatic_updates = self._settings_operations().get("automatic_updates", "true")
                             yield Select([("Enabled", "true"), ("Disabled", "false")],
                                          value="false" if automatic_updates == "false" else "true",
                                          id="automatic-updates")
-                            yield Static("Install stable updates before opening 42TUI. Development installs are skipped.",
-                                         classes="field-help")
                     with Vertical(id="settings-panel-subjects", classes="settings-panel"):
                         with Vertical(
                             id="settings-subject-card", classes="settings-section"
@@ -219,22 +296,14 @@ class SettingsMixin:
                                 value=str(DEFAULT_SUBJECT_CHECK_INTERVAL),
                                 id="subject-check-interval",
                             )
-                            yield Static(
-                                "Checks <project folder>/subject.pdf and downloads it when the "
-                                "configured provider supports subject files.",
-                                classes="field-help",
-                            )
                             yield Static("Subject PDF viewer", classes="settings-label")
                             yield Select(
                                 [("System default app", "system"), ("TDF in terminal", "tdf")],
                                 value="system",
                                 id="subject-viewer",
                             )
-                            yield Static(
-                                "TDF must be installed and available on PATH; System default uses "
-                                "your OS PDF application.",
-                                classes="field-help",
-                            )
+                            yield Static("TDF must be installed and available on PATH.",
+                                         id="subject-tdf-help", classes="field-help")
                     with Vertical(id="settings-panel-appearance", classes="settings-panel"):
                         with Vertical(
                             id="settings-appearance-card",
@@ -263,35 +332,45 @@ class SettingsMixin:
                                 value=self.username_gradient, allow_blank=False, id='username-gradient',
                             )
                             yield Static('', id='username-gradient-preview', markup=False, localize=False)
-                            yield Static('Preview your dashboard username. Save settings to apply.', classes='field-help')
-                            yield Static('Images', classes='settings-label')
-                            yield Select([
-                                ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
-                                ('Colored blocks', 'halfcell'), ('Off', 'off'),
-                            ], value=self.image_mode, id='terminal-images')
-                            yield Static('Icons', classes='settings-label')
-                            yield Select([
-                                ('Automatic', 'auto'), ('Nerd Font', 'nerd'),
-                                ('Simple Unicode', 'unicode'), ('Text only', 'text'),
-                            ], value=self.icon_mode, id='terminal-icons')
-                            yield Static('', id='terminal-icon-preview', markup=False, localize=False, classes='field-help')
-                            yield Static('', id='terminal-capabilities', markup=False, localize=False, classes='field-help')
-                            yield Static(
-                                'Font support is estimated. Choose another icon mode if symbols look wrong.',
-                                classes='field-help',
-                            )
+                            yield Static('Preview your dashboard username. Save settings to apply.', id='username-gradient-help', classes='field-help')
+                        with Vertical(id="settings-terminal-card", classes="settings-section"):
+                            yield Static("Terminal display", classes="section-kicker")
+                            with Horizontal(id='settings-terminal-row'):
+                                with Vertical(id='settings-images-column'):
+                                    yield Static('Images', classes='settings-label')
+                                    yield Select([
+                                        ('Automatic', 'auto'), ('Sixel', 'sixel'), ('Kitty graphics', 'tgp'),
+                                        ('Colored blocks', 'halfcell'), ('Off', 'off'),
+                                    ], value=self.image_mode, id='terminal-images')
+                                with Vertical(id='settings-icons-column'):
+                                    yield Static('Icons', classes='settings-label')
+                                    yield Select([
+                                        ('Automatic', 'auto'), ('Nerd Font', 'nerd'),
+                                        ('Simple Unicode', 'unicode'), ('Text only', 'text'),
+                                    ], value=self.icon_mode, id='terminal-icons')
+                        with Vertical(id="settings-sound-card", classes="settings-section"):
+                            yield Static("Notifications", classes="section-kicker")
                             yield Static("Notification sound", classes="settings-label")
                             yield Select(
                                 [("On", "true"), ("Off", "false")],
                                 value="true" if self.club_notification_sound else "false",
                                 id="club-notification-sound",
                             )
-                            yield Static(
-                                "Uses the terminal bell. Enable audible bell in your terminal settings.",
-                                classes="field-help",
-                            )
+                    with Vertical(id="settings-panel-community", classes="settings-panel"):
+                        with Horizontal(id="community-links"):
+                            with Vertical(id="community-github-card", classes="settings-section community-card"):
+                                yield Static("★  GitHub", classes="section-kicker", localize=False)
+                                yield Static("Explore the code, report issues or star the project.", classes="community-description")
+                                yield Static("tui.42wip.in/github", markup=False, localize=False, classes="community-url")
+                                yield Button("Open GitHub", icon="↗", id="community-github")
+                            with Vertical(id="community-discord-card", classes="settings-section community-card"):
+                                yield Static("✦  Discord", classes="section-kicker", localize=False)
+                                yield Static("Meet other users and join the conversation.", classes="community-description")
+                                yield Static("tui.42wip.in/discord", markup=False, localize=False, classes="community-url")
+                                yield Button("Open Discord", icon="↗", id="community-discord")
+                        yield Static("", id="community-status")
             with Horizontal(id="settings-actions"):
-                yield Static("Changes are saved on this device.", id="settings-status")
+                yield Static("Save to keep preference changes.", id="settings-status")
                 yield Button("Save settings", variant="primary", id="save-settings")
             yield Static("↑ ↓ Categories · Enter Edit · Tab Next field · Esc Categories · Ctrl+S Save", id="settings-help")
 
@@ -444,7 +523,7 @@ class SettingsMixin:
         self._start_due_subject_checks()
         self.theme = favorite_theme
         self._apply_language()
-        self._refresh_terminal_preview()
+        self._refresh_username_preview()
         self._update_editor_button()
         self.query_one("#projects-root", Input).value = self.projects_root
         status.update("Settings saved locally.")
@@ -458,31 +537,6 @@ class SettingsMixin:
         self.query_one('#username-gradient-preview', Static).update(username_text(
             self.account_login or 'username', self.query_one('#username-gradient', Select).value,
         ))
-
-    def _refresh_terminal_preview(self):
-        self._refresh_username_preview()
-        from types import SimpleNamespace
-        from ft_tui.i18n import translate
-        def t(value):
-            return translate(value, self.language)
-        draft = SimpleNamespace(
-            icon_mode=self.query_one('#terminal-icons', Select).value,
-            terminal_capabilities=self.terminal_capabilities,
-        )
-        mode = icon_mode(draft)
-        labels = [('\uf07b', 'Projects'), ('\uf0c0', 'Friends'), ('\uf013', 'Settings')]
-        preview = '   '.join(icon_prefix(glyph, mode) + t(label) for glyph, label in labels)
-        self.query_one('#terminal-icon-preview', Static).update(preview)
-        names = {
-            'sixel': 'Sixel', 'tgp': 'Kitty graphics', 'halfcell': 'Colored blocks',
-            'nerd': 'Nerd Font', 'unicode': 'Simple Unicode',
-        }
-        automatic_icons = icon_mode(SimpleNamespace(terminal_capabilities=self.terminal_capabilities))
-        self.query_one('#terminal-capabilities', Static).update(
-            t('Automatic images: {images} · Automatic icons: {icons}').format(
-                images=t(names[image_mode(None)]), icons=t(names[automatic_icons]))
-            + '\n' + t(self.terminal_capabilities.icon_source)
-        )
 
     def _load_curriculum_setting_widgets(self):
         if not self.is_mounted:
@@ -499,7 +553,6 @@ class SettingsMixin:
             selector.value = selected
             selector.disabled = not options
             self.query_one('#cc-default-track',Select).value = track if track in ('old','new') else 'auto'
-        self.query_one('#cc-context-status',Static).update('Settings apply to this account, cursus and campus.')
 
     def _campus_fallback_label(self):
         from ft_tui.i18n import translate

@@ -1,4 +1,5 @@
 import unittest
+import asyncio
 import base64
 import os
 import time
@@ -9,6 +10,56 @@ from PIL import Image
 from ft_tui.features.cluster_map.views.portrait import decode_portrait, portrait_lines
 from ft_tui.features.cluster_map.views.portrait import PortraitCache
 from ft_tui.features.cluster_map.views.portrait import prepare_portrait
+
+
+class PortraitConcurrencyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_waiting_same_url_reuses_completed_load(self):
+        url = 'https://cdn.intra.42.fr/users/example.jpg'
+        data = BytesIO()
+        Image.new('RGB', (4, 4), 'red').save(data, format='PNG')
+        cache = PortraitCache()
+        cache.semaphore = asyncio.Semaphore(1)
+        entered = asyncio.Event()
+        release = asyncio.Event()
+        calls = []
+        async def load():
+            calls.append(1)
+            entered.set()
+            await release.wait()
+            return {'status': 'ready', 'image_url': url, 'image_base64': base64.b64encode(data.getvalue()).decode()}
+        first = asyncio.create_task(cache.load(url, load))
+        await asyncio.wait_for(entered.wait(), 1)
+        second = asyncio.create_task(cache.load(url, load))
+        await asyncio.sleep(0)
+        release.set()
+        images = await asyncio.gather(first, second)
+        self.assertTrue(all(image is not None for image in images))
+        self.assertEqual(len(calls), 1)
+
+
+    async def test_cancelled_consumer_does_not_cancel_shared_portrait(self):
+        url = 'https://cdn.intra.42.fr/users/example.jpg'
+        data = BytesIO()
+        Image.new('RGB', (4, 4), 'red').save(data, format='PNG')
+        cache = PortraitCache()
+        entered = asyncio.Event()
+        release = asyncio.Event()
+        calls = []
+        async def load():
+            calls.append(1)
+            entered.set()
+            await release.wait()
+            return {'status': 'ready', 'image_url': url, 'image_base64': base64.b64encode(data.getvalue()).decode()}
+        first = asyncio.create_task(cache.load(url, load))
+        await entered.wait()
+        second = asyncio.create_task(cache.load(url, load))
+        await asyncio.sleep(0)
+        first.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await first
+        release.set()
+        self.assertIsNotNone(await second)
+        self.assertEqual(len(calls), 1)
 
 
 class PortraitTests(unittest.TestCase):

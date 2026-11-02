@@ -1,5 +1,9 @@
 """Dashboard UI composition and behavior."""
 
+import asyncio
+import math
+import re
+
 from textual.css.query import NoMatches
 
 from rich.markup import escape
@@ -9,6 +13,12 @@ from rich.text import Text
 from ft_tui.ui.username import username_text
 
 from ft_tui.features.dashboard.service import DashboardService
+from ft_tui.features.dashboard.views.heatmap import (
+    ActivityHeatmap,
+    activity_color,
+    format_duration,
+    format_tooltip_time,
+)
 
 from ft_tui.ui.components import (
     Button,
@@ -23,6 +33,40 @@ from ft_tui.ui.components import (
     timezone,
     translate,
 )
+
+
+def attendance_pending_retry(error):
+    """Return the retry delay for the worker's pending response, else None."""
+    response = getattr(error, "response", None)
+    if getattr(response, "status_code", None) != 503:
+        return None
+    try:
+        payload = response.json()
+    except Exception:
+        return None
+    if not isinstance(payload, dict) or payload.get("error") != "attendance_pending":
+        return None
+    try:
+        retry = int(response.headers.get("retry-after", "5"))
+    except (TypeError, ValueError):
+        retry = 5
+    return min(max(retry, 1), 60)
+
+
+def coalition_values(profile, snapshot, *, account_id=None, cursus_id=None):
+    """Prefer a valid backend coalition snapshot, else the live profile value."""
+    profile = profile.get('coalition') if isinstance(profile, dict) else None
+    profile = profile if isinstance(profile, dict) else {}
+    snapshot = snapshot if isinstance(snapshot, dict) else {}
+    value = snapshot.get('coalition')
+    if (snapshot.get('status') == 'available'
+            and (account_id is None or snapshot.get('account_id') == account_id)
+            and (cursus_id is None or snapshot.get('cursus_id') == cursus_id)
+            and isinstance(value, dict)
+            and type(value.get('score')) is int and value['score'] >= 0
+            and type(value.get('rank')) is int and value['rank'] >= 1):
+        return value
+    return profile
 
 
 class DashboardMixin:
@@ -104,6 +148,95 @@ class DashboardMixin:
                         self._refresh_dashboard_portrait()
                 self.set_timer(retry, refresh)
 
+    def _render_coalition(self, profile):
+        cursus_id = self.profile_service.cursus_id()
+        snapshot = getattr(self, 'account_coalition', None) if getattr(self, 'account_connected', False) else None
+        coalition = coalition_values(profile, snapshot,
+                                     account_id=self.account_id, cursus_id=cursus_id)
+        name = coalition.get('name')
+        rank = coalition.get('rank')
+        label = name.strip() if isinstance(name, str) else ''
+        if label and type(rank) is int and rank >= 1:
+            label = f"{label} - #{rank}"
+        elif type(rank) is int and rank >= 1:
+            label = f"#{rank}"
+        name_widget = self.query_one('#dashboard-coalition-name', Static)
+        name_widget.update(label)
+        color = coalition.get('color')
+        name_widget.styles.color = (color if isinstance(color, str) and re.fullmatch(r'#[0-9a-fA-F]{6}', color)
+                                    else self.app.theme_variables.get('accent', '#ffffff'))
+        rank_widget = self.query_one('#dashboard-coalition-rank', Static)
+        rank_widget.update('')
+        rank_widget.display = False
+        for field, label in (('score', 'Score'), ('rank', 'Rank')):
+            value = coalition.get(field)
+            text = f"{translate(label, self.language)}: {value}" if type(value) is int and value >= (1 if field == 'rank' else 0) else ''
+            widget = self.query_one(f'#dashboard-coalition-{field}', Static)
+            widget.update(text)
+            widget.tooltip = text or None
+
+    def _start_coalition_refresh(self):
+        provider = getattr(self, 'provider', None)
+        if (not getattr(self, 'account_connected', False) or not getattr(self, 'account_id', None)
+                or not callable(getattr(provider, 'get_coalition', None))
+                or getattr(self, '_coalition_busy', False)):
+            return
+        now = asyncio.get_running_loop().time()
+        if getattr(self, '_coalition_account', None) != self.account_id:
+            self._coalition_account = self.account_id
+            self._coalition_checked = 0.0
+        if now - getattr(self, '_coalition_checked', 0.0) < 60:
+            return
+        self._coalition_busy = True
+        self.run_worker(self._fetch_coalition(provider, self.account_id, self.account_generation),
+                        group='dashboard-coalition', exclusive=True)
+
+    async def _fetch_coalition(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_coalition)
+            if account == self.account_id and generation == self.account_generation:
+                self.account_coalition = value if isinstance(value, dict) else {}
+                self._coalition_checked = asyncio.get_running_loop().time()
+                self._render_coalition(self.account_profile if self.account_connected else {})
+        except Exception:
+            pass
+        finally:
+            self._coalition_busy = False
+
+    def _start_event_subscriptions_refresh(self):
+        provider = getattr(self, 'provider', None)
+        if (not getattr(self, 'account_connected', False) or not getattr(self, 'account_id', None)
+                or not callable(getattr(provider, 'get_event_subscriptions', None))
+                or getattr(self, '_subscriptions_busy', False)):
+            return
+        now = asyncio.get_running_loop().time()
+        if getattr(self, '_subscriptions_account', None) != self.account_id:
+            self._subscriptions_account = self.account_id
+            self._subscriptions_checked = 0.0
+        if now - getattr(self, '_subscriptions_checked', 0.0) < 60:
+            return
+        self._subscriptions_busy = True
+        self.run_worker(self._fetch_event_subscriptions(provider, self.account_id, self.account_generation),
+                        group='dashboard-subscriptions', exclusive=True)
+
+    async def _fetch_event_subscriptions(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_event_subscriptions)
+            if account == self.account_id and generation == self.account_generation:
+                ids = value.get('event_ids') if isinstance(value, dict) else None
+                self.event_subscriptions = {item for item in ids if type(item) is int and item > 0} if isinstance(ids, list) else set()
+                self._subscriptions_checked = asyncio.get_running_loop().time()
+                try:
+                    self.query_one('#dashboard-evaluations').run_worker(
+                        self.query_one('#dashboard-evaluations').render_rows(),
+                        group='dashboard-evaluations-render', exclusive=True)
+                except NoMatches:
+                    pass
+        except Exception:
+            pass
+        finally:
+            self._subscriptions_busy = False
+
     async def _refresh_dashboard(self) -> None:
         """Refresh project shortcuts, recent notes, local activity, and cursus progress."""
         if not self.is_running or not self.query("#dashboard-login"):
@@ -126,10 +259,27 @@ class DashboardMixin:
         self.query_one('#dashboard-wallet-stat').tooltip = translate('Wallet', self.language)
         self.query_one('#dashboard-correction-stat').tooltip = translate('Correction points', self.language)
         location = model.stats.location
-        self.query_one('#dashboard-workstation', Static).update(Text(
-            location.strip() if isinstance(location, str) and location.strip()
-            else translate('Unavailable', self.language),
-        ))
+        memberships = profile.get('cursus_users', [])
+        cursus_id = self.profile_service.cursus_id()
+        membership = next((item for item in memberships if isinstance(item, dict)
+                           and item.get('cursus_id') == cursus_id), {}) if isinstance(memberships, list) else {}
+        grade = membership.get('grade')
+        grade = grade.strip() if isinstance(grade, str) and grade.strip() else translate('Unavailable', self.language)
+        details = f"{translate('Grade', self.language)}: {grade}"
+        level = membership.get('level')
+        level_value = (f'{level:.2f}' if type(level) in (int, float) and math.isfinite(level) and level >= 0
+                       else translate('Unavailable', self.language))
+        level_text = f"{translate('Level', self.language)}: {level_value}"
+        campuses = profile.get('campuses', [])
+        campus = next((item for item in campuses if isinstance(item, dict) and item.get('is_primary') is True
+                       and isinstance(item.get('name'), str) and item['name'].strip()), {}) if isinstance(campuses, list) else {}
+        campus_name = campus.get('name', '').strip() or translate('Unavailable', self.language)
+        campus_text = f"{translate('Campus', self.language)}: {campus_name}"
+        for selector, value in (('#dashboard-level', level_text), ('#dashboard-grade', details),
+                                ('#dashboard-campus', campus_text)):
+            widget = self.query_one(selector, Static)
+            widget.update(value)
+            widget.tooltip = value
         self.query_one("#dashboard-cluster-status", Static).update(
             Panel(Align.center(Text(location, style="bold"), vertical="middle"),
                   height=5, border_style="bold cyan", padding=(1, 2))
@@ -142,6 +292,10 @@ class DashboardMixin:
             value = model.stats.wallet if field == 'wallet' else model.stats.correction_points
             label = f"{value}{suffix}" if type(value) is int and value >= 0 else "Unavailable"
             self.query_one(selector, Static).update(label)
+        self._render_coalition(profile)
+        self._start_coalition_refresh()
+        self._start_event_subscriptions_refresh()
+        self._start_attendance_refresh()
         continue_project = model.resume
         active_project = continue_project if model.active_now else None
         recent_project = continue_project if model.recent_activity else None
@@ -229,55 +383,7 @@ class DashboardMixin:
                 self.query_one("#dashboard-notes-empty", Static).styles.display = "block"
             self.dashboard_recent_notes_signature = note_signature
 
-        week_starts = model.week_starts
-        day_seconds = model.day_seconds
-        week_seconds = model.week_seconds
-        current_seconds = week_seconds[week_starts[-1]]
-        current_hours, current_minutes = divmod(int(current_seconds // 60), 60)
-        language = self.language
-        weekly_coding = translate("WEEKLY CODING", language)
-        weekly_time = translate("{time} [dim]this week[/]", language).format(
-            time=f"{current_hours}h {current_minutes:02d}m"
-        )
-        self.query_one("#dashboard-activity-title", Static).update(
-            f"{weekly_coding} · {weekly_time}"
-        )
-
-        def activity_cell(seconds: float) -> str:
-            if seconds <= 0:
-                return "[#46505b]·[/]"
-            if seconds < 15 * 60:
-                return "[#65bfa8]░[/]"
-            if seconds < 60 * 60:
-                return "[#49c7ae]▒[/]"
-            if seconds < 3 * 60 * 60:
-                return "[#22cbb7]▓[/]"
-            return "[bold #15d3c1]█[/]"
-
-        day_labels = {
-            "en": "M T W T F S S",
-            "fr": "L M M J V S D",
-            "es": "L M X J V S D",
-        }.get(self.language, "M T W T F S S")
-        month_labels = {
-            "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
-            "fr": ("jan", "fév", "mar", "avr", "mai", "jun", "jui", "aoû", "sep", "oct", "nov", "déc"),
-            "es": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
-        }.get(self.language, ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
-        # Keep every row the same width so centering the widget doesn't shift
-        # the weekday legend away from its activity columns.
-        heatmap_lines = [f"        {day_labels}         "]
-        for week in week_starts:
-            cells = " ".join(
-                activity_cell(day_seconds[week + timedelta(days=day)])
-                for day in range(7)
-            )
-            seconds = week_seconds[week]
-            hours, minutes = divmod(int(seconds // 60), 60)
-            duration = f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"
-            label = f"{week.day:02d} {month_labels[week.month - 1]}"
-            heatmap_lines.append(f"{label:>6}  {cells} {duration:>8}")
-        self.query_one("#dashboard-activity-heatmap", Static).update("\n".join(heatmap_lines))
+        self._render_activity_card(model, self.language)
 
         self._update_black_hole()
 
@@ -288,29 +394,180 @@ class DashboardMixin:
         self.query_one("#dashboard-progress-caption", Static).update(
             f"projects completed · {percent}%"
         )
-        self.query_one("#dashboard-progress-done", Static).update(f"[green]●[/] DONE {completed}")
-        self.query_one("#dashboard-progress-active", Static).update(f"[#15d3c1]●[/] ACTIVE {journey.active}")
+        self.query_one("#dashboard-progress-done", Static).update(f"[green]●[/] {translate('Done', self.language).upper()} {completed}")
+        self.query_one("#dashboard-progress-active", Static).update(f"[#15d3c1]●[/] {translate('Active', self.language).upper()} {journey.active}")
         self.query_one("#dashboard-progress-available", Static).update(
-            f"[#e6b450]●[/] AVAILABLE {journey.available}"
+            f"[#e6b450]●[/] {translate('Available', self.language).upper()} {journey.available}"
         )
-        self.query_one("#dashboard-progress-locked", Static).update(f"[#59636e]●[/] LOCKED {journey.locked}")
-        bar_width = max(1, self.size.width - 16)
+        self.query_one("#dashboard-progress-locked", Static).update(f"[#59636e]●[/] {translate('Locked', self.language).upper()} {journey.locked}")
         segments = [
             (journey.completed, "green"),
             (journey.active, "#15d3c1"),
             (journey.available, "#e6b450"),
             (journey.locked, "#59636e"),
         ]
-        remaining_width = bar_width
-        bar_parts: list[str] = []
-        for index, (count, color) in enumerate(segments):
-            width = remaining_width if index == len(segments) - 1 else round(bar_width * count / total) if total else 0
-            width = min(remaining_width, width)
-            bar_parts.append(f"[{color}]{'█' * width}[/]")
-            remaining_width -= width
-        bar_line = "".join(bar_parts)
-        self.query_one("#dashboard-progress-bar", Static).update(f"{bar_line}\n{bar_line}")
+        labels = (('done', 'Completed'), ('active', 'In progress'), ('available', 'Available'), ('locked', 'Locked'))
+        for (count, color), (status, label), names in zip(segments, labels, journey.groups):
+            segment = self.query_one(f'#dashboard-progress-segment-{status}')
+            segment.display = count > 0
+            if count:
+                segment.styles.width = f'{count}fr'
+                segment.styles.background = color
+            title = translate(label, self.language)
+            tooltip_color = '#98a6b5' if status == 'locked' else color
+            segment.set_projects(title, names, tooltip_color)
+            self.query_one(f'#dashboard-progress-{status}').set_projects(title, names, tooltip_color)
+        unknown = max(0, total - sum(count for count, _ in segments))
+        unclassified = self.query_one('#dashboard-progress-unknown')
+        unclassified.display = unknown > 0
+        if unknown:
+            unclassified.styles.width = f'{unknown}fr'
         self.query_one("#dashboard-progress-next-name", Static).update(journey.next_name)
+
+    def _render_activity_card(self, model, language) -> None:
+        workstation = getattr(self, "attendance_mode", "coding") == "workstation"
+        toggle = self.query_one("#dashboard-activity-toggle", Button)
+        toggle.set_source_label("Coding time" if workstation else "Log time")
+        data = getattr(self, "account_attendance", None) if workstation else None
+        if isinstance(data, dict) and data.get("user_id") != getattr(self, "account_id", None):
+            data = None
+        status = data.get("status") if isinstance(data, dict) else None
+        title_widget = self.query_one("#dashboard-activity-title", Static)
+        heatmap = self.query_one("#dashboard-activity-heatmap", ActivityHeatmap)
+        if workstation and status != "available":
+            pending = status in (None, "pending")
+            state = "Loading…" if pending else "Unavailable"
+            title_widget.update(f"{translate('LOG TIME', language)} · {translate(state, language)}")
+            title_widget.tooltip = None
+            heatmap.set_snapshot(translate("Loading workstation time…" if pending
+                                           else "Workstation time unavailable.", language), {})
+            heatmap.tooltip = None
+            return
+        if workstation:
+            week_starts, day_seconds, week_seconds, known = DashboardService.attendance_weeks(
+                data.get("days") or {}, datetime.now(timezone.utc)
+            )
+            stale = data.get("stale") is True
+            heading = translate("LOG TIME", language)
+        else:
+            week_starts, day_seconds, week_seconds = model.week_starts, model.day_seconds, model.week_seconds
+            known = {week: 7 for week in week_starts}
+            stale = False
+            heading = translate("WEEKLY CODING", language)
+        current_seconds = week_seconds[week_starts[-1]]
+        if known[week_starts[-1]]:
+            hours, minutes = divmod(int(current_seconds // 60), 60)
+            current = translate("{time} [dim]this week[/]", language).format(
+                time=f"{hours}h {minutes:02d}m"
+            )
+        else:
+            current = translate("Unavailable", language)
+        title_widget.update(f"{heading} · {current}{' · ' + translate('stale', language) if stale else ''}")
+        title_widget.tooltip = None
+
+        day_labels = {
+            "en": "M T W T F S S",
+            "fr": "L M M J V S D",
+            "es": "L M X J V S D",
+        }.get(language, "M T W T F S S")
+        month_labels = {
+            "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+            "fr": ("jan", "fév", "mar", "avr", "mai", "jun", "jui", "aoû", "sep", "oct", "nov", "déc"),
+            "es": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
+        }.get(language, ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+        # Keep every row the same width so the weekday legend stays aligned.
+        heatmap_lines = [f"        {day_labels}         "]
+        tooltips = {}
+        for week_index, week in enumerate(week_starts):
+            cumulative = 0.0
+            reported = 0
+            cells = []
+            for day in range(7):
+                date = week + timedelta(days=day)
+                seconds = day_seconds[date]
+                if seconds is not None:
+                    cumulative += seconds
+                    reported += 1
+                color = activity_color(seconds)
+                cells.append(f"[{color}]█[/]" if color
+                             else "[#2f3740]·[/]" if seconds is None
+                             else "[#46505b]·[/]")
+                day_time = "—" if seconds is None else format_tooltip_time(seconds)
+                week_time = format_tooltip_time(cumulative) if reported else "—"
+                tooltips[(week_index, day)] = f"{day_time} ({week_time})"
+            seconds = week_seconds[week]
+            duration = format_duration(seconds) if known[week] else "—"
+            label = f"{week.day:02d} {month_labels[week.month - 1]}"
+            heatmap_lines.append(f"{label:>6}  {' '.join(cells)} {duration:>8}")
+        heatmap.set_snapshot("\n".join(heatmap_lines), tooltips)
+        heatmap.tooltip = None
+
+    def _start_attendance_refresh(self, *, force=False) -> None:
+        provider = getattr(self, "provider", None)
+        if (not getattr(self, "account_connected", False) or not getattr(self, "account_id", None)
+                or getattr(self, "attendance_mode", "coding") != "workstation"
+                or not callable(getattr(provider, "get_my_attendance", None))
+                or getattr(self, "_attendance_busy", False)):
+            return
+        if force and getattr(self, "_attendance_timer", None) is not None:
+            self._attendance_timer.stop()
+            self._attendance_timer = None
+        now = asyncio.get_running_loop().time()
+        if getattr(self, "_attendance_account", None) != self.account_id:
+            self._attendance_account = self.account_id
+            self._attendance_checked = 0.0
+            self._attendance_attempts = 0
+        if not force and now - getattr(self, "_attendance_checked", 0.0) < 60:
+            return
+        self._attendance_busy = True
+        self.run_worker(self._fetch_attendance(provider, self.account_id, self.account_generation),
+                        group="dashboard-attendance", exclusive=True)
+
+    def _schedule_attendance_retry(self, delay) -> None:
+        attempts = getattr(self, "_attendance_attempts", 0) + 1
+        self._attendance_attempts = attempts
+        if attempts > 6 or getattr(self, "_attendance_timer", None) is not None:
+            return
+
+        def retry():
+            self._attendance_timer = None
+            if self.is_mounted and self.attendance_mode == "workstation":
+                self._start_attendance_refresh(force=True)
+
+        self._attendance_timer = self.set_timer(delay, retry)
+
+    async def _fetch_attendance(self, provider, account, generation):
+        try:
+            value = await asyncio.to_thread(provider.get_my_attendance, account)
+            if account != self.account_id or generation != self.account_generation:
+                return
+            current = getattr(self, "account_attendance", None)
+            if isinstance(value, dict) and (value.get("status") == "available" or not current):
+                self.account_attendance = value
+            elif isinstance(current, dict):
+                self.account_attendance = {**current, "stale": True}
+            self._attendance_attempts = 0
+            self._attendance_checked = asyncio.get_running_loop().time()
+            await self._refresh_dashboard()
+        except Exception as error:
+            if account == self.account_id and generation == self.account_generation:
+                current = getattr(self, "account_attendance", None)
+                delay = attendance_pending_retry(error)
+                if delay is not None and not (isinstance(current, dict)
+                                              and current.get("status") == "available"):
+                    self.account_attendance = {"user_id": account, "status": "pending", "stale": False}
+                    self._schedule_attendance_retry(delay)
+                elif isinstance(current, dict) and current.get("status") == "available":
+                    self.account_attendance = {**current, "stale": True}
+                    self._attendance_attempts = 0
+                else:
+                    self.account_attendance = {"user_id": account, "status": "unavailable",
+                                               "stale": True, "reason": "attendance_unavailable"}
+                    self._attendance_attempts = 0
+                self._attendance_checked = asyncio.get_running_loop().time()
+                await self._refresh_dashboard()
+        finally:
+            self._attendance_busy = False
 
     def _load_project_activity(self, session=None) -> None:
         activity = self.dashboard_service.activity(datetime.now(timezone.utc))

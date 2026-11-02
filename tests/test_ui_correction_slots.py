@@ -35,6 +35,58 @@ class Harness(App):
         yield CorrectionSlotsWorkspace()
 
 class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_invalidated_startup_read_retries_without_waiting_for_timeout(self):
+        from ft_tui.shared.read_cache import ReadCache, ReadInvalidated
+        original = ReadCache.read
+        attempts = 0
+        async def invalidated_once(cache, key, *args, **kwargs):
+            nonlocal attempts
+            if key[1] == 'correction-week':
+                attempts += 1
+                if attempts == 1:
+                    raise ReadInvalidated()
+            return await original(cache, key, *args, **kwargs)
+        app = Harness()
+        with patch.object(ReadCache, 'read', invalidated_once):
+            async with app.run_test(size=(110, 35)) as pilot:
+                ws = app.query_one(CorrectionSlotsWorkspace)
+                for _ in range(100):
+                    await pilot.pause(.01)
+                    if ws.trusted:
+                        break
+                self.assertEqual(attempts, 2)
+                self.assertTrue(ws.trusted)
+                self.assertFalse(ws.slots_loading)
+                self.assertFalse(app.query_one(SlotsCalendar).skeleton)
+
+    async def test_skeleton_shows_during_first_read_and_clears(self):
+        import asyncio
+        release = threading.Event()
+        started = threading.Event()
+        class Slow(Provider):
+            def get_correction_slots(self, begin, end):
+                started.set(); release.wait(3)
+                return super().get_correction_slots(begin, end)
+        app = Harness(); app.provider = Slow()
+        try:
+            async with app.run_test(size=(110, 35)) as pilot:
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                ws = app.query_one(CorrectionSlotsWorkspace)
+                cal = app.query_one(SlotsCalendar)
+                self.assertTrue(ws.slots_loading)
+                self.assertFalse(ws.loading)
+                self.assertTrue(cal.skeleton)
+                self.assertFalse(cal.writable)
+                release.set()
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if not ws.slots_loading:
+                        break
+                self.assertFalse(cal.skeleton)
+                self.assertTrue(cal.writable)
+        finally:
+            release.set()
+
     async def test_add_proposes_1045_at_1018_and_rechecks_before_saving(self):
         clock = datetime(2026, 10, 26, 10, 18, tzinfo=timezone.utc)
         with patch('ft_tui.features.corrections.views.datetime', wraps=datetime) as view_clock:
@@ -374,10 +426,22 @@ class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 if cal.day_count == 1:
                     self.assertTrue(app.query_one('#slots-day-next').display)
 
+    async def test_revisiting_recent_week_reuses_read_until_refresh(self):
+        app = Harness()
+        app.provider.get_correction_slots = Mock(wraps=app.provider.get_correction_slots)
+        async with app.run_test(size=(110, 40)) as pilot:
+            await pilot.pause()
+            workspace = app.query_one(CorrectionSlotsWorkspace)
+            calls = app.provider.get_correction_slots.call_count
+            await workspace.reload(refresh=False)
+            self.assertEqual(app.provider.get_correction_slots.call_count, calls)
+            await workspace.reload()
+            self.assertEqual(app.provider.get_correction_slots.call_count, calls + 1)
+
     async def test_read_scope_denied_explains_reconnect(self):
         from types import SimpleNamespace
         class Denied(RuntimeError):
-            response = SimpleNamespace(json=lambda: {'error': 'slot_permission_denied'})
+            response = SimpleNamespace(status_code=403, headers={}, json=lambda: {'error': 'slot_permission_denied'})
         app = Harness()
         def denied(*args):
             raise Denied()

@@ -233,8 +233,8 @@ class FriendsWorkspace(Vertical):
                     yield Static('', id='friend-comparison', markup=False, localize=False)
                 with Horizontal(id='friend-project-heading'):
                     yield Static('Project attempts', id='friend-project-caption')
-                    yield Button('View project', icon='↗', id='friend-project-access', disabled=True, variant='primary')
                 yield DataTable(id='friend-projects', cursor_type='row', zebra_stripes=True)
+                yield Button('View project', icon='↗', id='friend-project-access', disabled=True, variant='primary')
 
     def t(self, source, **values):
         return translate(source, self.app.language).format(**values) if values else translate(source, self.app.language)
@@ -389,30 +389,42 @@ class FriendsWorkspace(Vertical):
     async def _sync(self, epoch, context, refresh):
         targets = self._sync_targets()
         batch = getattr(getattr(getattr(self, 'app', None), 'provider', None), 'get_friend_summaries', None)
-        if callable(batch) and not refresh:
+        if callable(batch):
             import httpx
             try:
                 cached = []
-                for offset in range(0, len(targets), 50):
-                    logins = targets[offset:offset+50]
+                async def read_batch(logins):
                     async def load_batch():
                         return await friends_service_for(self).batch(
                             self.app.provider,logins,context[2],owner_login=self.app.account_login,account_id=context[1])
-                    cached.extend(await self._read('friend-batch', (tuple(logins),), load_batch))
-                if not self._valid(epoch, context):
-                    return
-                for data in cached:
-                    friend_snapshot(data, data['login'], context[2])
-                    if data['login'] == self.app.account_login and data['user_id'] != context[1]:
-                        raise ValueError('Account identity mismatch')
-                    friends_service_for(self).save(context[1],data,origin=context[4])
-                    self.snapshots[data['login']] = data
-                    self.errors.pop(data['login'], None)
-                self._refresh_view()
+                    return await self._read('friend-batch', (tuple(logins),), load_batch)
+                for offset in range(0, len(targets), 100):
+                    batches = [targets[i:i+50] for i in range(offset, min(offset+100, len(targets)), 50)]
+                    tasks = [asyncio.create_task(read_batch(logins)) for logins in batches]
+                    try:
+                        results = await asyncio.gather(*tasks)
+                    except BaseException:
+                        for task in tasks:
+                            task.cancel()
+                        await asyncio.gather(*tasks, return_exceptions=True)
+                        raise
+                    if not self._valid(epoch, context):
+                        return
+                    for values in results:
+                        for data in values:
+                            friend_snapshot(data, data['login'], context[2])
+                            if data['login'] == self.app.account_login and data['user_id'] != context[1]:
+                                raise ValueError('Account identity mismatch')
+                            friends_service_for(self).save(context[1],data,origin=context[4])
+                            self.snapshots[data['login']] = data
+                            self.errors.pop(data['login'], None)
+                        cached.extend(values)
+                    self._refresh_view()
                 fresh = {data['login'] for data in cached if not data['meta']['stale'] and current_location(data) != 'Unavailable'}
-                self.sync_done += len(fresh)
-                self.sync_successes += len(fresh)
-                targets = [login for login in self._sync_targets() if login not in fresh]
+                if not refresh:
+                    self.sync_done += len(fresh)
+                    self.sync_successes += len(fresh)
+                    targets = [login for login in self._sync_targets() if login not in fresh]
             except httpx.HTTPStatusError as error:
                 if error.response.status_code == 401:
                     if not self._valid(epoch, context):
@@ -429,12 +441,21 @@ class FriendsWorkspace(Vertical):
         self.pending_logins = set(targets)
         queue = iter(targets)
         authorization_failed = False
+        refresh_timer = None
+        loop = asyncio.get_running_loop()
+
+        def flush_view():
+            nonlocal refresh_timer
+            refresh_timer = None
+            if self._valid(epoch, context):
+                self._refresh_view()
 
         async def consume():
-            nonlocal authorization_failed
+            nonlocal authorization_failed, refresh_timer
             for login in queue:
                 if authorization_failed or not self._valid(epoch, context):
                     return
+                restricted = False
                 try:
                     await self._fetch(login, epoch, context, refresh)
                     if self._valid(epoch, context):
@@ -450,11 +471,17 @@ class FriendsWorkspace(Vertical):
                             self._authorization_lost()
                         elif error.response.status_code == 403 and self._valid(epoch, context):
                             self._profile_forbidden(login, context)
+                            restricted = True
                 if not self._valid(epoch, context):
                     return
                 self.sync_done += 1
                 self.pending_logins.discard(login)
-                self._refresh_view()
+                if self.sync_done == 1 or login == getattr(self, 'selected_login', None) or authorization_failed or restricted:
+                    if refresh_timer is not None:
+                        refresh_timer.cancel()
+                    flush_view()
+                elif refresh_timer is None:
+                    refresh_timer = loop.call_later(.1, flush_view)
 
         try:
             # Two profiles overlap without a large burst against the shared API budget.
@@ -464,6 +491,8 @@ class FriendsWorkspace(Vertical):
                 for _ in range(min(2, len(targets))):
                     group.create_task(consume())
         finally:
+            if refresh_timer is not None:
+                refresh_timer.cancel()
             if self._valid(epoch, context):
                 self.busy = False
                 self.pending_logins.clear()
@@ -473,15 +502,17 @@ class FriendsWorkspace(Vertical):
                     self._ensure_details()
 
     def _ensure_details(self):
-        if self.busy or self.detail_busy or not self.app.account_connected or not callable(getattr(self.app.provider, 'get_friend_summary', None)):
+        if self.detail_busy or (self.busy and not self.selected_login) or not self.app.account_connected or not callable(getattr(self.app.provider, 'get_friend_summary', None)):
             return
         self.detail_busy = True
         self.detail_worker = self.run_worker(self._enrich_details(self.epoch, self.context), group='friends-details', exclusive=True)
 
     async def _enrich_details(self, epoch, context):
-        try:
-            while self._valid(epoch, context):
-                targets = [login for login in self._sync_targets() if login not in self.detail_attempted and (
+        stop = False
+        async def consume():
+            nonlocal stop
+            while not stop and self._valid(epoch, context):
+                targets = [login for login in self._sync_targets() if (not self.busy or login == self.selected_login) and login not in self.detail_attempted and (
                     self.snapshots.get(login, {}).get('projects_loaded') is False
                     or self.snapshots.get(login, {}).get('details_complete') is False and self.snapshots.get(login, {}).get('meta', {}).get('stale')
                     or login == self.selected_login and self.snapshots.get(login, {}).get('details_complete') is False
@@ -518,13 +549,20 @@ class FriendsWorkspace(Vertical):
                         elif error.response.status_code in (401, 429):
                             if error.response.status_code == 401:
                                 self._authorization_lost()
+                            stop = True
                             self._refresh_view()
                             return
                 self._refresh_view()
+        try:
+            # Two profiles overlap without a large burst against the shared upstream budget.
+            async with asyncio.TaskGroup() as group:
+                for _ in range(2):
+                    group.create_task(consume())
         finally:
             if self._valid(epoch, context):
                 self.detail_busy = False
-                self._force_details = False
+                if not self.busy:
+                    self._force_details = False
 
     @staticmethod
     def _error(error):
@@ -640,7 +678,7 @@ class FriendsWorkspace(Vertical):
             cluster = '×' if location in ('Unavailable', 'No active session') else self.t(location)
             state = 'Refreshing…' if login in self.pending_logins else self.errors.get(login) or self._freshness(data)
             validated = validated_project_count(data) if data else None
-            rendered_rows.append((login, [Text(str(v), style=style) for v in (rank if rank is not None else '—', login + (' (' + self.t('you') + ')' if own else ''), self._curriculum_label(data), level, validated if validated is not None else '—', project, cluster, self.t(state))]))
+            rendered_rows.append((login, [Text(str(v), style=style) for v in (rank if rank is not None else '—', login + (' (' + self.t('you') + ')' if own else ''), self._curriculum_short(data), level, validated if validated is not None else '—', project, cluster, self.t(state))]))
             shown.append(login)
         existing = [str(row.key.value) for row in table.ordered_rows]
         with self.app.batch_update(), table.prevent(DataTable.RowHighlighted):
@@ -663,6 +701,12 @@ class FriendsWorkspace(Vertical):
         self._highlighted_login = str(table.ordered_rows[table.cursor_row].key.value) if 0 <= table.cursor_row < table.row_count else None
         self._render_details()
         self._responsive()
+
+    def _curriculum_short(self, data):
+        value = (data or {}).get('curriculum_rank') or {}
+        if value.get('status') != 'inferred':
+            return self.t('Loading' if value.get('status') == 'pending' else 'No rank')
+        return self.t('Rank {rank}', rank=f"{value['rank']:02d}") if value['section'] == 'common-core' else self.t('Specialization')
 
     def _curriculum_label(self, data):
         value = (data or {}).get('curriculum_rank') or {}
