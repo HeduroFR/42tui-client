@@ -52,6 +52,11 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   plugin; Vim's headless ex-mode does not exercise its asynchronous job, so the
   Vim edit/save attribution walkthrough remains for interactive review.
 
+- 2026-11-02: Assign the `test_activity_heatmap` and `test_editor_launch`
+  modules to their dashboard and projects regression scopes, and wait for the
+  asynchronous agenda subscription tooltip before asserting it. Test-only; no
+  runtime impact.
+
 - 2026-11-02: Add the dashboard activity-card toggle between local coding time and
   the connected account's reported campus workstation time. Workstation mode sums
   reported daily seconds into four weeks, keeps missing days distinct from reported
