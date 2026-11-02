@@ -735,11 +735,18 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             await pilot.click("#onboarding-next")
             await pilot.pause()
             await pilot.click("#onboarding-finish")
-            await pilot.pause()
+            for _ in range(50):
+                await pilot.pause(0.05)
+                if app.screen.__class__.__name__ != "OnboardingScreen":
+                    break
+            self.assertNotEqual(app.screen.__class__.__name__, "OnboardingScreen")
             app.action_show_settings()
             await pilot.pause()
             await pilot.click("#settings-connect-account")
-            await pilot.pause()
+            for _ in range(50):
+                await pilot.pause(0.05)
+                if app.screen.__class__.__name__ == "AccountConnectionScreen":
+                    break
             self.assertEqual(app.screen.__class__.__name__, "AccountConnectionScreen")
             await pilot.click("#account-connection-cancel")
             await pilot.pause()
