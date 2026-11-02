@@ -13,6 +13,13 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.6.2
 
+- 2026-11-02: Paint the friends list from the cached summary batch during refresh,
+  enrich details two at a time instead of one by one, and shorten rank cells while
+  keeping the full explanation in details. Patch impact toward 0.7.0. Friends scope
+  passed 61 tests with two optional skips; synthetic 10-friend probes cut detail
+  completion from 1.01 s to 0.51 s and added one batch call on refresh. Live
+  backend timing and final candidate validation remain outstanding.
+
 - 2026-11-02: Add Intra event subscription management to Agenda with the `profile`
   scope requested on every login, and translate its copy. Minor impact toward
   0.7.0. Focused subscription and locale tests passed; backend deployment, live
@@ -36,25 +43,21 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   and Agenda skeleton checks passed afterward. Live terminal and release
   validation remain outstanding.
 
-
 - 2026-11-01: Extend Agenda loading cards across their columns and pulse them
   while loading, stopping the timer when data arrives. Show loading guidance
   instead of an empty-week message during the initial load. Patch impact within
   0.7.0; focused skeleton tests passed, including narrow/wide layouts and timer
   behavior. Live terminal and final release validation remain outstanding.
 
-
 - 2026-11-01: Refine Agenda loading cards with inset, varied widths and short
   placeholder strokes that fit narrow and wide calendars. Patch impact within
   0.7.0. Focused skeleton tests passed; live terminal review and release
   validation remain outstanding.
 
-
 - 2026-11-01: Replace the Agenda loading overlay with calendar placeholders and
   keep partial or cached results visible while sources load. Patch impact within
   0.7.0. All 33 staged Agenda tests and 87 working-tree corrections tests passed;
   live terminal and final release validation remain outstanding.
-
 
 - 2026-11-01: Restore cached agenda rows during week changes and retry pending
   event/exam worker reads at the backend's requested interval, with a bounded
@@ -62,24 +65,20 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   Postman HTTP simulation confirmed a pending exam followed by a successful
   retry. Live backend timing and final release validation remain outstanding.
 
-
 - 2026-11-01: Shade past agenda calendar cells using the active theme while
   retaining event colors and the current-time marker. Patch impact within 0.7.0.
   Focused past/current/future rendering check passed; live terminal appearance
   and final release validation remain unverified.
-
 
 - 2026-11-01: Dim past agenda days and half-hours and mark the current half-hour
   in empty cells, refreshing the display as time advances. Patch impact within
   0.7.0. All 28 agenda tests passed, including past, current and future rendering;
   live terminal and final release validation remain outstanding.
 
-
 - 2026-11-01: Retry temporary agenda read failures once after the cache retry
   deadline and use the direct exam page for Intra links. Patch impact within
   0.7.0. Focused agenda checks cover initial transient failures and both links;
   live first-load behavior, links and release validation remain unverified.
-
 
 - 2026-11-01: Keep agenda week navigation responsive during source reads, batch
   completed reads, avoid redraws for unchanged background refreshes and open events
@@ -88,30 +87,96 @@ published notes in [CHANGELOG.md](CHANGELOG.md). See
   tests passed. Live source timing, event links, deployment and final candidate
   validation remain outstanding.
 
-
 - 2026-11-01: Update the 0.7.0 roadmap with remaining integration, performance,
   editor and release work, and record the direct Intra event URL for the agenda
   action. Documentation only; no release required. Reviewed the roadmap against
   local branch and worktree records; live links, final CI and deployment remain
   unverified.
 
+- 2026-10-31: Ignore a failed Clubs read after its campus or revision changes, preventing an obsolete error from replacing the current campus status. Patch impact. The delayed campus-switch failure regression and clubs/social scope passed (67 tests, one skipped); live verification remains outstanding.
+
+- 2026-10-31: Repeat full unittest discovery in the temporary editable environment: 1,060 tests in 983.6 s, with five skips and the same two dashboard viewport-height failures reproduced at baseline c45713c. This run began before the final safety follow-ups, so it does not certify the final candidate. Five synthetic inbox-open runs with a 250 ms refresh delay gave 252.70 ms median before and 0.75 ms after; these measurements exclude live network timing. Verification only; no release impact.
+
+- 2026-10-31: Mark a failed agenda source unavailable or stale immediately while other sources are still loading. Patch impact. Focused delayed-source and failure-status tests passed, as did all 77 correction/agenda scope tests. Live verification remains outstanding.
+
+- 2026-10-31: Mark disk-restored friend snapshots consistently stale so validated offline profiles can display saved projects. Patch impact. Repository and disposable-database profile regression tests passed, as did all 40 profile scope tests; the friends scope passed 60 tests with two optional simulations skipped. No live timing or release verification.
+
+- 2026-10-31: Fence social-inbox error handling by revision so an obsolete denied refresh cannot clear newer data. Patch impact. Focused obsolete-response, access-denial and offline-retention tests passed; the clubs/social scope passed 65 tests with one optional simulation skipped.
+
+- 2026-10-31: Run local cross-language friend-preview simulation against the current client and backend performance worktrees: two tests passed and 42 mock requests were recorded. Verification only; no release impact. Worktrees were uncommitted; this is not a pinned compatibility receipt or deployment evidence.
+
+- 2026-10-31: Queue a Clubs refresh requested while an earlier read is in flight, preventing campus switches from being dropped until another refresh trigger. Patch impact. Delayed-campus regression passed; the clubs/social scope passed 64 tests with one optional simulation skipped. The new request still waits for the earlier read to finish; live timing and release validation remain outstanding.
+
+- 2026-10-31: Run manual friends-inbox refresh in the background so controls remain responsive; keep saved content on network failure and clear it on authorization denial. Minor impact toward 0.7.0. Focused blocked-provider, offline and authorization tests passed; the clubs/social scope passed 63 tests with one optional simulation skipped. Live timing and release validation remain outstanding.
+
+- 2026-10-31: Open the friends inbox immediately from its existing snapshot while refreshing in a background worker; avoid a refresh when closing it. Minor impact toward 0.7.0. All 17 social UI tests passed, including a deliberately blocked provider, visible refresh status, denial clearing and offline retention; the clubs/social scope passed 60 tests with one optional simulation skipped before the final UI follow-up. Live timing remains outstanding.
+
+- 2026-10-31: Full unittest discovery in a temporary editable environment ran 1,055 tests in 926.6 s: two dashboard viewport-height failures and four skips. Both failures also reproduce at archived baseline c45713c; the run began before later agenda/profile test additions and is not a final-candidate check. Verification only; no release impact.
+
 - 2026-10-31: Diagnose deployed campus-exams 403 responses and expose an explicit translated access-denied reason instead of only a generic stale source. Requires backend c1c43ab for same-token campus-filtered exam collection fallback and correct 403 propagation. Patch impact within 0.7.0; 22 agenda tests passed in the working checkout, and 17 passed against an isolated export of this staged patch, preserving concurrent unrelated work. Backend suite passed 536 tests with 38 environment-dependent skips and type-checking passed. Full client suite, deployment and live fallback success remain unverified; no separate release warranted.
 
+- 2026-10-31: Extend the synthetic Postman friends mock and HTTP test to verify 101 summaries over three authenticated batches with at most two concurrent requests. Both friends HTTP simulation tests passed. Test-only; no release impact. Deployed backend and real 42 behavior remain unverified.
+
+- 2026-10-31: Load up to two catalog categories concurrently, retaining complete-page and cross-category snapshot validation before atomic publication. Minor impact toward 0.7.0. Focused tests cover concurrency bounds, incomplete pages, account changes, conflicting snapshots and failed scans without starting the next pair. Five synthetic runs with 50 ms per category had 169.20 ms median before and 117.43 ms after; The full catalog scope passed 45 tests with one optional skip, and its local Postman HTTP simulation passed separately. Real backend timing and release validation remain outstanding.
+
+- 2026-10-31: Pass local Postman friends-refresh and catalog-cache HTTP simulations with synthetic data (one test each). Verification only; no release impact. Catalog mock returned 501 for unimplemented incidental routes; these simulations do not verify live backend compatibility, 42 access or deployment.
+
+- 2026-10-31: Display agenda sources progressively, clear already shown data on authorization failure, and fence rendering during teardown or context changes. Minor impact toward 0.7.0. All 21 agenda tests and all 74 correction-slot scope tests passed, including slow sources, late 401, pending requests, week changes and shutdown. Five synthetic runs with a 250 ms event-source delay gave 273.82 ms median at 3408627 and 43.56 ms after; real backend timing and release validation remain outstanding.
+
+- 2026-10-31: Aggregate dashboard heartbeat totals by local stored day in SQLite instead of materializing every heartbeat. Minor impact toward 0.7.0. Exact-cutoff and daily total tests passed; five synthetic reads of 50,000 records had a 48.38 ms median before and 15.83 ms after, returning 50,000 versus 18 rows. This excludes UI and real-device timing. Nineteen dashboard service, repository, wiring and cache tests passed; the dashboard scope has two pre-existing viewport-height failures. Live timing and release validation remain outstanding.
+
+- 2026-10-31: Display validated selected-friend project snapshots immediately in profiles as stale while core and project data load; ignore incomplete or mismatched seeds, identify saved data while offline, and discard cached profile data on profile authorization denial. Minor impact toward 0.7.0. All 40 profile scope tests passed. In five synthetic runs with a 250 ms core delay, median first-project display was 263.53 ms before and 82.44 ms after; this excludes real HTTP. Live timing and release validation remain outstanding.
+
+- 2026-10-31: Run the clubs/social regression scope: 59 passed and one optional simulation was skipped. Verification only; no release impact. Real backend and network behavior remain unverified.
+
+- 2026-10-31: Run the dashboard regression scope: 29 passed and two viewport-height assertions failed (52 rows versus 42). Both failures reproduce in the archived c45713c baseline. Verification only; no release impact. Dashboard layout failures remain unresolved.
+
+- 2026-10-31: Run the full project regression scope: all 182 tests passed. Verification only; no release impact. This does not verify live backend or upstream evaluation timing.
+
+- 2026-10-31: Deduplicate concurrent portrait loads within each existing cache while preserving cancellation independence, image validation and account-specific cache lifetimes. Minor impact toward 0.7.0. Cluster portrait, feature service and dashboard portrait tests passed (21 tests); all 88 cluster scope tests passed. Live timing and remaining performance checks are outstanding.
+
 - 2026-10-31: Redesign Agenda with event blocks, overlap lanes, theme colors, compact responsive navigation and readable Markdown details. Correct SelectCurrent clipping by limiting toolbar layout rules to their owning containers; test English/French/Spanish at narrow/wide sizes. Add campus exams and optional location/occupancy/project metadata, retaining zero counts and explicit unknown values. Manage on Intra opens the observed profile-v3 calendar; event writes require an ungranted profile scope and exam writes require Advanced tutor, so no subscription writes or scope expansion were added. Minor impact toward 0.7.0; 70 corrections/agenda tests and 14 architecture/navigation/layout tests passed, with 16 agenda tests and three exam-detail checks rerun after final UI adjustments. Synthetic 40/80/150-column previews inspected. Requires backend 9cdd26a or reviewed successor; deploy it first and verify the exact pair/live campus payloads before release. Full client suite, live subscription/link flow and release CI remain unverified. 0.7.0 remains worth preparing, not ready to publish.
+
+- 2026-10-31: Add opt-in synthetic evaluation rendering measurement. Five cold runs with 50 peer and 50 automated entries had a 276.5 ms median and 277.3 ms slowest completion, with two fake provider calls each; this does not measure real API latency or establish a performance guarantee. Measurement only; no additional release impact. Evaluation backend and live timings remain unverified.
+
+- 2026-10-31: Coalesce routine friends-list redraws for up to 100 ms while keeping the selected friend and authorization failures immediate; flush pending redraws on completion. Minor impact toward 0.7.0. Five isolated synthetic runs with 100 friends and an immediate provider reduced median completion from 3,930.3 ms at c45713c to 423.7 ms, with 101 provider calls in both; 20-friend medians were 261.7 ms and 93.6 ms. These measurements use disposable SQLite and do not include real network or backend latency. Focused scheduling tests passed; the friends scope passed 59 tests with one optional simulation skipped. Live timing and release checks remain outstanding.
+
+
+- 2026-10-31: Show completed friend-summary batches while later batches are still loading; clear already displayed results if a later batch loses authorization. Minor impact toward 0.7.0. Focused delayed-batch and later-401 tests passed; the friends scope passed 59 tests with one optional simulation skipped. Live performance and release checks remain outstanding.
+
+- 2026-10-31: Load independent account profile and cursus sources concurrently while preserving per-source failure handling. Minor impact toward 0.7.0. Five synthetic runs with 50 ms per source gave 109.53 ms median before and 53.81 ms after; this excludes real HTTP and UI timing. Account service and context tests passed. The first accounts scope run had one connection-screen mount error; that test passed alone, and a full rerun passed 131 tests with one optional skip. Live backend timing and release validation remain outstanding.
+
+- 2026-10-31: Overlap curriculum and the first personal-project page while retaining account and pagination validation before saving. Minor impact toward 0.7.0. Five synthetic runs with 50 ms per read gave 108.77 ms median before and 52.49 ms after; this excludes actual backend and UI rendering. Focused catalog tests passed; the catalog scope passed 42 tests with one optional simulation skipped. Live timing and release validation remain outstanding.
+
+- 2026-10-31: Overlap up to two friends summary batches, cancel sibling waits on failure, and retain existing per-profile fallback. Minor impact toward 0.7.0. Five synthetic runs with two 50 ms cache-only reads gave 102.14 ms median before and 51.18 ms after; this excludes network and rendering. Focused scheduling and authorization-failure tests passed; the full friends scope passed 55 tests with one optional simulation skipped. Live backend timing and release validation remain outstanding.
 
 - 2026-10-31: Remove My evaluations from tab composition and localization routing. Rework Agenda into a half-hour week timeline with a shared event/evaluation detail panel, role filters, overlap selection and narrow-terminal stacking. Clear visible rows immediately on account changes and retain dashboard/project-slot views. Minor impact toward 0.7.0; 10 agenda tests, nine architecture checks, four navigation tests and the focused full-app layout test passed in separate runs after correcting the navigation fixture for Agenda and scrollable tabs. Covers overlaps, midnight spans, DST folds, filtering and account clearing. Full suite and live Intra validation not rerun; no backend change or separate release needed for this UI iteration.
 
 - 2026-10-31: Add a bottom margin to the project activity footer and use the primary variant for Set as finished. Patch impact within 0.7.0; nine project-activity UI tests and the focused project-layout test passed, covering footer space at wide/narrow sizes and the primary variant. Full suite not rerun; no separate release warranted.
 
+- 2026-10-31: Run all 35 profile regression tests successfully, including independent loading with a delayed projects source. Test-only; no additional release impact. No real-network performance claim; remaining performance work remains outstanding.
+
+- 2026-10-31: Preserve validated complete friend snapshots at the storage boundary when later summaries arrive, without bypassing membership identity checks. Focused repository tests passed; the full friends regression scope passed 53 tests with one optional simulation skipped, and regression-scope ownership passed. Minor impact toward 0.7.0; live measurements and remaining performance work remain outstanding.
+
+- 2026-10-31: Add an opt-in synthetic selected-friend detail dispatch benchmark. Across five runs with a 250 ms gated summary, median dispatch was 251.30 ms at c45713c and 0.15 ms with the scheduling change; this excludes HTTP, backend and UI rendering. Project activity and cache checks passed 21 tests. Test/measurement only; no additional release impact. Live timings, backend integration and remaining performance work are outstanding.
+
 - 2026-10-31: Gate project evaluation actions on fresh account/campus/project registration state, rename slot browsing to Subscribe to defense, and hide the fallback calendar toolbar/date range for unfinished projects. Patch impact within 0.7.0; 36 focused registration, agenda and project-layout tests passed, including state visibility, expiry/isolation and hidden calendar controls. Full suite and live Intra checks not rerun; no separate release warranted.
 
+- 2026-10-31: Preserve complete saved friend details when a concurrent summary finishes later, and verify the ordering with a focused regression. Minor impact toward 0.7.0. Focused friends, profile and cache tests passed; 32 friends, profile and read-cache UI tests also passed. Live timing and release validation remain outstanding.
+
 - 2026-10-31: Shorten the project evaluation action labels and place them in an equal-width two-column row with a gap, nowrap/ellipsis overflow and full-label tooltips. Patch impact within 0.7.0; 22 project-layout tests passed and the wide/narrow action-layout test passed again after adding narrow assertions. Full suite not rerun; no separate release warranted.
+
+- 2026-10-31: Verify that a selected friend detail arriving after an account change is discarded, and that slow project reads do not hold the independently loaded attendance and goals sections. Test-only; no additional release impact. Focused tests passed; full performance plan and live measurements remain outstanding.
 
 - 2026-10-31: Shorten the project modal action to Open Intra with single-line sizing in English/French/Spanish, and move evaluation/history/finish actions into Registration to reuse its full-width buttons and vertical spacing. Patch impact within 0.7.0; seven agenda tests and 22 project-layout tests passed, including narrow translated button labels and action alignment. Full client suite not rerun; no separate release warranted.
 
 - 2026-10-31: Center the project evaluation modal’s Intra and Close actions in a shared footer with a two-column gap and consistent widths. Patch impact within the planned 0.7.0 release; seven agenda tests passed, including footer alignment, bounds and dismissal at 40/120 columns. Full client suite and live campus checks were not rerun; no separate release is warranted for this layout fix.
 
+- 2026-10-31: Compared the existing isolated synthetic cache benchmark at client commit c45713c and the working tree (five warm revisits each). Normal warm friends median was 17.8 ms and 18.3 ms respectively, with zero provider calls; the one-friend fixture does not exercise selected-detail scheduling, so this is not evidence of its speedup. The focused friends/read-cache/context suite passed 23 tests with one optional simulation skipped. Documentation and verification only; no additional release impact. Live timing and the remaining performance work are outstanding.
+
 - 2026-10-31: Gate project slot reads on the connected user’s current project state and selected campus; unfinished projects show an Intra handoff instead of unrelated availability. Reuse the read-only correction timeline, hide redundant filters, show time ranges, and bound the project modal at narrow/wide sizes. Patch impact within 0.7.0; 61 client correction/agenda tests, 9 architecture checks, 530 backend tests and backend type-checking passed; 38 environment-dependent backend checks skipped. Backend deployment, exact-pair compatibility and live Intra comparison remain pending; textual-calendar was evaluated but not added because its documented widgets select dates/times rather than lay out events.
+
+- 2026-10-30: Allow selected friend detail reads during summary synchronization, limiting concurrent enrichment to the selected friend. Minor impact toward 0.7.0. Synthetic scheduling and friends UI regressions passed; read-cache UI regressions passed with the tests path configured. The opt-in synthetic cache benchmark ran with five warm revisits; live before/after timings, integration and release checks remain outstanding.
 
 - 2026-10-30: Add a phased loading and caching performance investigation plan covering measurements, isolation, release validation and a client-wide waiting-path audit. Documentation only; no release required. Plan review pending; no performance or deployment claims.
 

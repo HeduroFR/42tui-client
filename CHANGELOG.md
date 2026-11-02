@@ -2,41 +2,57 @@
 
 ## Unreleased
 
+- Show saved friend ranks, levels and project counts immediately after a refresh
+  while fresher data loads, update friend details two at a time, and replace the
+  clipped rank placeholder with a short label plus the full explanation.
+
 - Subscribe to or unsubscribe from Intra campus events from an event's Agenda
   details. Sessions without the new 42 permission need to reconnect before
   changing a subscription.
 
 - Start Correction Slots loading after the view is mounted, avoiding a stuck first load.
 
-
 - Show pulsing placeholders in Correction Slots while loading, and spread
   calendar placeholders across different hours.
 
-
 - Show pulsing Agenda loading cards without covering events that have already loaded.
-
 
 - Show saved agenda data promptly when revisiting a week and retry pending event
   and exam collection automatically while other sources remain available.
 
-
 - Shade past days and hours in the Agenda calendar.
 
-
 - Distinguish past days and time blocks in Agenda and see the current time marker.
-
 
 - Retry a temporary agenda read failure once on first load, and open exam details
   directly on Intra.
 
-
 - Keep week navigation responsive while agenda sources load, avoid rebuilding an
   unchanged agenda during background refresh, and open campus events directly on Intra.
 
+- Refresh Clubs promptly after changing campus during an in-flight load.
+
+- Open and refresh the friends inbox without blocking its controls.
+
 - Explain when 42 denies access to an Agenda source, while keeping the other sources visible.
+
+- Show available agenda items while slower sources continue loading.
+
+- Reduce dashboard refresh work when local activity history is large.
+
+- Show saved friend project details immediately when opening a profile, including offline, while fresher data loads when available.
+
+- Reuse concurrent requests for the same portrait to reduce duplicate loading.
 
 - Rework Agenda with event blocks, separate overlap lanes, a compact toolbar and a readable Markdown detail panel. Fix clipped filter labels, and show one day above details on narrow terminals.
 - Add campus exams, with local schedule, duration, location, occupancy and associated exam projects. Event and exam subscription management opens Intra; exam data and event metadata require the updated backend.
+
+
+- Load account profile and cursus information concurrently when connecting.
+
+- Load curriculum, personal projects and catalog categories faster during catalog refresh.
+
+- Show friend summaries progressively and reduce interface lag when loading large friends lists.
 
 - Remove the separate My evaluations tab. Agenda now opens as a weekly half-hour timeline with role filters, an event list and a detail panel; narrow terminals show details below the timeline.
 
@@ -51,6 +67,8 @@
 - Center the project evaluation dialog’s Intra and Close buttons on one row with consistent spacing.
 
 - Show evaluation slots only after the project is waiting for correction, and scope them to the selected campus. Use the correction timeline in a bounded project dialog, with clear time ranges and an Intra handoff.
+
+- Load the selected friend’s project details while the friends list is still refreshing.
 
 - Browse campus events and your evaluations in an agenda list or weekly calendar,
   filter by evaluation role, and inspect details in local time. The dashboard
