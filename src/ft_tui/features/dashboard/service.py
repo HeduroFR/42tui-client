@@ -61,9 +61,9 @@ class DashboardService:
         monday = today - timedelta(days=today.weekday())
         weeks = tuple(monday-timedelta(weeks=offset) for offset in range(3, -1, -1))
         days = {week+timedelta(days=day): 0.0 for week in weeks for day in range(7)}
-        for at, credited in self.reader.heartbeats_since(datetime.combine(weeks[0], datetime.min.time())):
-            if at.date() in days:
-                days[at.date()] += credited
+        for day, credited in self.reader.daily_heartbeats_since(datetime.combine(weeks[0], datetime.min.time())):
+            if day in days:
+                days[day] += credited
         week_seconds = {week: sum(days[week+timedelta(days=i)] for i in range(7)) for week in weeks}
         journey_scope = 'specialization' if goals.get('status') == 'available' and goals.get('cc_validated') is True else 'all'
         selected = curriculum_projects(rows, curriculum=curriculum, scope=journey_scope)

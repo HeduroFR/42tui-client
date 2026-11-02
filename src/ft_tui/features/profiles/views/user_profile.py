@@ -153,6 +153,19 @@ class UserProfileScreen(ProfileViewMixin, Screen):
             self._restore_sections()
         elif self.seed and self.seed.get('user_id') == self.user_id:
             self._render_seed()
+            if (self.seed.get('projects_loaded') is not False and self.seed.get('login') == self.login
+                    and type(self.seed.get('cursus_id')) is int and self.seed['cursus_id'] > 0):
+                from ft_tui.features.friends.models import friend_snapshot
+                try:
+                    friend_snapshot(self.seed, self.login, self.seed.get('cursus_id'), user_id=self.user_id)
+                except (ValueError, TypeError):
+                    return
+                self.cursus_id = self.seed['cursus_id']
+                self.project_data = deepcopy(self.seed)
+                self.project_data['meta'].update(cache='stale', stale=True)
+                self.project_data['presence'] = {'status': 'unavailable', 'cached_at': None}
+                self.project_data['location'] = None
+                self._render_projects()
 
     def _restore_sections(self):
         cached = self._cache().get(self._key(), {}).get('sections', {}).get(self.cursus_id, {})
@@ -172,7 +185,7 @@ class UserProfileScreen(ProfileViewMixin, Screen):
         if not self._valid() or self.loading or monotonic() < self.retry_at:
             return
         if not getattr(self.app, 'account_connected', False) or not self.provider:
-            self.query_one('#profile-status', Static).update(self.t('Saved data · offline') if self.core else self.t('Connect your 42 account to view this profile.'))
+            self.query_one('#profile-status', Static).update(self.t('Saved data · offline') if self.core or self.project_data else self.t('Connect your 42 account to view this profile.'))
             return
         self.loading = True
         self.epoch += 1
@@ -195,6 +208,7 @@ class UserProfileScreen(ProfileViewMixin, Screen):
                 return
             previous_cursus = self.cursus_id
             self.core = data
+            self.query_one('#profile-scroll').display = True
             self.login = data['login']
             self.saved = False
             self._honor_retry(data['meta'])
@@ -205,6 +219,11 @@ class UserProfileScreen(ProfileViewMixin, Screen):
             await asyncio.gather(self._load_attendance(epoch, refresh=refresh), self._load_cursus(epoch, self.cursus_id, refresh=refresh), self._load_portrait(epoch))
         except Exception as error:
             if self._valid(epoch):
+                if getattr(getattr(error, 'response', None), 'status_code', None) in (401, 403):
+                    self._cache().pop(self._key(), None)
+                    self.core = self.project_data = self.attendance_data = self.goals_data = None
+                    self._render_projects()
+                    self.query_one('#profile-scroll').display = False
                 self.errors['core'] = self._error(error)
         finally:
             if self._valid(epoch):

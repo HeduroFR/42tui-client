@@ -9,7 +9,7 @@ from ft_tui.features.dashboard.service import DashboardService
 class Reader:
     def tracked(self, project_id): return 3660
     def recent_notes(self): return [(7, 99, 'Outside', 'Latest note', datetime(2026, 10, 26))]
-    def heartbeats_since(self, start): return [(datetime(2026, 10, 26, 10), 120), (datetime(2026, 10, 26, 11), 180)]
+    def daily_heartbeats_since(self, start): return [(datetime(2026, 10, 26).date(), 300)]
     def activity(self): return {1: datetime(2026, 10, 26, 12)}, (1, datetime(2026, 10, 26, 12))
 
 

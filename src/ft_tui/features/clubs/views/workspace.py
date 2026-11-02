@@ -391,6 +391,7 @@ class ClubsWorkspace(VerticalScroll):
         self.selected_member = None
         self.context = None
         self.busy = False
+        self._refresh_pending = False
         self.polling = False
         self.mutating = False
         self.next_refresh = 0
@@ -526,6 +527,7 @@ class ClubsWorkspace(VerticalScroll):
             self.snapshot = {}
             self.selected_club = self.selected_activity = self.selected_member = None
             self.busy = self.polling = self.mutating = False
+            self._refresh_pending = False
             self.dnd = False
             self.next_poll = self.next_refresh = 0
             self.app.query_one(ClubsInvitations).clear()
@@ -564,6 +566,9 @@ class ClubsWorkspace(VerticalScroll):
         self.set_class(len(options) == 1, 'single-campus')
 
     def refresh_data(self):
+        if self.busy:
+            self._refresh_pending = True
+            return
         self.run_worker(self.reload(), group='clubs-refresh', exclusive=False)
 
     async def reload(self):
@@ -591,11 +596,15 @@ class ClubsWorkspace(VerticalScroll):
             self.render_data()
             self.query_one('#clubs-status', Static).update('' if not self.dnd else 'Do not disturb is on. Invitations are saved in your inbox.')
         except Exception:
-            if context == self.scope():
+            if (context == self.scope() and revision == self.revision
+                    and campus == self.query_one('#clubs-campus', Select).value):
                 self.query_one('#clubs-status', Static).update('Clubs unavailable. Refresh to retry; saved view may be out of date.')
         finally:
             if context == self.scope():
                 self.busy = False
+                if self._refresh_pending and self.is_mounted:
+                    self._refresh_pending = False
+                    self.refresh_data()
 
     async def poll(self):
         context = self.scope()

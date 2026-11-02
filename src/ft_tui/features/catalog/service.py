@@ -45,14 +45,19 @@ class CatalogService:
     async def refresh_account(self, provider: CatalogReader, account: str, scope: CatalogScope, current: Current):
         if not current():
             return None
-        curriculum = await asyncio.to_thread(provider.get_curriculum, scope)
+        def dispatch(operation, *args):
+            return operation(*args) if current() else None
+        curriculum, first_page = await asyncio.gather(
+            asyncio.to_thread(dispatch, provider.get_curriculum, scope),
+            asyncio.to_thread(dispatch, provider.get_account_projects, scope.cursus_id, None),
+        )
         if not current():
             return None
         if curriculum.get('account_id') != account:
             raise ValueError('Account identity changed')
         attempts, cursor, seen, snapshot, attempt_ids = [], None, set(), None, set()
         for _ in range(100):
-            page = await asyncio.to_thread(provider.get_account_projects, scope.cursus_id, cursor)
+            page = first_page if cursor is None else await asyncio.to_thread(provider.get_account_projects, scope.cursus_id, cursor)
             if not current():
                 return None
             if page.get('account_id') != account or snapshot and page.get('snapshot_id') != snapshot:
@@ -79,32 +84,52 @@ class CatalogService:
         cached = self.repository.cached(scope)
         if cached and not force:
             return CatalogSnapshot(cached['snapshot_id'])
-        staged, project_ids, snapshot = [], set(), None
-        # Shared projects overlap between tracks, but duplicates within a scan do not.
-        for filters in ({'track': 'old'}, {'track': 'new'}, {'section': 'other'}):
-            cursor, seen, scan_ids = None, set(), set()
+        async def scan(filters):
+            pages, cursor, seen, ids, snapshot = [], None, set(), set(), None
             for _ in range(1000):
+                if not current():
+                    return None
                 query = {**filters, 'limit': 100, 'cursor': cursor}
-                page = await asyncio.to_thread(provider.list_catalog_page, scope, **query)
+                def dispatch():
+                    return provider.list_catalog_page(scope, **query) if current() else None
+                page = await asyncio.to_thread(dispatch)
                 if not current():
                     return None
                 if snapshot and page['snapshot_id'] != snapshot:
                     raise ValueError('Catalog snapshot changed')
-                ids = {item['project_id'] for item in page['items']}
-                if len(ids) != len(page['items']) or scan_ids.intersection(ids):
+                page_ids = {item['project_id'] for item in page['items']}
+                if len(page_ids) != len(page['items']) or ids.intersection(page_ids):
                     raise ValueError('Repeated catalog project')
-                scan_ids.update(ids)
-                project_ids.update(ids)
+                ids.update(page_ids)
                 snapshot = page['snapshot_id']
-                staged.append((page, query))
+                pages.append((page, query))
                 cursor = page.get('next_cursor')
                 if not cursor:
-                    break
+                    return pages, ids, snapshot
                 if cursor in seen:
                     raise ValueError('Repeated catalog cursor')
                 seen.add(cursor)
-            else:
-                raise ValueError('Catalog scan limit')
+            raise ValueError('Catalog scan limit')
+
+        staged, project_ids, snapshot = [], set(), None
+        filters = ({'track': 'old'}, {'track': 'new'}, {'section': 'other'})
+        for offset in range(0, len(filters), 2):
+            tasks = [asyncio.create_task(scan(query)) for query in filters[offset:offset+2]]
+            try:
+                scans = await asyncio.gather(*tasks)
+            except BaseException:
+                for task in tasks:
+                    task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+                raise
+            if not current() or any(result is None for result in scans):
+                return None
+            for pages, ids, scan_snapshot in scans:
+                if snapshot and scan_snapshot != snapshot:
+                    raise ValueError('Catalog snapshot changed')
+                snapshot = scan_snapshot
+                staged.extend(pages)
+                project_ids.update(ids)
         self.repository.publish(scope, staged, snapshot, project_ids)
         return CatalogSnapshot(snapshot, staged[-1][0]['meta'])
 

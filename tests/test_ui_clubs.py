@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import unittest
 from unittest.mock import patch
 from copy import deepcopy
@@ -90,6 +91,79 @@ class Harness(App):
 
 
 class ClubsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_old_campus_failure_does_not_report_error_for_new_campus(self):
+        started, release, next_started, next_release = (threading.Event() for _ in range(4))
+
+        class SlowCampus(Provider):
+            block = False
+            def get_clubs(self, campus):
+                if self.block and campus == 31:
+                    started.set()
+                    release.wait(3)
+                    raise RuntimeError('old campus failed')
+                if self.block and campus == 32:
+                    next_started.set()
+                    next_release.wait(3)
+                return super().get_clubs(campus)
+
+        app = Harness()
+        app.provider = SlowCampus()
+        app.account_campuses.append({'id': 32, 'name': 'Other', 'is_primary': False})
+        try:
+            async with app.run_test(size=(110, 30)) as pilot:
+                await self.settle(app, pilot)
+                workspace = app.query_one(ClubsWorkspace)
+                app.provider.block = True
+                workspace.refresh_data()
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                workspace.query_one('#clubs-campus', Select).value = 32
+                await pilot.pause(.05)
+                release.set()
+                self.assertTrue(await asyncio.to_thread(next_started.wait, 1))
+                self.assertNotIn('unavailable', str(workspace.query_one('#clubs-status').render()).lower())
+        finally:
+            release.set()
+            next_release.set()
+
+    async def test_campus_switch_queues_new_read_while_previous_read_is_busy(self):
+        started = threading.Event()
+        next_started = threading.Event()
+        release = threading.Event()
+        class SlowCampus(Provider):
+            block = False
+            def get_clubs(self, campus):
+                if self.block and campus == 31:
+                    started.set()
+                    release.wait(3)
+                elif self.block and campus == 32:
+                    next_started.set()
+                    result = deepcopy(self.data)
+                    result['clubs'][0]['campus_id'] = 32
+                    result['clubs'][0]['name'] = 'Other campus club'
+                    return result
+                return super().get_clubs(campus)
+        app = Harness()
+        app.provider = SlowCampus()
+        app.account_campuses.append({'id': 32, 'name': 'Other', 'is_primary': False})
+        try:
+            async with app.run_test(size=(110, 30)) as pilot:
+                await self.settle(app, pilot)
+                workspace = app.query_one(ClubsWorkspace)
+                app.provider.block = True
+                workspace.refresh_data()
+                self.assertTrue(await asyncio.to_thread(started.wait, 1))
+                workspace.query_one('#clubs-campus', Select).value = 32
+                await pilot.pause(.05)
+                release.set()
+                self.assertTrue(await asyncio.to_thread(next_started.wait, 1))
+                for _ in range(50):
+                    await pilot.pause(.01)
+                    if workspace.snapshot.get('clubs'):
+                        break
+                self.assertEqual(workspace.snapshot['clubs'][0]['name'], 'Other campus club')
+        finally:
+            release.set()
+
     async def test_short_wide_workspace_keeps_sidebar_fixed_and_pages_scrollable(self):
         app = Harness()
         async with app.run_test(size=(110, 24)) as pilot:

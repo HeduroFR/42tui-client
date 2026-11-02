@@ -13,6 +13,31 @@ http.createServer((req, res) => {
     return reply(200, {ok: true});
   }
   if (url.pathname === '/stats') return reply(200, {peak, completed, invalid});
+  if (url.pathname === '/v1/friends/summaries' && req.method === 'GET') {
+    let logins;
+    try { logins = JSON.parse(url.searchParams.get('logins')); } catch { logins = null; }
+    if (!Array.isArray(logins) || logins.length < 1 || logins.length > 50 ||
+        logins.some(login => !/^(you|friend\d+)$/.test(login)) ||
+        url.searchParams.get('cursus_id') !== '21' || !req.headers.dpop) {
+      invalid++;
+      return reply(400, {error: 'invalid_query'});
+    }
+    active++;
+    peak = Math.max(peak, active);
+    return setTimeout(() => {
+      const stamp = new Date().toISOString();
+      active--;
+      completed++;
+      reply(200, {items: logins.map(login => ({
+        user_id: login === 'you' ? '42' : String(100 + Number(login.slice(6))),
+        login, display_name: login, cursus_id: 21, level: 8.42, grade: 'Learner',
+        campuses: [{id: 31, name: 'Paris', is_primary: true}],
+        location: null, presence: {status: 'available', cached_at: stamp},
+        items: [], details_complete: false, projects_loaded: false,
+        meta: {cache: 'fresh', stale: false, cached_at: stamp}
+      })), missing: []});
+    }, 150);
+  }
   const match = url.pathname.match(/^\/v1\/friends\/(you|friend\d+)$/);
   if (!match || req.method !== 'GET') return reply(501, {error: 'not_modeled'});
   if (url.searchParams.get('cursus_id') !== '21' ||

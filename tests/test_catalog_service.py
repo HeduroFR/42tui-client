@@ -1,5 +1,7 @@
 """Catalog use cases run headlessly and never publish an incomplete/stale scan."""
 import unittest
+import asyncio
+import threading
 from ft_tui.features.catalog.models import CatalogScope
 from ft_tui.features.catalog.service import CatalogService
 
@@ -57,6 +59,112 @@ class CatalogServiceTests(unittest.IsolatedAsyncioTestCase):
         self.service = CatalogService(self.repo)
         self.scope = CatalogScope(21, 31)
         self.provider = Provider()
+
+    async def test_curriculum_and_first_personal_page_overlap(self):
+        curriculum_started = threading.Event()
+        project_started = threading.Event()
+        release = threading.Event()
+        def curriculum(scope):
+            curriculum_started.set()
+            release.wait(2)
+            return {'account_id': '42'}
+        def projects(cursus, cursor):
+            project_started.set()
+            release.wait(2)
+            return {'account_id': '42', 'snapshot_id': 'personal', 'items': [{'id': 7}], 'next_cursor': None}
+        self.provider.get_curriculum = curriculum
+        self.provider.get_account_projects = projects
+        task = asyncio.create_task(self.service.refresh_account(self.provider, '42', self.scope, lambda: True))
+        try:
+            self.assertTrue(await asyncio.to_thread(curriculum_started.wait, .5))
+            self.assertTrue(await asyncio.to_thread(project_started.wait, .5))
+            self.assertEqual(self.repo.personal, [])
+        finally:
+            release.set()
+            await task
+        self.assertEqual(len(self.repo.personal), 1)
+
+    async def test_parallel_personal_reads_are_discarded_after_account_change(self):
+        started = threading.Event()
+        release = threading.Event()
+        current = [True]
+        def curriculum(scope):
+            started.set()
+            release.wait(2)
+            return {'account_id': '42'}
+        self.provider.get_curriculum = curriculum
+        task = asyncio.create_task(self.service.refresh_account(self.provider, '42', self.scope, lambda: current[0]))
+        try:
+            self.assertTrue(await asyncio.to_thread(started.wait, .5))
+            current[0] = False
+        finally:
+            release.set()
+        self.assertIsNone(await task)
+        self.assertEqual(self.repo.personal, [])
+
+    async def test_catalog_scans_overlap_with_bounded_concurrency(self):
+        started = threading.Event()
+        release = threading.Event()
+        lock = threading.Lock()
+        calls = []
+        def page(scope, **query):
+            with lock:
+                calls.append(query)
+                if len(calls) == 2:
+                    started.set()
+            release.wait(2)
+            return {'snapshot_id': 'graph', 'items': [{'project_id': 1}], 'next_cursor': None,
+                    'meta': {'cursus_id': 21, 'campus_id': 31}}
+        self.provider.list_catalog_page = page
+        task = asyncio.create_task(self.service.refresh_catalog(self.provider, self.scope, lambda: True))
+        try:
+            self.assertTrue(await asyncio.to_thread(started.wait, .5))
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(self.repo.published, [])
+        finally:
+            release.set()
+            await task
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(self.repo.published, [('graph', {1})])
+
+    async def test_parallel_scans_with_different_snapshots_do_not_publish(self):
+        calls = []
+        def page(scope, **query):
+            calls.append(query)
+            return {'snapshot_id': 'newer' if query.get('track') == 'new' else 'graph',
+                    'items': [{'project_id': 1}], 'next_cursor': None,
+                    'meta': {'cursus_id': 21, 'campus_id': 31}}
+        self.provider.list_catalog_page = page
+        with self.assertRaisesRegex(ValueError, 'snapshot changed'):
+            await self.service.refresh_catalog(self.provider, self.scope, lambda: True)
+        self.assertEqual(self.repo.published, [])
+        self.assertEqual(len(calls), 2)
+
+    async def test_failed_scan_cancels_queued_scan_without_publication(self):
+        started = threading.Event()
+        release = threading.Event()
+        calls = []
+        lock = threading.Lock()
+        def page(scope, **query):
+            with lock:
+                calls.append(query)
+                if len(calls) == 2:
+                    started.set()
+            if query.get('track') == 'old':
+                if not started.wait(1):
+                    raise TimeoutError('Second scan did not start')
+                raise RuntimeError('catalog unavailable')
+            release.wait(2)
+            return {'snapshot_id': 'graph', 'items': [], 'next_cursor': None,
+                    'meta': {'cursus_id': 21, 'campus_id': 31}}
+        self.provider.list_catalog_page = page
+        try:
+            with self.assertRaisesRegex(RuntimeError, 'catalog unavailable'):
+                await asyncio.wait_for(self.service.refresh_catalog(self.provider, self.scope, lambda: True), 1)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(self.repo.published, [])
+        finally:
+            release.set()
 
     async def test_complete_scan_is_committed_once_after_all_tracks(self):
         result = await self.service.refresh_catalog(self.provider, self.scope, lambda: True)

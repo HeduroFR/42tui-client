@@ -110,6 +110,30 @@ class ReadCacheTests(unittest.IsolatedAsyncioTestCase):
             await cache.read(key, forbidden, refresh=True)
         self.assertFalse(cache.entries)
 
+    async def test_authorization_failure_cancels_other_inflight_scoped_read(self):
+        cache = ReadCache()
+        scope = ('backend', 'account', 1)
+        started = asyncio.Event()
+        cancelled = asyncio.Event()
+        async def slow():
+            started.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+        async def unauthorized():
+            request = httpx.Request('GET', 'https://example.test')
+            raise httpx.HTTPStatusError('unauthorized', request=request,
+                response=httpx.Response(401, request=request))
+        pending = asyncio.create_task(cache.read((scope, 'friend-batch', 1), slow))
+        await asyncio.wait_for(started.wait(), 1)
+        with self.assertRaises(httpx.HTTPStatusError):
+            await cache.read((scope, 'friend-batch', 2), unauthorized)
+        with self.assertRaises(asyncio.CancelledError):
+            await pending
+        self.assertTrue(cancelled.is_set())
+        self.assertFalse(cache.entries)
+
     async def test_resource_forbidden_keeps_other_reads_and_does_not_revoke_account(self):
         cache = ReadCache()
         scope = ('backend', 'account', 1)

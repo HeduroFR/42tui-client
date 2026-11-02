@@ -7,6 +7,23 @@ from ft_tui.features.dashboard.adapters.sqlite import SqliteDashboardReader
 
 
 class DashboardRepositoryTests(unittest.TestCase):
+    def test_daily_heartbeats_sum_by_day_after_exact_cutoff(self):
+        factory = make_session_factory('sqlite:///:memory:')
+        try:
+            with factory() as session:
+                project = Project(slug='one', name='One')
+                session.add(project)
+                session.flush()
+                start = datetime(2026, 10, 26, 12)
+                for at, seconds in [(start - timedelta(seconds=1), 90), (start, 30),
+                                    (start + timedelta(hours=1), 15), (start + timedelta(days=1), 20)]:
+                    session.add(ActivityHeartbeat(project_id=project.id, occurred_at=at, credited_seconds=seconds))
+                session.commit()
+            self.assertEqual(SqliteDashboardReader(factory).daily_heartbeats_since(start),
+                             [(start.date(), 45), ((start + timedelta(days=1)).date(), 20)])
+        finally:
+            factory.kw['bind'].dispose()
+
     def test_notes_and_activity_projection_preserve_order_and_cutoff(self):
         factory = make_session_factory('sqlite:///:memory:')
         at = datetime(2026, 10, 26, 12)
@@ -23,7 +40,7 @@ class DashboardRepositoryTests(unittest.TestCase):
             notes = reader.recent_notes()
             self.assertEqual([row[3] for row in notes], ['Note 3', 'Note 2', 'Note 1'])
             self.assertTrue(all(isinstance(row, tuple) for row in notes))
-            self.assertEqual(reader.heartbeats_since(at-timedelta(days=1)), [(at, 60)])
+            self.assertEqual(reader.daily_heartbeats_since(at-timedelta(days=1)), [(at.date(), 60)])
             latest, heartbeat = reader.activity()
             self.assertEqual(heartbeat, (id, at))
             self.assertEqual(latest[id], at+timedelta(minutes=3))
