@@ -18,6 +18,7 @@ from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
 from ft_tui.features.projects.tester_results import TesterRunResult
 from ft_tui.features.projects.adapters.tester_native import run_native
+from ft_tui.features.projects.adapters.tester_updates import refresh_catalog
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -139,6 +140,9 @@ class TesterResultCard(Vertical):
             if summary:
                 yield Static(translate("{total} tests", self.language).format(total=summary.total),
                              markup=False, localize=False, classes="tester-result-total")
+        if isinstance(outcome, TesterRunResult) and outcome.scope_label:
+            yield Static(translate(outcome.scope_label, self.language),
+                         markup=False, localize=False, classes="tester-result-detail")
         if summary:
             with Grid(classes="tester-result-counts"):
                 for key, label in (("passed", "Passed tests"), ("failed", "Failed tests"), ("errors", "Errors"), ("skipped", "Skipped")):
@@ -194,12 +198,19 @@ class ProjectTesters(Vertical):
         super().__init__(**kwargs)
         self.project = None
         self._operating = False
-        self._messages: dict[str, str] = {}
+        self._messages = {}
         self._results = {}
-        self._retry: set[str] = set()
+        self._retry = set()
         self._generation = 0
         self._setup_plan = None
         self._workspace = None
+        self._workspace_key = None
+
+    @staticmethod
+    def _result_key(tester, project, project_path=None):
+        return (project.id if project else None,
+                project_path if project_path is not None else project.local_path if project else None,
+                tester.id if tester else "docker")
 
     def compose(self):
         yield Static("Testers", classes="panel-title")
@@ -254,13 +265,14 @@ class ProjectTesters(Vertical):
         testers = catalog.for_project(project.slug, service.host.system) if project else ()
         for button in self.query(Button):
             button.disabled = True
-        if self._workspace is not None:
-            button = self.query_one("#tester-workspace-open", Button)
-            button.display = True
-            button.disabled = False
-            log_button = self.query_one(TesterLogButton)
-            log_button.display, log_button.disabled = True, False
-            log_button.log_path = self._workspace.log_path
+        keys = {self._result_key(tester, project) for tester in testers}
+        current_workspace = self._workspace is not None and self._workspace_key in keys
+        previous = next((self._results[key] for key in reversed(self._results) if key in keys), None)
+        button = self.query_one("#tester-workspace-open", Button)
+        button.display, button.disabled = current_workspace, not current_workspace
+        log_button = self.query_one(TesterLogButton)
+        log_button.log_path = self._workspace.log_path if current_workspace else previous[2] if previous else None
+        log_button.display, log_button.disabled = bool(log_button.log_path), not bool(log_button.log_path)
         self.query_one("#tester-status", Static).update(
             ("Checking Docker…" if any(tester.runtime == "docker" for tester in testers) else "Checking testers…") if testers else (
             "No tester is configured for this project on this platform." if project
@@ -313,7 +325,8 @@ class ProjectTesters(Vertical):
             "Container execution and folder access are checked before each run.", self.app.language) if status.state == "ready" else None
         rows = self.query_one("#tester-rows")
         for tester in testers:
-            button = TesterAction(tester, "run", tester.id in self._retry)
+            key = self._result_key(tester, project)
+            button = TesterAction(tester, "run", key in self._retry)
             button.disabled = self._operating or service.busy or not has_local_folder(project.local_path)
             controls = [button]
             if tester.id in removable:
@@ -323,11 +336,11 @@ class ProjectTesters(Vertical):
             await rows.mount(Horizontal(*controls, classes="tester-action-row"))
             if not self._inspection_current(generation):
                 return
-            if tester.id in self._messages:
-                if tester.id in self._results:
-                    await rows.mount(TesterResultCard(*self._results[tester.id], self.app.language))
+            if key in self._messages:
+                if key in self._results:
+                    await rows.mount(TesterResultCard(*self._results[key], self.app.language))
                 else:
-                    await rows.mount(Static(self._messages[tester.id]))
+                    await rows.mount(Static(self._messages[key]))
                 if not self._inspection_current(generation):
                     return
 
@@ -355,29 +368,30 @@ class ProjectTesters(Vertical):
         if isinstance(event.button, TesterAction):
             tester = event.button.tester
             project_path = self.project.local_path if self.project else None
+            key = self._result_key(tester, self.project, project_path)
             plan = self._setup_plan
             if tester.runtime == "native":
                 self.app.push_screen(NativeTesterConsent(tester),
-                    lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+                    lambda approved: self._start("run", tester, project_path=project_path, key=key) if approved else None)
             elif plan:
                 self.app.push_screen(
                     DockerInstallScreen(plan),
-                    lambda approved: self._start("run", tester, plan=plan, project_path=project_path)
+                    lambda approved: self._start("run", tester, plan=plan, project_path=project_path, key=key)
                     if approved else None,
                 )
             else:
-                self._start("run", tester, project_path=project_path)
+                self._start("run", tester, project_path=project_path, key=key)
         elif isinstance(event.button, TesterRemoveButton):
             self._start("remove", event.button.tester)
 
-    def _rerun(self, tester, project_path, plan):
+    def _rerun(self, tester, project_path, plan, key):
         if tester.runtime == "native":
             self.app.push_screen(NativeTesterConsent(tester),
-                lambda approved: self._start("run", tester, project_path=project_path) if approved else None)
+                lambda approved: self._start("run", tester, project_path=project_path, key=key) if approved else None)
         else:
-            self._start("run", tester, plan=plan, project_path=project_path)
+            self._start("run", tester, plan=plan, project_path=project_path, key=key)
 
-    def _start(self, action, tester=None, *, plan=None, project_path=None):
+    def _start(self, action, tester=None, *, plan=None, project_path=None, key=None):
         if self._operating or self.app.tester_docker.busy:
             return
         self._operating = True
@@ -386,42 +400,52 @@ class ProjectTesters(Vertical):
         self.query_one("#tester-status", Static).update("Tester operation in progress…")
         if project_path is None:
             project_path = self.project.local_path if self.project else None
-        self.app.run_worker(self._perform(action, tester, project_path, plan), group="tester-operation")
+        key = key or self._result_key(tester, self.project, project_path)
+        self.app.run_worker(self._perform(action, tester, project_path, plan, key=key), group="tester-operation")
 
-    async def _perform(self, action, tester, project_path, plan):
+    async def _perform(self, action, tester, project_path, plan, *, key=None):
         service = self.app.tester_docker
         language = self.app.language
-        key = tester.id if tester else "docker"
+        key = key or self._result_key(tester, self.project, project_path)
         message = "Tester finished. Test results are unverified. Read the log."
         outcome = None
         result_details = ""
         log_path = None
         error_detail = None
+        terminal = None
+        updated_catalog = None
         try:
             log_path = service.log_path(action)
             if self.app.is_screen_installed("tester-workspace"):
                 self.app.uninstall_screen("tester-workspace")
             workspace = self._workspace = TesterWorkspace(
                 f"{tester.name if tester else 'Docker'} · {project_path or action}", log_path,
-                rerun=partial(self._rerun, tester, project_path, plan) if action == "run" else None,
+                rerun=partial(self._rerun, tester, project_path, plan, key) if action == "run" else None,
                 interactive_input=action == "run" and bool(tester and tester.interactive_input))
+            self._workspace_key = key
             self.app.install_screen(workspace, "tester-workspace")
             await self.app.push_screen("tester-workspace")
+            current_workspace = key == self._result_key(tester, self.project)
             button = self.query_one("#tester-workspace-open", Button)
-            button.display, button.disabled = True, False
+            button.display, button.disabled = current_workspace, not current_workspace
             log_button = self.query_one(TesterLogButton)
-            log_button.display, log_button.disabled = True, False
+            log_button.display, log_button.disabled = current_workspace, not current_workspace
             log_button.log_path = log_path
             with log_path.open("wb") as log:
                 terminal = workspace.session = WorkspaceSession(log, lambda data: None, language=language)
 
                 def operate():
+                    nonlocal updated_catalog
                     result = None
                     try:
                         with service.operation():
                             if action == "run":
-                                result = (run_native(tester, project_path, terminal) if tester.runtime == "native"
-                                          else service.prepare_and_run(tester, project_path, terminal, plan=plan))
+                                updated_catalog = (refresh_catalog(self.app.tester_catalog, terminal)
+                                                   if tester.update_key else self.app.tester_catalog)
+                                current = next((item for item in updated_catalog.testers if item.id == tester.id), tester)
+                                terminal.write(f"Tester revision: {current.ref}")
+                                result = (run_native(current, project_path, terminal) if current.runtime == "native"
+                                          else service.prepare_and_run(current, project_path, terminal, plan=plan))
                             elif action == "remove":
                                 service.remove(tester, terminal)
                             terminal.check_cancelled()
@@ -457,6 +481,8 @@ class ProjectTesters(Vertical):
                     result_details += "\n" + translate(
                         "Tests: {total} · passed: {passed} · failed: {failed} · errors: {errors} · skipped: {skipped}",
                         language).format(**vars(outcome.summary))
+                if outcome.scope_label:
+                    result_details += "\n" + translate(outcome.scope_label, language)
             self._retry.discard(key)
         except (EOFError, asyncio.CancelledError):
             message = "Tester operation interrupted. You can retry."
@@ -464,16 +490,23 @@ class ProjectTesters(Vertical):
                 self._retry.add(key)
         except (TesterError, OSError, subprocess.SubprocessError) as error:
             message = "Tester operation failed. You can retry."
+            if action == "run":
+                phase = terminal.phase if terminal else "Preparing the tester…"
+                if phase != "Running the tester…":
+                    message = "Tester preparation failed. Test results are not confirmed. You can retry."
+                result_details = translate("Stage: {stage}", language).format(stage=translate(phase, language))
             if action != "remove":
                 self._retry.add(key)
             error_detail = str(error)
         finally:
             self._operating = False
+            if updated_catalog is not None:
+                self.app.tester_catalog = updated_catalog
+            if error_detail:
+                result_details += ("\n" if result_details else "") + translate(error_detail, language)
             text = translate(message, language)
             if result_details:
                 text += "\n" + result_details
-            if error_detail:
-                text += "\n" + translate(error_detail, language)
             if log_path:
                 text += "\n" + translate("Log: {path}", language).format(path=log_path)
                 try:
@@ -489,6 +522,7 @@ class ProjectTesters(Vertical):
             card_message = translate(message, language)
             if error_detail:
                 card_message += "\n" + translate(error_detail, language)
+            self._results.pop(key, None)
             self._results[key] = (card_message, outcome, log_path)
             if self.is_mounted:
                 self.set_project(self.project)

@@ -31,6 +31,11 @@ class TesterRunResult:
     exit_code: int
     summary: TestSummary | None = None
     unreadable: bool = False
+    scope: str | None = None
+
+    @property
+    def scope_label(self) -> str:
+        return {"mandatory": "Mandatory only", "mandatory_bonus": "Mandatory + bonus"}.get(self.scope, "")
 
     @property
     def status(self) -> str:

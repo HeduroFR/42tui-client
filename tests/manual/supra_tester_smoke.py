@@ -14,6 +14,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+from ft_tui.features.projects.adapters.tester_updates import apply_manifest
 from ft_tui.features.projects.adapters.tester_docker import TesterDocker
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 
@@ -35,7 +36,9 @@ with TemporaryDirectory(prefix="42tui-supra-") as directory:
         future = time.time() + 3600
         os.utime(project / name, (future, future))
     before = {p.name: p.read_bytes() for p in project.iterdir()}
-    tester = next(t for t in load_catalog(root / "absent").testers if t.id == identifier)
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "tester-updates/v1.json").read_text())
+    catalog = apply_manifest(load_catalog(root / "absent"), manifest)
+    tester = next(t for t in catalog.testers if t.id == identifier)
     service = TesterDocker(root / "testers")
     log_path = Path(f"{identifier}-smoke.log").resolve()
     with log_path.open("wb") as log, service.operation():

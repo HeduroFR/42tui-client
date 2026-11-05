@@ -1,0 +1,56 @@
+--- a/report.py
++++ b/report.py
+@@ -1,8 +1,9 @@
+ #!/usr/bin/env python3
+-"""Run the mandatory suite and write a fresh 42TUI version-1 result report."""
++"""Run mandatory and detected bonus suites with a fresh version-1 result report."""
+ import argparse
+ import json
+ import os
++import shutil
+ from pathlib import Path
+ import subprocess
+ import sys
+@@ -14,11 +15,23 @@
+ report = Path(args.report)
+ if report.exists() or report.is_symlink():
+     sys.exit('Report destination already exists')
++project = Path.cwd().parent
++bonus_files = ('get_next_line_bonus.c', 'get_next_line_utils_bonus.c', 'get_next_line_bonus.h')
++bonus = (project / 'bonus').is_dir() or any((project / name).exists() for name in bonus_files)
++if bonus:
++    for name in bonus_files:
++        target = project / name
++        if not target.is_file():
++            source = project / 'bonus' / name
++            if not source.is_file():
++                sys.exit(f'Missing bonus source: {name}')
++            shutil.copyfile(source, target)
++    print('Detected bonus sources; running mandatory and bonus tests…', flush=True)
+ fd, events = tempfile.mkstemp(prefix='gnl-report-')
+ os.close(fd)
+ try:
+     env = dict(os.environ, GNL_REPORT_EVENTS=events)
+-    result = subprocess.run(['make', '-o', 'update', 'm'], env=env, check=False)
++    result = subprocess.run(['make', '-o', 'update', 'a' if bonus else 'm'], env=env, check=False)
+     if result.returncode:
+         sys.exit(2)
+     raw = Path(events).read_bytes()
+--- a/tests/bonus.cpp
++++ b/tests/bonus.cpp
+@@ -22,6 +22,7 @@
+ int main(void)
+ {
+ 	is_initializing = false;
++	TEST(
+ 	signal(SIGSEGV, sigsegv); int fd[4];
+ 	title("[BUFFER_SIZE = " << BUFFER_SIZE << "]: " << ENDL)
+ 	
+@@ -59,5 +60,6 @@
+ 	/* 19 */ gnl(fd[3], NULL);
+ 	showLeaks();
+ 	write(1, "\n", 1);
++	);
+ 	return (0);
+ }
+\ No newline at end of file

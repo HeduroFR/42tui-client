@@ -1,7 +1,7 @@
 # Project testers
 
 Francinette is no longer bundled. The Tripouille tester covers the mandatory
-`get_next_line` suite with a structured summary.
+and detected bonus `get_next_line` suites with a structured summary.
 Existing user catalog definitions remain user-controlled; remove a custom
 Francinette entry there if you added one. Previously downloaded images are not
 automatically deleted.
@@ -22,13 +22,34 @@ then choose **View full output** from a project's tester section to return.
 **Pause output** stops automatic scrolling. Full logs are saved automatically;
 **Open log folder** opens its directory in your file explorer. The output view
 retains recent output only.
+Results, retry state and log actions belong to the selected project and local
+folder. **View full output** reopens the latest workspace only for its original
+project; older project results keep their **Open log** action.
 The console interprets cursor redraws and colors on a 100-column terminal with
 scrollback; narrow windows can scroll horizontally. Process completion alone does
 not mean all tests passed. The workspace and saved log distinguish reported test
 failures, process failures, unreadable reports and unverified results, with the
 process exit code and available test counts. The printf, get_next_line and push_swap forks provide structured summaries;
 libft results remain unverified.
+Printf and get_next_line results also show **Mandatory only** or
+**Mandatory + bonus** in the result card, workspace and log. This records the
+suites selected for that run; unreadable or incomplete reports still cannot
+confirm a pass. Preparation failures show the failing stage and diagnostic in
+the workspace header. Copy failures include read-permission and temporary-disk
+guidance; full command output remains in the log.
 Full-screen terminal applications are not supported.
+
+Bundled testers check for compatible source updates before runs, independently of
+TUI releases. Successful checks are cached for one hour. Offline or invalid
+checks keep the last approved revisions, falling back to the bundled pins if no
+cache exists. The log records the exact revision used. A changed Docker revision
+builds a separate image on first use; downloading/building that image still needs
+network access. Existing images remain available until removed explicitly.
+Only approved revisions for the exact bundled definition and recipe can apply;
+arbitrary upstream commits are not followed. Explicit user catalog overrides stay
+pinned, including overrides identical to a bundled tester. See the
+[compatible-update maintenance guide](../tester-updates/README.md) for approval,
+validation and rollback.
 
 Custom definitions in `~/.config/42tui/testers.toml` (or
 `$XDG_CONFIG_HOME/42tui/testers.toml`) can opt into structured results by adding
@@ -80,8 +101,13 @@ shared Docker layers. Their runtime has networking disabled, a read-only root
 filesystem and a writable disposable project copy plus temporary storage.
 
 The libft tester reports **unverified** completion. For every tester, read the full transcript,
-including failures, missing functions and forbidden-function checks. They do not establish official project correctness or superior memory coverage. To include printf bonus tests, override `supra-printf` in your user catalog
-with the same fields and append `"--bonus"` to its `command`. Runtime Makefiles
+including failures, missing functions and forbidden-function checks. They do not
+establish official project correctness or superior memory coverage.
+Printf automatically includes bonus tests when the project contains a root-level
+`bonus/` directory; an explicit `"--bonus"` in its custom command also works.
+Get_next_line detects standard `*_bonus.c`/`*_bonus.h` sources at the root or
+inside `bonus/`; incomplete bonus sources cannot yield a mandatory-only pass.
+Runtime Makefiles
 must work with GCC/cc; compiler-specific dependencies are not installed automatically.
 See [runtime details and validation](tester-runtimes.md).
 

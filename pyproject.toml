@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ft-tui"
-version = "0.7.1"
+version = "0.7.2"
 description = "Offline-first terminal workspace for École 42 students"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -35,7 +35,7 @@ where = ["src"]
 include = ["ft_tui", "ft_tui.*"]
 
 [tool.setuptools.package-data]
-ft_tui = ["locales/*.json", "testers.toml", "tester_images/*.Dockerfile", "tester_images/*.sh"]
+ft_tui = ["locales/*.json", "testers.toml", "tester_images/*.Dockerfile", "tester_images/*.sh", "tester_images/*.patch"]
 "ft_tui.features.cluster_map" = ["layout.json"]
 "ft_tui.integrations" = [
   "assets/vim/plugin/*.vim",

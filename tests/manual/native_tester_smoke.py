@@ -8,8 +8,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import shutil
 import re
+import json
 
 from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+from ft_tui.features.projects.adapters.tester_updates import apply_manifest
 from ft_tui.features.projects.adapters.tester_native import run_native
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 
@@ -18,7 +20,8 @@ with TemporaryDirectory(prefix="42tui native 'quoted' ") as directory:
     project = root / "push_swap"
     shutil.copytree(Path(__file__).parent / "fixtures/push_swap", project)
     before = {p.name: p.read_bytes() for p in project.iterdir()}
-    tester = load_catalog(root / "absent").for_project("push_swap")[0]
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "tester-updates/v1.json").read_text())
+    tester = apply_manifest(load_catalog(root / "absent"), manifest).for_project("push_swap")[0]
     log_path = Path("native-tester-smoke.log").resolve()
     with log_path.open("wb") as log:
         result = run_native(tester, str(project), WorkspaceSession(log, lambda data: None))
