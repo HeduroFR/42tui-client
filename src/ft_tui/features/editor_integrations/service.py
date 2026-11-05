@@ -23,8 +23,11 @@ class EditorIntegrationService:
     def status(self, editor: str) -> IntegrationStatus:
         configured = str(self.settings.get("editor_cli_path", "") or "")
         cli_path = self.heartbeat.resolve_cli(configured)
-        path = self.editors.installed_path(editor)
-        manifest = self.editors.manifest(editor)
+        try:
+            path = self.editors.installed_path(editor)
+            manifest = self.editors.manifest(editor)
+        except IntegrationFilesError:
+            path, manifest = None, None
         installed_version = str(manifest["version"]) if manifest and manifest.get("version") else None
         version = self.assets.version(editor)
         state = self._state(editor, path, manifest, cli_path, version, installed_version)
@@ -50,6 +53,8 @@ class EditorIntegrationService:
         if manifest is None:
             return "foreign"
         if sorted(str(item) for item in manifest.get("files", [])) != tree_files(path):
+            return "needs_repair"
+        if editor == "nvim" and not self.editors.nvim_loader_current():
             return "needs_repair"
         if cli_path is None or str(cli_path) != manifest.get("cli_path"):
             return "needs_repair"

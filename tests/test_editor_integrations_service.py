@@ -8,7 +8,7 @@ from unittest.mock import patch
 from ft_tui.db.database import make_session_factory
 from ft_tui.features.editor_integrations.adapters.assets import PackagedAssets
 from ft_tui.features.editor_integrations.adapters.editors import EditorCommands
-from ft_tui.features.editor_integrations.adapters.files import MANIFEST
+from ft_tui.features.editor_integrations.adapters.files import MANIFEST, install_tree
 from ft_tui.features.editor_integrations.adapters.heartbeat import HeartbeatProbe
 from ft_tui.features.editor_integrations.service import EditorIntegrationService
 from ft_tui.integrations import INTEGRATION_VERSION
@@ -64,6 +64,17 @@ class ServiceTests(unittest.TestCase):
         self.assertFalse(result.installed)
         self.assertEqual(result.code, "cli_missing")
 
+    def test_invalid_nvim_appname_is_reported_without_writing_outside_target(self):
+        for name in (str(self.home / "outside"), "../../outside"):
+            with self.subTest(name=name):
+                service = self.service()
+                service.editors.environ["NVIM_APPNAME"] = name
+                result = service.install("nvim")
+                self.assertFalse(result.installed)
+                self.assertEqual(result.code, "outside_base")
+                self.assertEqual(result.status.state, "not_installed")
+                self.assertFalse((self.home / "outside").exists())
+
     def test_missing_zed_asset_is_reported_not_installed(self):
         class Assets:
             def __init__(self, root):
@@ -90,6 +101,24 @@ class ServiceTests(unittest.TestCase):
         manifest["cli_path"] = "/missing/42tui"
         (target / MANIFEST).write_text(json.dumps(manifest))
         self.assertEqual(service.status("nvim").state, "needs_repair")
+
+    def test_nvim_status_requires_loader_and_does_not_infer_runtime_from_dry_run(self):
+        service = self.service()
+        target = service.editors.target("nvim")
+        install_tree(self.assets.path("nvim"), target, {
+            "editor": "nvim", "version": INTEGRATION_VERSION, "cli_path": str(self.cli),
+        }, base=target.parent)
+        self.assertEqual(service.status("nvim").state, "needs_repair")
+        with patch.object(service.heartbeat, "verify", return_value=("verified", "")):
+            result = service.install("nvim")
+        self.assertTrue(result.verified)
+        self.assertEqual(result.status.state, "installed")
+        self.assertIsNone(result.status.last_event_at)
+        loader = service.editors.nvim_loader_target() / "ft_tui_loader.lua"
+        loader.unlink()
+        self.assertEqual(service.status("nvim").state, "needs_repair")
+        self.assertTrue(service.install("nvim").installed)
+        self.assertTrue(loader.is_file())
 
     def test_verify_checks_the_installed_cli_not_a_newer_setting(self):
         other = self.home / "bin" / "other-42tui"

@@ -73,7 +73,7 @@ class SettingsWorkspace(Vertical):
         self.query_one('#subject-tdf-help').display = self.query_one('#subject-viewer', Select).value == 'tdf'
         saved_path = self.app._settings_operations().get("editor_cli_path", "")
         self.query_one("#editor-cli-path", Input).value = saved_path
-        self.run_worker(self._load_editor_integration(), group="editor-integration", exclusive=True)
+        self.run_worker(self._load_editor_integration, group="editor-integration", exclusive=True)
 
     def on_resize(self) -> None:
         self.set_class(self.size.width < 78, "compact")
@@ -154,9 +154,12 @@ class SettingsWorkspace(Vertical):
             "failed": "Heartbeat: check failed",
             "unavailable": "Heartbeat: unavailable",
         }.get(status.verification, "Heartbeat: not checked")
+        if status.editor == "nvim" and status.verification == "verified":
+            heartbeat = "Heartbeat CLI: verified (dry run)"
         self.query_one("#editor-integration-heartbeat", Static).update(heartbeat)
         self.query_one("#editor-integration-last-event", Static).update(
-            f"Last editor event {status.last_event_at:%Y-%m-%d %H:%M} UTC" if status.last_event_at else ""
+            f"Last editor event {status.last_event_at:%Y-%m-%d %H:%M} UTC" if status.last_event_at
+            else "Runtime activity: unknown" if status.editor == "nvim" else ""
         )
         if status.editor == "zed" and status.cli_path:
             lsp = status.cli_path.parent / "42tui-zed-lsp"
@@ -245,7 +248,7 @@ class SettingsWorkspace(Vertical):
     @on(Select.Changed, "#favorite-editor")
     def editor_selection_changed(self, event):
         event.stop()
-        self.run_worker(self._load_editor_integration(), group="editor-integration", exclusive=True)
+        self.run_worker(self._load_editor_integration, group="editor-integration", exclusive=True)
 
     @on(Button.Pressed, "#editor-cli-detect")
     async def detect_editor_cli(self, event):
@@ -730,7 +733,7 @@ class SettingsMixin:
         self.settings_status_timer = self.set_timer(3, self._clear_settings_status)
         workspace = self.query_one(SettingsWorkspace)
         if workspace.is_mounted:
-            workspace.run_worker(workspace._load_editor_integration(), group="editor-integration", exclusive=True)
+            workspace.run_worker(workspace._load_editor_integration, group="editor-integration", exclusive=True)
         self._update_black_hole()
         await self._refresh_dashboard()
 

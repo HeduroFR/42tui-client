@@ -3,15 +3,72 @@
 Latest published release: **0.7.0** ([`v0.7.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.0)),
 verified as a published stable GitHub release on 2026-11-05.
 Package version: **0.7.0**.
-Suggested next release: **0.7.1** (patch), for direct editor launch and explicit
-Git recovery. Release CI and live editor/campus validation remain outstanding.
+Suggested next release: **0.7.1** (patch), for direct editor launch, explicit Git
+recovery and automatic Neovim integration loading under Lazy.nvim. A release is
+worth preparing; release CI and live editor/version validation remain outstanding.
+These fixes do not change the API or require a backend rollout.
 
 The historical entries below are retained until distribution verification and
 release bookkeeping are complete; they do not all represent unreleased changes.
 Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
-## Changes since 0.6.2
+## Changes since 0.7.0
+
+- 2026-11-05: Defer Settings editor-status coroutine creation until its Textual
+  worker starts at all three scheduling sites, preventing unawaited-coroutine
+  warnings when an exclusive refresh is cancelled or the app closes immediately.
+  Add a regression that captures these warnings after rapid refresh/save and
+  shutdown; it fails before the fix and passes after it. Stabilize the account
+  cancellation/settings-flow test by awaiting onboarding completion and using
+  button activation with explicit state assertions. Pairing and credential
+  handling are unchanged. Reference: PR #60. Patch impact within 0.7.1;
+  no package version bump. Checks: all 53 account UI, 25 settings-navigation and
+  51 editor-integration tests pass, with no runtime warnings in their process
+  logs. Scope ownership validates all 1164 tests exactly once; focused editor UI
+  flake8 and diff checks pass. Full-suite CI must rerun before merge/release.
+
+- 2026-11-05: Split accounts, projects and testers into separate `-core` and
+  `-ui` regression scopes in PR #60. The existing validated CI matrix expands
+  from 15 to 18 jobs; scope execution and all test bodies remain unchanged.
+  Update contributor/architecture commands and the generic CI step label.
+  Checks: all 8 regression-runner tests pass; `--check` assigns all 1163 tests
+  exactly once, and a before/after comparison preserves every original test ID
+  in its corresponding split feature while leaving all other scopes unchanged.
+  Full feature runs remain in CI. The preceding CI run had an account UI failure
+  in the cancelled-connection/settings-flow test; this partition-only change
+  does not resolve it. CI must rerun. Internal CI/documentation change only;
+  no additional release impact and no change to the 0.7.1 recommendation.
+
+- 2026-11-05: Stabilize the onboarding editor-integration regression in PR #60.
+  Activate Continue through `Button.press()` and assert both step transitions,
+  avoiding Textual's suppression of a second mouse click during its press effect.
+  Wait for install workers before pressing Skip. Reproduced the original exact
+  failure with a 60-second press effect; the corrected test passes under the same
+  condition. All 50 editor-integration scope tests and focused flake8 pass.
+  Test-only; no additional release impact or production behavior change. CI must
+  rerun on the follow-up commit; the 0.7.1 recommendation remains unchanged.
+
+- 2026-11-05: Add a manifest-owned Neovim `after/plugin/42tui` loader that makes
+  the existing data-directory module available under standard and Lazy.nvim
+  startup. Native installations upgrade in place; both entry points share the
+  existing setup guard. Respect XDG config/data and `NVIM_APPNAME`, preserve
+  overrides, remove startup entry points before module removal, and report
+  unknown runtime activity separately from CLI dry-run verification. Other
+  editors and heartbeat implementation are unchanged; no dependency added.
+  Patch impact toward 0.7.1; no package version bump.
+  Reference: branch `fix/neovim-config-loader`.
+  Checks: focused lifecycle and isolated standard/Lazy.nvim startup tests pass
+  on Neovim 0.12.6 with heartbeat execution stubbed, including repeat install,
+  native migration, failure recovery, uninstall, custom XDG/appname, spaces,
+  Unicode paths, setup overrides and one autocommand group/pending timer.
+  After integrating PR #59 (`7d0aeed`), all 50 editor-integration scope tests
+  and focused flake8 checks pass in the isolated task worktree;
+  wheel/sdist build and resource checks, focused flake8, locale JSON, installer
+  digests, shell syntax and diff checks pass. Graphify code graph refreshed.
+  Oldest supported Neovim and complete LazyVim/SupraVIM configurations are not
+  retested; full-suite PR CI and release/publication checks remain outstanding.
+  Preparing patch 0.7.1 is worthwhile, but it is not ready to publish.
 
 - 2026-11-05: Separate direct editor launch from explicit project checkout
   recovery. Group Recover Git and the three existing push actions in a collapsed
@@ -34,6 +91,8 @@ Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
   assertions and diff whitespace checks pass. Full CI and live checks were not run.
   Preparing patch 0.7.1 is worthwhile for this fix; release CI and live
   editor/campus validation remain before publication. No backend API change.
+
+## Earlier development record since 0.6.2
 
 - 2026-11-02: Make the cancelled-connection release check wait for the
   account modal before asserting it. Test-only; no runtime impact.

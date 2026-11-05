@@ -85,13 +85,16 @@ changes or failures:
 
 ```sh
 python release/regression_scopes.py --check
-python release/regression_scopes.py --scope projects
+python release/regression_scopes.py --scope projects-core
+python release/regression_scopes.py --scope projects-ui
 # Optional full local run:
 python -m unittest discover -s tests
 ```
 
 Choose the scope matching your change; new test modules need explicit ownership in
-`release/regression_scopes.py`. Do not export source-tree `PYTHONPATH` for the full
+`release/regression_scopes.py`. Accounts, projects and testers each have separate
+`-core` and `-ui` scopes; CI runs both as independent jobs. Run both when a change
+crosses their boundary. Do not export source-tree `PYTHONPATH` for the full
 suite: it can interfere with temporary installed-package lifecycle checks.
 For packaging/installer changes also run:
 

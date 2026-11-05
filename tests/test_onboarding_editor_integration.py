@@ -52,11 +52,14 @@ class OnboardingIntegrationTests(unittest.IsolatedAsyncioTestCase):
         async with app.run_test(size=(140, 50)) as pilot:
             app.account_connected = True
             await pilot.pause()
-            await pilot.click("#onboarding-next")
-            await pilot.click("#onboarding-next")
+            for step in (1, 2):
+                app.screen.query_one("#onboarding-next", Button).press()
+                await pilot.pause()
+                self.assertEqual(app.screen.step, step)
             self.assertTrue(app.screen.query_one("#onboarding-install-integration", Button).display)
             app.screen.query_one("#onboarding-install-integration", Button).press()
             await pilot.pause()
+            await app.workers.wait_for_complete()
             self.assertEqual(service.installed, 1)
             text = str(app.screen.query_one("#onboarding-integration-status", Static).render())
             self.assertIn("42TUI", text)

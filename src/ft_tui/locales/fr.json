@@ -1417,6 +1417,8 @@
   "Working…": "En cours…",
   "Integration action failed": "L’action d’intégration a échoué",
   "Could not read integration status": "Impossible de lire l’état de l’intégration",
+  "Runtime activity: unknown": "Activité dans l’éditeur : inconnue",
+  "Heartbeat CLI: verified (dry run)": "Commande d’activité : vérifiée (simulation)",
   "Heartbeat: verified": "Activité : vérifiée",
   "Heartbeat: check failed": "Activité : échec de la vérification",
   "Heartbeat: unavailable": "Activité : indisponible",
