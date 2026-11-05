@@ -61,9 +61,11 @@ PROJECTS_CSS = r"""#workspace { height: 1fr; }
     #project-workspace-status { height: auto; margin: 1 0; }
     #project-actions, #project-workspace-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-rows: auto; grid-gutter: 0 1; height: auto; }
     #open-project-folder { width: 1fr; min-width: 0; margin-top: 1; }
-    #project-git-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-rows: 3 3; grid-gutter: 1; height: 7; margin-top: 1; }
+    #project-git-section { border: none; padding: 0; margin-top: 1; }
+    #project-git-section > CollapsibleTitle { width: 1fr; height: 1; padding: 0 1; }
+    #project-git-section > Contents { padding: 1; }
+    #project-git-actions { layout: grid; grid-size: 2; grid-columns: 1fr 1fr; grid-rows: 3 3; grid-gutter: 1; height: 7; }
     #project-git-actions Button { width: 1fr; min-width: 0; padding: 0; }
-    #project-git-actions #project-push-all { column-span: 2; width: 1fr; }
     #project-actions Button, #project-workspace-actions Button { width: 1fr; min-width: 0; }
     #project-timer-row { height: auto; min-height: 3; margin-top: 1; align-vertical: middle; }
     #project-timer-info { width: 1fr; height: auto; margin-right: 1; }

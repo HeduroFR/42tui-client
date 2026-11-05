@@ -107,7 +107,8 @@ cannot choose a project automatically, pass its name or slug.
 
 ## Project Git and `42git`
 
-Configure your folder and remotes in project settings. Use the project's push
+Configure your folder and remotes in project settings. **Open editor** opens the
+existing folder directly. Expand **Git** for checkout recovery and the push
 buttons, or run these commands inside its folder:
 
 ```sh

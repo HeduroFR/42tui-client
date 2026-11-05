@@ -2,6 +2,9 @@
 
 Configure the local folder and development/Vogsphere URLs in project settings.
 The project controls and `42git` share the same Git operations.
+Expand **Git** in the Workspace panel to find **Recover Git**, **Push all**,
+**Push dev** and **Push vog**. The section starts collapsed to keep the everyday
+editor, subject and folder actions easy to reach.
 
 Vogsphere requires the 42 campus network. Pushes are unavailable outside campus;
 return to campus before retrying. A development remote has its own network and
@@ -28,26 +31,32 @@ reconcile the branches yourself;
 
 ## Recover work before editing
 
-Before the first editor launch in an app session, setup recovers existing
+**Open editor** opens the existing project folder directly, without fetching,
+recovering or reviewing Git history. The dashboard and editor shortcuts use the
+same direct launch. If the folder is missing, configure it or use
+**Git → Recover Git** first.
+
+**Recover Git** explicitly checks the configured remotes and recovers existing
 Vogsphere work into a new or empty folder. If Vogsphere is empty or unreachable,
 it uses the development repository when that remote has committed work. A warning
 makes clear that Vogsphere changes have not been verified. If both reachable
 remotes are empty, it initializes a local repository.
 
-Editor recovery reuses completed remote checks for five minutes in the same app
+Recovery reuses completed remote checks for five minutes in the same app
 session when local files, HEAD, branches, index, remote configuration and operation
 state remain unchanged. This caches results, not passphrases. Local changes or
 expiry trigger a new check; remote-only changes can remain unseen until expiry.
 Authentication failures and off-campus warnings are not cached. Pull and push
 always revalidate their own plans before writing.
 
-Editor recovery displays a cancellable loading dialog while checking remotes.
+Recovery displays a cancellable loading dialog while checking remotes.
 If OpenSSH needs a key passphrase, enter it in the masked SSH authentication
 dialog. The app reuses the same key passphrase in memory across connections
 within that operation, so checking and fetching do not ask twice. If SSH rejects
 a value and retries, enter it again. The value is discarded when the operation
-ends. Existing SSH configuration and agents still apply. Cancel prevents the editor from
-opening; an already-running Git check may finish in the background.
+ends. Existing SSH configuration and agents still apply. Cancel dismisses recovery;
+an already-running Git check may finish in the background. Successful recovery
+refreshes the workspace and reports its result without launching the editor.
 
 Existing checkouts are fetched and inspected without overwriting files, changing
 branches or replacing remote configuration. If a remote has commits missing
@@ -68,9 +77,9 @@ Untracked files are listed separately; their contents are not included in the di
 Choose **Open local files** to inspect or resolve the differences in your editor,
 or **Cancel**. Opening files does not pull, merge, reset or overwrite work;
 reconcile histories explicitly before synchronizing. If Vogsphere is unreachable,
-an existing checkout with committed work still opens with a warning; its remote
-history will be checked again on the next editor launch. New or empty folders
-can recover from a populated development remote; recovery remains blocked if no
+recovery keeps an existing checkout with committed work and reports a warning;
+its remote history will be checked again on the next recovery request. New or
+empty folders can recover from a populated development remote; recovery remains blocked if no
 usable source can be verified. Existing Git folders without a local commit can
 also be reviewed and opened explicitly. Setup never resets or force-pushes work.
 

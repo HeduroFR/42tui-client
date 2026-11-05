@@ -27,7 +27,7 @@ class ProjectCheckoutProgressScreen(AppModal):
             yield Static(translate('Checking project Git history…', self.app.language), classes='panel-title')
             yield Static(self.project_name, markup=False)
             yield LoadingIndicator()
-            yield Static(translate('Waiting for remote Git access. Cancel prevents the editor from opening; the current Git check may finish in the background.', self.app.language))
+            yield Static(translate('Waiting for remote Git access. Cancel dismisses recovery; the current Git check may finish in the background.', self.app.language))
             yield AppButton(translate('Cancel', self.app.language), id='checkout-progress-cancel')
 
     def action_cancel(self) -> None:

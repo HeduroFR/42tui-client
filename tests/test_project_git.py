@@ -348,7 +348,7 @@ class ProjectGitTests(unittest.TestCase):
         result = setup_project_checkout(self.local)
         self.assertEqual(result.warnings, (
             'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. '
-            'Opening the existing local checkout.',
+            'Keeping the existing local checkout.',
         ))
         self.assertEqual((self.local / 'main.c').read_text(), 'dirty')
         self.assertEqual(self.git(self.local, 'show', ':main.c'), 'staged')

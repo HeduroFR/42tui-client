@@ -1,17 +1,39 @@
 # Development changelog
 
-Latest release: **0.6.2** ([`v0.6.2`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.6.2)).
-Package version: **0.7.0** (release candidate).
-Suggested next release: **0.7.0** (minor), for the Agenda redesign, campus exams,
-Correction Slots loading, editor integrations and the accumulated interface,
-performance and loading work. Release CI, manual editor validation, backend
-deployment and publication validation remain outstanding.
+Latest published release: **0.7.0** ([`v0.7.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.0)),
+verified as a published stable GitHub release on 2026-11-05.
+Package version: **0.7.0**.
+Suggested next release: **0.7.1** (patch), for direct editor launch and explicit
+Git recovery. Release CI and live editor/campus validation remain outstanding.
 
-This file tracks implemented changes since the latest successful release. Keep
-published notes in [CHANGELOG.md](CHANGELOG.md). See
+The historical entries below are retained until distribution verification and
+release bookkeeping are complete; they do not all represent unreleased changes.
+Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.6.2
+
+- 2026-11-05: Separate direct editor launch from explicit project checkout
+  recovery. Group Recover Git and the three existing push actions in a collapsed
+  two-column Git section, retain SSH/review/cancellation safeguards, refresh
+  workspace availability after recovery without automatically launching an editor,
+  and fix the undefined command in terminal-editor exit reporting. Update French,
+  Spanish and project Git documentation. Patch impact toward 0.7.1;
+  no version bump. Reference: branch
+  `fix/project-editor-actions`.
+  Follow-up: render the Git disclosure header on one fully clickable line and pad its expanded
+  contents so buttons do not touch the background edges. Focused layout check
+  passes at 80/160 columns in English/French/Spanish, including header height,
+  spacing on all four sides and unclipped button labels; diff whitespace check passes.
+  Far-right clicks open and close the section at both widths in all three
+  languages; the focused regression check passes.
+  Checks: 7 editor launch and 53 Git behavior tests pass; 22 project details/Git
+  UI tests pass, followed by 5 updated layout/completion tests covering direct
+  launch, keyboard access and 80/160-column layouts in English/French/Spanish.
+  Focused selection clearing and tester-log editor checks, recovery translation
+  assertions and diff whitespace checks pass. Full CI and live checks were not run.
+  Preparing patch 0.7.1 is worthwhile for this fix; release CI and live
+  editor/campus validation remain before publication. No backend API change.
 
 - 2026-11-02: Make the cancelled-connection release check wait for the
   account modal before asserting it. Test-only; no runtime impact.
