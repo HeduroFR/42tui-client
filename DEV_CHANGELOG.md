@@ -5,9 +5,18 @@ published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.2** (prepared; not published).
 Suggested next release: **0.7.2 (patch)** for automatic printf/GNL bonus testing,
 project-specific results, compatible tester updates and clearer tester diagnostics.
-Worth preparing; not ready to publish before review and PR CI.
+Release candidate prepared from reviewed main `ca13c60`; release PR CI and
+publication verification remain required.
 
 ## Changes since 0.7.1
+
+- 2026-11-05: Prepare 0.7.2 after squash-merging [PR #63](https://github.com/HeduroFR/42tui-client/pull/63)
+  at `ca13c60`. Its complete CI passed on retry; the Python tester's approved
+  `f42c6b7` revision passed GitHub Docker checks on Linux amd64 and arm64.
+  The published main-branch compatibility catalog matches the candidate bytes,
+  the stable version/notes check passes, and PyPI returned 404 for 0.7.2 before
+  publication. Release PR CI, tag publication and production verification remain
+  pending. Patch impact; no backend deployment required.
 
 - 2026-11-05: Update all 14 Germinette catalog approvals to tester branch
   `feat/legacy-json-report` commit `f42c6b769ac064ed35d67571ac203858cc9a048e`.
