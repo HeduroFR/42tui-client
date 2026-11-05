@@ -2,22 +2,26 @@
 
 ## Unreleased
 
+## 0.7.1
+
 ### 🐛 Fixes
 
-- Avoid unawaited editor-status refresh warnings when Settings updates are
-  cancelled during save or shutdown.
-- Load the Neovim activity integration automatically with standard Neovim and
-  Lazy.nvim using a managed `after/plugin` loader, without editing `init.lua`.
-  Existing native-only installs can select **Repair** to add it. Respect custom
-  XDG directories and `NVIM_APPNAME`, preserve setup overrides, and distinguish
-  the heartbeat CLI dry run from observed editor activity.
-- Open the editor directly without Git recovery or remote checks. Find explicit
-  checkout recovery and the three push actions in a collapsed **Git** section
-  in the project Workspace panel. Recovery reports its result without opening
-  the editor automatically.
-- Keep the collapsed Git header on one line, make its full width clickable,
-  and leave space around its buttons when expanded.
-- Report failed Vim/Neovim exits without crashing the error notification.
+- Open local projects directly in the selected editor without waiting for remote
+  Git checks. Checkout recovery and push actions are available in a separate,
+  collapsible **Git** section with a fully clickable header and clearer spacing.
+  Recovery reports its result without opening the editor automatically.
+- Load the Neovim activity integration automatically, including with Lazy.nvim,
+  without editing `init.lua`. Preserve custom XDG paths, `NVIM_APPNAME` and user
+  setup overrides, and distinguish CLI verification from recorded editor activity.
+- Avoid editor-status refresh warnings when Settings updates are cancelled
+  during save or shutdown.
+- Show failed Vim/Neovim exits without crashing the error notification.
+
+### 📦 Update
+
+- After updating, existing Neovim integration users should open
+  **Settings → Workspace → Editor** and select **Repair** to add the automatic
+  loader. No backend update is required for this patch.
 
 ## 0.7.0
 
