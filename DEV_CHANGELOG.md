@@ -10,6 +10,10 @@ publication verification remain required.
 
 ## Changes since 0.7.1
 
+- 2026-11-06: Document English-only project content and Jotty Kanban and
+  checklist tracking for client work. No release required; no API or runtime
+  change. Documentation review and diff whitespace checks pass.
+
 - 2026-11-05: Prepare 0.7.2 after squash-merging [PR #63](https://github.com/HeduroFR/42tui-client/pull/63)
   at `ca13c60`. Its complete CI passed on retry; the Python tester's approved
   `f42c6b7` revision passed GitHub Docker checks on Linux amd64 and arm64.

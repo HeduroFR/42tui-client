@@ -1,6 +1,13 @@
 # Collaboration
 
+Write all project content in English, including code, documentation, Git and PR
+text, and Jotty boards, cards, checklists and notes.
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before implementing changes.
+Use the relevant 42TUI Jotty Kanban board and checklists to track client work:
+find or create the appropriate card, update its status and actionable steps,
+and record completed checks and blockers. Keep shared content free of private
+backend details and sensitive data. Jotty does not replace Git or review.
 For API, version or rollout changes, also read [API compatibility](docs/api-compatibility.md).
 Do not release a dependent client until its exact revision is tested with the backend and the required backend is verified deployed. Auto-update does not eliminate older supported clients.
 
