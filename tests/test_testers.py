@@ -369,14 +369,36 @@ class TesterDockerTests(unittest.TestCase):
                         patch.object(self.service, "_user_arguments", return_value=[]), \
                         patch.object(self.service, "_preflight"), \
                         patch.object(self.service, "_cleanup"):
-                    self.service.run(tester, str(project), terminal)
+                    result = self.service.run(tester, str(project), terminal)
                 args = terminal.run.call_args.args[0]
                 command = args[args.index(tester.image) + 1:]
                 expected = explicit or (identifier == "supra-printf" and bonus == "directory")
                 self.assertEqual(command, [*tester.command, *(["--bonus"] if expected and not explicit else [])])
                 self.assertEqual(command.count("--bonus"), int(expected))
+                self.assertEqual(result.scope, ("mandatory_bonus" if expected else "mandatory")
+                                 if identifier == "supra-printf" else None)
                 fields = next(csv.reader([args[args.index("--mount") + 1]]))
                 self.assertNotIn(f"source={project}", fields)
+
+    def test_gnl_result_scope_matches_the_copied_layout_even_without_a_readable_report(self):
+        tester = next(t for t in load_catalog(self.root / "absent").testers if t.id == "tripouille-gnl")
+        for layout in (None, "bonus", "get_next_line_bonus.c", "get_next_line_utils_bonus.c", "get_next_line_bonus.h"):
+            with self.subTest(layout=layout), TemporaryDirectory(dir=self.root) as directory:
+                project = Path(directory)
+                if layout == "bonus":
+                    (project / layout).mkdir()
+                elif layout:
+                    (project / layout).touch()
+                def run_copy(_tester, copy, _docker, _terminal):
+                    # A run's label must survive later changes to the original folder.
+                    (project / "bonus").mkdir(exist_ok=True)
+                    return 2
+                with (patch.object(self.service, "_require_ready", return_value="docker"),
+                      patch.object(self.service, "installed", return_value=True),
+                      patch.object(self.service, "_run_project_copy", side_effect=run_copy)):
+                    result = self.service.run(tester, str(project), Mock())
+                self.assertEqual(result.scope, "mandatory_bonus" if layout else "mandatory")
+                self.assertTrue(result.unreadable)
 
     def test_missing_folder_fails_before_docker(self):
         with patch.object(self.service, "_require_ready") as ready:
@@ -384,6 +406,26 @@ class TesterDockerTests(unittest.TestCase):
                 with self.assertRaises(TesterError):
                     self.service.run(self.tester, path, Mock())
             ready.assert_not_called()
+
+    def test_copy_errors_explain_permissions_and_disk_space_before_execution(self):
+        from ft_tui.features.projects.adapters.tester_native import run_native
+        from ft_tui.i18n import translate
+        for runner in (self.service.run, run_native):
+            for error in (PermissionError("unreadable.c"), shutil.Error([("source.c", "copy.c", "disk full")])):
+                with (self.subTest(runner=runner.__name__, error=error),
+                      patch.object(self.service, "_require_ready", return_value="docker"),
+                      patch.object(self.service, "installed", return_value=True),
+                      patch("shutil.copytree", side_effect=error)):
+                    terminal = Mock()
+                    with self.assertRaisesRegex(TesterError, "Check read permissions and temporary disk space") as raised:
+                        runner(self.tester, str(self.root), terminal)
+                    self.assertIs(raised.exception.__cause__, error)
+                    self.assertIn(str(error), str(raised.exception))
+                    for language in ("fr", "es"):
+                        translated = translate(str(raised.exception), language)
+                        self.assertNotEqual(translated, str(raised.exception))
+                        self.assertIn(str(error), translated)
+                    terminal.run.assert_not_called()
 
     def test_tester_writes_and_cleanup_never_change_the_checkout(self):
         project = self.root / "project"

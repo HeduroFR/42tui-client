@@ -374,7 +374,12 @@ class TesterDocker:
         with tempfile.TemporaryDirectory(prefix="42tui-project-") as directory:
             copy = Path(directory) / path.name
             terminal.write("Preparing a disposable project copy…")
-            shutil.copytree(path, copy, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+            try:
+                shutil.copytree(path, copy, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+            except OSError as error:
+                raise TesterError("Could not prepare a disposable project copy. "
+                                  f"Check read permissions and temporary disk space: {error}") from error
+            scope = self._test_scope(tester, copy)
             report_ready = True
             if tester.result_file:
                 try:
@@ -386,11 +391,23 @@ class TesterDocker:
             if tester.result_file:
                 try:
                     if not report_ready:
-                        return TesterRunResult(exit_code, unreadable=True)
+                        return TesterRunResult(exit_code, unreadable=True, scope=scope)
                     summary = read_report(copy, tester.result_file)
                 except (ValueError, TypeError, KeyError, OSError, RecursionError):
-                    return TesterRunResult(exit_code, unreadable=True)
-            return TesterRunResult(exit_code, summary)
+                    return TesterRunResult(exit_code, unreadable=True, scope=scope)
+            return TesterRunResult(exit_code, summary, scope=scope)
+
+    @staticmethod
+    def _test_scope(tester, path):
+        if tester.id == "supra-printf":
+            bonus = "--bonus" in tester.command or (path / "bonus").is_dir()
+        elif tester.id == "tripouille-gnl":
+            # Match the bundled report.py patch, including incomplete bonus layouts.
+            bonus = (path / "bonus").is_dir() or any((path / name).exists() for name in (
+                "get_next_line_bonus.c", "get_next_line_utils_bonus.c", "get_next_line_bonus.h"))
+        else:
+            return None
+        return "mandatory_bonus" if bonus else "mandatory"
 
     def _run_project_copy(self, tester: Tester, path: Path, docker: str, terminal) -> int:
         architecture = self.architecture(tester)
@@ -402,7 +419,7 @@ class TesterDocker:
         args = [docker, "run", "--rm", "--interactive", "--tty", "--name", container,
                 "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
                 "--workdir", "/project", *user, *self._runtime_arguments(tester), tester.image_for(architecture), *tester.command]
-        if tester.id == "supra-printf" and (path / "bonus").is_dir() and "--bonus" not in tester.command:
+        if tester.id == "supra-printf" and self._test_scope(tester, path) == "mandatory_bonus" and "--bonus" not in tester.command:
             terminal.write("Detected bonus/; running mandatory and bonus tests…")
             args.append("--bonus")
         try:

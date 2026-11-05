@@ -3,10 +3,41 @@
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.1**.
-Suggested next release: **0.7.2 (patch)** for automatic printf and GNL bonus testing.
+Suggested next release: **0.7.2 (patch)** for automatic printf/GNL bonus testing,
+project-specific results and clearer tester diagnostics.
 Worth preparing; not ready to publish before review and PR CI.
 
 ## Changes since 0.7.1
+
+- 2026-11-05: Finish project-specific tester results, retry state and log/output
+  actions keyed by project, local folder and tester. Capture that identity through
+  setup approval and reruns so changing selection cannot assign another project's
+  result. Preserve older results' log links after replacing the live workspace.
+  Patch impact; no persistence, backend/API or version change. Reference:
+  `fix/printf-bonus-detection` (uncommitted). Initial isolation verification passes
+  all 26 tester UI tests, including shared tester IDs, folder changes, cancellation,
+  setup approval and reruns after selection changes.
+
+- 2026-11-05: Record mandatory-only or mandatory-plus-bonus scope from the disposable
+  printf/GNL project copy and show it in result cards, workspace summaries and logs,
+  with French/Spanish translations. Unknown/custom tester scopes stay unlabelled;
+  missing reports retain their selected scope without implying passing tests.
+  Patch impact; no tester-image, report-format, backend/API or version change.
+  Reference: `fix/printf-bonus-detection` (uncommitted). Separate runner and UI
+  checks pass for bonus layouts, explicit printf flags, source changes during a run,
+  result cards and workspace/log translations in all three supported languages.
+
+- 2026-11-05: Distinguish preparation errors from execution failures and show the
+  stage plus original diagnostic in the workspace header and transcript. Docker
+  and native project-copy failures add read-permission/disk-space guidance while
+  preserving the original exception. Add French/Spanish copy and update the tester
+  guide. Patch impact; no backend/API or version change. Reference:
+  `fix/printf-bonus-detection` (uncommitted). Separate error checks pass for copy and
+  build failures, launch errors, retry/busy cleanup and localized workspace/log
+  diagnostics. All 84 `testers-core` and 26 `testers-ui` regressions pass; localized
+  copy-error template checks and diff whitespace checks pass. Graphify code graph
+  refreshed. Review, PR CI and release-candidate checks block publication.
+  Real Docker and real student implementations were not rerun for these changes.
 
 - 2026-11-05: Detect standard GNL bonus sources at the root or inside `bonus/` and
   run the mandatory and bonus suites together, preserving original project files.

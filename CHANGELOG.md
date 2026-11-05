@@ -4,6 +4,12 @@
 
 ### 🐛 Fixes
 
+- Keep tester results, retry state and logs specific to each project and local
+  folder, including when switching projects during setup or rerunning a tester.
+- Label printf and get_next_line results as mandatory only or mandatory plus
+  bonus, preserving the scope of the completed run.
+- Show the failing preparation stage and diagnostic directly in the tester
+  workspace, with permission and disk-space guidance for project-copy failures.
 - Automatically run mandatory and bonus Supra printf tests when the local project
   contains a root-level `bonus/` directory.
 - Automatically run mandatory and bonus get_next_line tests when standard bonus

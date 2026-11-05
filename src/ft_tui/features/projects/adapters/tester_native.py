@@ -24,7 +24,11 @@ def run_native(tester, project_path, terminal):
         root = Path(directory).resolve()
         copy, source, environment = root / 'project', root / 'source', root / 'venv'
         terminal.write('Preparing a disposable project copy…')
-        shutil.copytree(project, copy, symlinks=True, ignore=shutil.ignore_patterns('.git'))
+        try:
+            shutil.copytree(project, copy, symlinks=True, ignore=shutil.ignore_patterns('.git'))
+        except OSError as error:
+            raise TesterError('Could not prepare a disposable project copy. '
+                              f'Check read permissions and temporary disk space: {error}') from error
         # Native code can follow host paths: never retain links back into the checkout.
         try:
             for path in copy.rglob('*'):
