@@ -1,8 +1,11 @@
 """Settings exposes editor integration state, paths and actions."""
+import gc
 import tempfile
 import unittest
+import warnings
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import Mock
 
 from textual.widgets import Input
 
@@ -56,6 +59,28 @@ class FakeService:
 
 
 class EditorSettingsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cancelled_editor_refresh_does_not_leak_coroutine(self):
+        with tempfile.TemporaryDirectory() as directory:
+            factory = make_session_factory(f"sqlite:///{directory}/settings.db")
+            self.addCleanup(lambda: factory.kw["bind"].dispose())
+            with factory() as session:
+                save_settings(session, {"onboarding_completed": "true"})
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", RuntimeWarning)
+                app = FortyTwoTuiApp(factory, None, editor_integration_service=FakeService())
+                async with app.run_test(size=(140, 50)) as pilot:
+                    workspace = app.query_one(SettingsWorkspace)
+                    workspace.editor_selection_changed(Mock())
+                    workspace.editor_selection_changed(Mock())
+                    await app._save_settings()
+                    await pilot.pause()
+                del workspace, app
+                gc.collect()
+            self.assertEqual(
+                [str(item.message) for item in caught if "_load_editor_integration" in str(item.message)],
+                [],
+            )
+
     async def test_editor_card_shows_status_and_blocks_invalid_cli_path(self):
         with tempfile.TemporaryDirectory() as directory:
             factory = make_session_factory(f"sqlite:///{directory}/settings.db")

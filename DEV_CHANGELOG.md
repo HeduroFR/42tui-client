@@ -15,6 +15,19 @@ Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.7.0
 
+- 2026-11-05: Defer Settings editor-status coroutine creation until its Textual
+  worker starts at all three scheduling sites, preventing unawaited-coroutine
+  warnings when an exclusive refresh is cancelled or the app closes immediately.
+  Add a regression that captures these warnings after rapid refresh/save and
+  shutdown; it fails before the fix and passes after it. Stabilize the account
+  cancellation/settings-flow test by awaiting onboarding completion and using
+  button activation with explicit state assertions. Pairing and credential
+  handling are unchanged. Reference: PR #60. Patch impact within 0.7.1;
+  no package version bump. Checks: all 53 account UI, 25 settings-navigation and
+  51 editor-integration tests pass, with no runtime warnings in their process
+  logs. Scope ownership validates all 1164 tests exactly once; focused editor UI
+  flake8 and diff checks pass. Full-suite CI must rerun before merge/release.
+
 - 2026-11-05: Split accounts, projects and testers into separate `-core` and
   `-ui` regression scopes in PR #60. The existing validated CI matrix expands
   from 15 to 18 jobs; scope execution and all test bodies remain unchanged.

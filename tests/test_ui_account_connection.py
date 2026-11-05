@@ -711,6 +711,14 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
         client = FakeOAuthClient()
         client.pairing_status = "pending"
         app = FortyTwoTuiApp(factory, None, oauth_client=client)
+        completed = asyncio.Event()
+        finish_onboarding = app._finish_onboarding
+
+        async def finish(values):
+            await finish_onboarding(values)
+            completed.set()
+
+        app._finish_onboarding = finish
         async with app.run_test() as pilot:
             await pilot.pause()
             onboarding = app.screen
@@ -730,26 +738,22 @@ class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(client.poll_calls, 1)
 
             app.account_connected = True
-            await pilot.click("#onboarding-next")
-            await pilot.pause()
-            await pilot.click("#onboarding-next")
-            await pilot.pause()
-            await pilot.click("#onboarding-finish")
-            for _ in range(50):
-                await pilot.pause(0.05)
-                if app.screen.__class__.__name__ != "OnboardingScreen":
-                    break
+            for step in (1, 2):
+                onboarding.query_one("#onboarding-next").press()
+                await pilot.pause()
+                self.assertEqual(onboarding.step, step)
+            onboarding.query_one("#onboarding-finish").press()
+            await asyncio.wait_for(completed.wait(), timeout=10)
             self.assertNotEqual(app.screen.__class__.__name__, "OnboardingScreen")
             app.action_show_settings()
             await pilot.pause()
-            await pilot.click("#settings-connect-account")
-            for _ in range(50):
-                await pilot.pause(0.05)
-                if app.screen.__class__.__name__ == "AccountConnectionScreen":
-                    break
-            self.assertEqual(app.screen.__class__.__name__, "AccountConnectionScreen")
-            await pilot.click("#account-connection-cancel")
+            settings_screen = app.screen
+            app.query_one("#settings-connect-account").press()
             await pilot.pause()
+            self.assertEqual(app.screen.__class__.__name__, "AccountConnectionScreen")
+            app.screen.query_one("#account-connection-cancel").press()
+            await pilot.pause()
+            self.assertIs(app.screen, settings_screen)
 
     async def test_connection_modal_applies_current_language_on_mount(self):
         factory = make_session_factory("sqlite:///:memory:")

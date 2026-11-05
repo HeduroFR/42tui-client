@@ -4,6 +4,8 @@
 
 ### 🐛 Fixes
 
+- Avoid unawaited editor-status refresh warnings when Settings updates are
+  cancelled during save or shutdown.
 - Load the Neovim activity integration automatically with standard Neovim and
   Lazy.nvim using a managed `after/plugin` loader, without editing `init.lua`.
   Existing native-only installs can select **Repair** to add it. Respect custom
