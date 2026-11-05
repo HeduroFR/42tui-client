@@ -1,6 +1,7 @@
 """Settings exposes editor integration state, paths and actions."""
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from textual.widgets import Input
@@ -74,6 +75,15 @@ class EditorSettingsTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn(
                         "verified",
                         str(app.query_one("#editor-integration-heartbeat", Static).render()).lower(),
+                    )
+                    app.query_one(SettingsWorkspace)._render_editor_status(replace(status(), editor="nvim"))
+                    self.assertIn(
+                        "dry run",
+                        str(app.query_one("#editor-integration-heartbeat", Static).render()),
+                    )
+                    self.assertIn(
+                        "unknown",
+                        str(app.query_one("#editor-integration-last-event", Static).render()),
                     )
 
                     app.query_one("#editor-cli-path", Input).value = "relative/path"

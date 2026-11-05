@@ -4,6 +4,11 @@
 
 ### 🐛 Fixes
 
+- Load the Neovim activity integration automatically with standard Neovim and
+  Lazy.nvim using a managed `after/plugin` loader, without editing `init.lua`.
+  Existing native-only installs can select **Repair** to add it. Respect custom
+  XDG directories and `NVIM_APPNAME`, preserve setup overrides, and distinguish
+  the heartbeat CLI dry run from observed editor activity.
 - Open the editor directly without Git recovery or remote checks. Find explicit
   checkout recovery and the three push actions in a collapsed **Git** section
   in the project Workspace panel. Recovery reports its result without opening

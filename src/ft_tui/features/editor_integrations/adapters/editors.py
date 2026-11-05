@@ -46,12 +46,37 @@ class EditorCommands:
             return self.home / ".vim" / "pack" / "42tui" / "start" / "ft_tui"
         if editor == "nvim":
             data = Path(self.environ.get("XDG_DATA_HOME") or self.home / ".local" / "share")
-            return data / "nvim" / "site" / "pack" / "42tui" / "start" / "ft_tui"
+            return data / self._nvim_appname() / "site" / "pack" / "42tui" / "start" / "ft_tui"
         if editor == "zed":
             return self._zed_root() / "42tui-activity"
         if editor == "vscode":
             return self._vscode_roots()[0] / f"{VSCODE_ID}-{INTEGRATION_VERSION}"
         raise ValueError(f"Unknown editor: {editor}")
+
+    def _nvim_appname(self) -> str:
+        appname = self.environ.get("NVIM_APPNAME") or "nvim"
+        if Path(appname).is_absolute() or ".." in Path(appname).parts:
+            raise IntegrationFilesError("outside_base", "NVIM_APPNAME must be a relative name")
+        return appname
+
+    def nvim_loader_target(self) -> Path:
+        config = Path(self.environ.get("XDG_CONFIG_HOME") or self.home / ".config")
+        return config / self._nvim_appname() / "after" / "plugin" / "42tui"
+
+    def nvim_loader_current(self) -> bool:
+        target = self.target("nvim")
+        loader = self.nvim_loader_target()
+        manifest = read_manifest(target)
+        current = read_manifest(loader)
+        return bool(
+            manifest and current and not loader.is_symlink()
+            and current.get("editor") == "nvim"
+            and current.get("package_path") == str(target)
+            and current.get("version") == manifest.get("version")
+            and current.get("cli_path") == manifest.get("cli_path")
+            and current.get("files") == ["ft_tui_loader.lua"]
+            and tree_files(loader) == ["ft_tui_loader.lua"]
+        )
 
     def editor_found(self, editor: str) -> bool:
         from ft_tui.features.projects.adapters.editor import editor_launch
@@ -77,8 +102,30 @@ class EditorCommands:
             quoted = cli_path.replace("'", "''")
             extra["ft_tui_config.vim"] = f"let g:ft_tui_command = '{quoted}'\n"
         elif editor == "nvim":
-            extra["lua/ft_tui_config.lua"] = f"return {{ command = {json.dumps(cli_path)} }}\n"
+            for path in (target, self.nvim_loader_target()):
+                if path.is_symlink():
+                    raise IntegrationFilesError("target_symlink")
+                if path.exists() and (read_manifest(path) or {}).get("editor") != "nvim":
+                    raise IntegrationFilesError("target_foreign")
+            extra["lua/ft_tui_config.lua"] = f"return {{ command = {json.dumps(cli_path, ensure_ascii=False)} }}\n"
         install_tree(assets, target, manifest, base=target.parent, extra=extra)
+        if editor == "nvim":
+            # Keep the native entry point for existing installs; both use the same setup guard.
+            loader = self.nvim_loader_target()
+            content = (
+                '-- Managed by 42TUI; reinstall from Settings to update.\n'
+                'local module = package.loaded["ft_tui"]\n'
+                'if module and module._configured then return end\n'
+                f'local root = {json.dumps(str(target), ensure_ascii=False)}\n'
+                'if vim.fn.filereadable(root .. "/lua/ft_tui.lua") == 0 then return end\n'
+                'vim.opt.runtimepath:prepend(root)\n'
+                'dofile(root .. "/plugin/ft_tui_auto.lua")\n'
+            )
+            with tempfile.TemporaryDirectory() as directory:
+                install_tree(
+                    Path(directory), loader, {**manifest, "package_path": str(target)},
+                    base=loader.parent, extra={"ft_tui_loader.lua": content},
+                )
         return target
 
     def uninstall(self, editor: str) -> bool:
@@ -92,11 +139,26 @@ class EditorCommands:
                 elif path.exists():
                     removed = self._quarantine(path) and removed
             return removed and not any(self._vscode_installed())
-        target = self.target(editor)
-        removed = remove_tree(target, target.parent)
-        if removed and target.exists():
-            removed = self._quarantine(target)
-        return removed
+        targets = [self.target(editor)]
+        if editor == "nvim":
+            # Remove the loader first, so failed package removal cannot leave a broken loader.
+            targets.insert(0, self.nvim_loader_target())
+        for target in targets:
+            if editor == "nvim":
+                if not target.exists() and not target.is_symlink():
+                    continue
+                manifest = read_manifest(target) or {}
+                if target.is_symlink() or manifest.get("editor") != "nvim":
+                    return False
+                # Disable the native entry point before removing its module, including on failure.
+                auto = "plugin/ft_tui_auto.lua"
+                if auto in manifest.get("files", []) and auto in tree_files(target):
+                    (target / auto).unlink()
+            if not remove_tree(target, target.parent):
+                return False
+            if target.exists() and not self._quarantine(target):
+                return False
+        return True
 
     def _quarantine(self, path: Path) -> bool:
         """Move unrelated leftovers aside so the target path is free again."""
@@ -116,12 +178,17 @@ class EditorCommands:
                 if manifest is not None:
                     return manifest
             return None
-        return read_manifest(self.target(editor))
+        manifest = read_manifest(self.target(editor))
+        if editor == "nvim" and manifest is None:
+            return read_manifest(self.nvim_loader_target())
+        return manifest
 
     def installed_path(self, editor: str) -> Path | None:
         if editor == "vscode":
             return next(iter(self._vscode_installed()), None)
         target = self.target(editor)
+        if editor == "nvim" and not target.exists():
+            target = self.nvim_loader_target()
         return target if target.is_dir() and not target.is_symlink() else None
 
     def _install_vscode(self, cli_path: str, assets: Path, manifest: dict[str, object]) -> Path:

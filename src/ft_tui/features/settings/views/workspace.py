@@ -154,9 +154,12 @@ class SettingsWorkspace(Vertical):
             "failed": "Heartbeat: check failed",
             "unavailable": "Heartbeat: unavailable",
         }.get(status.verification, "Heartbeat: not checked")
+        if status.editor == "nvim" and status.verification == "verified":
+            heartbeat = "Heartbeat CLI: verified (dry run)"
         self.query_one("#editor-integration-heartbeat", Static).update(heartbeat)
         self.query_one("#editor-integration-last-event", Static).update(
-            f"Last editor event {status.last_event_at:%Y-%m-%d %H:%M} UTC" if status.last_event_at else ""
+            f"Last editor event {status.last_event_at:%Y-%m-%d %H:%M} UTC" if status.last_event_at
+            else "Runtime activity: unknown" if status.editor == "nvim" else ""
         )
         if status.editor == "zed" and status.cli_path:
             lsp = status.cli_path.parent / "42tui-zed-lsp"

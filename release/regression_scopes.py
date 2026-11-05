@@ -73,6 +73,7 @@ SCOPES = {
         'test_editor_integrations_assets', 'test_heartbeat_check', 'test_editor_integrations_files',
         'test_editor_integrations_vsix', 'test_editor_integrations_editors',
         'test_editor_integrations_service', 'test_ui_editor_integrations',
+        'test_editor_integrations_nvim',
         'test_onboarding_editor_integration',
     ),
     'testers': ('test_tester_terminal', 'test_testers', 'test_ui_project_testers'),
