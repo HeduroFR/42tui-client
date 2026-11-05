@@ -15,6 +15,15 @@ Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.7.0
 
+- 2026-11-05: Stabilize the onboarding editor-integration regression in PR #60.
+  Activate Continue through `Button.press()` and assert both step transitions,
+  avoiding Textual's suppression of a second mouse click during its press effect.
+  Wait for install workers before pressing Skip. Reproduced the original exact
+  failure with a 60-second press effect; the corrected test passes under the same
+  condition. All 50 editor-integration scope tests and focused flake8 pass.
+  Test-only; no additional release impact or production behavior change. CI must
+  rerun on the follow-up commit; the 0.7.1 recommendation remains unchanged.
+
 - 2026-11-05: Add a manifest-owned Neovim `after/plugin/42tui` loader that makes
   the existing data-directory module available under standard and Lazy.nvim
   startup. Native installations upgrade in place; both entry points share the
