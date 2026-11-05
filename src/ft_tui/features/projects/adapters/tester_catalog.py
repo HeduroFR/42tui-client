@@ -8,7 +8,7 @@ import os
 import re
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
@@ -38,6 +38,7 @@ class Tester:
     prepare: tuple[tuple[str, ...], ...] = ()
     recipe: str | None = None
     interactive_input: bool = True
+    update_key: str = ""
 
     @property
     def image_repository(self) -> str:
@@ -150,8 +151,17 @@ def _entries(content: str) -> dict[str, Tester | None]:
     return result
 
 
-def load_catalog(path: Path | None = None) -> TesterCatalog:
+def bundled_catalog() -> TesterCatalog:
     bundled = _entries(files("ft_tui").joinpath("testers.toml").read_text(encoding="utf-8"))
+    testers = []
+    for tester in bundled.values():
+        identity = json.dumps(asdict(tester), sort_keys=True).encode() + tester.image.encode()
+        testers.append(replace(tester, update_key=hashlib.sha256(identity).hexdigest()))
+    return TesterCatalog(tuple(testers))
+
+
+def load_catalog(path: Path | None = None) -> TesterCatalog:
+    bundled = {tester.id: tester for tester in bundled_catalog().testers}
     path = path if path is not None else user_catalog_path()
     try:
         content = path.read_text(encoding="utf-8")

@@ -5,8 +5,10 @@ python tests/manual/germinette_tester_smoke.py
 Uses a synthetic project only and checks that its original files stay unchanged.
 """
 from pathlib import Path
+import json
 from tempfile import TemporaryDirectory
 from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+from ft_tui.features.projects.adapters.tester_updates import apply_manifest
 from ft_tui.features.projects.adapters.tester_docker import TesterDocker
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 
@@ -16,7 +18,8 @@ with TemporaryDirectory(prefix='42tui-python-smoke-') as folder:
     project.mkdir()
     (project / 'sentinel.txt').write_text('unchanged')
     service = TesterDocker(root / 'testers')
-    catalog = load_catalog(root / 'absent')
+    manifest = json.loads((Path(__file__).resolve().parents[2] / 'tester-updates/v1.json').read_text())
+    catalog = apply_manifest(load_catalog(root / 'absent'), manifest)
     for slug in ('python-module-05-bis', 'python-module-06-bis', 'python-module-00', 'a-maze-ing'):
         tester = catalog.for_project(slug)[0]
         with (root / (slug + '.log')).open('wb') as log, service.operation():

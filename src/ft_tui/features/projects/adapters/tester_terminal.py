@@ -149,7 +149,7 @@ class WorkspaceSession:
 
     def write(self, message):
         self.check_cancelled()
-        if message in {"Preparing a disposable project copy…", "Preparing the native tester…",
+        if message in {"Checking for compatible tester updates…", "Preparing a disposable project copy…", "Preparing the native tester…",
                        "Building the tester image…", "Running the tester…",
                        "Checking container execution and local folder access…"}:
             self.phase = message

@@ -81,7 +81,7 @@ SCOPES = {
         'test_editor_integrations_nvim',
         'test_onboarding_editor_integration',
     ),
-    'testers-core': ('test_tester_terminal', 'test_testers'),
+    'testers-core': ('test_tester_terminal', 'test_testers', 'test_tester_updates'),
     'testers-ui': ('test_ui_project_testers',),
     'installation-updates': (
         'test_installation_feature_service', 'test_installation_feature_boundaries', 'test_installer', 'test_installer_bootstrap', 'test_installer_lifecycle',

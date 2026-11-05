@@ -2,8 +2,12 @@
 
 ## Unreleased
 
+## 0.7.2
+
 ### 🐛 Fixes
 
+- Check for compatible updates to bundled testers before running them, independently
+  of TUI releases. Reuse approved revisions offline and preserve custom tester pins.
 - Keep tester results, retry state and logs specific to each project and local
   folder, including when switching projects during setup or rerunning a tester.
 - Label printf and get_next_line results as mandatory only or mandatory plus
@@ -15,6 +19,11 @@
 - Automatically run mandatory and bonus get_next_line tests when standard bonus
   sources are present at the project root or inside `bonus/`, with combined results
   and bonus crash/timeout reporting. Incomplete bonus files fail the run.
+
+### 📦 Update
+
+- Run `42tui update` for a standard installation; update pinned or development
+  installations using their existing method. No backend update is required.
 
 ## 0.7.1
 

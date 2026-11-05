@@ -18,6 +18,7 @@ from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
 from ft_tui.features.projects.tester_results import TesterRunResult
 from ft_tui.features.projects.adapters.tester_native import run_native
+from ft_tui.features.projects.adapters.tester_updates import refresh_catalog
 from ft_tui.ui.components import Button, Static, has_local_folder
 from ft_tui.ui.modal import AppModal
 
@@ -412,6 +413,7 @@ class ProjectTesters(Vertical):
         log_path = None
         error_detail = None
         terminal = None
+        updated_catalog = None
         try:
             log_path = service.log_path(action)
             if self.app.is_screen_installed("tester-workspace"):
@@ -433,12 +435,17 @@ class ProjectTesters(Vertical):
                 terminal = workspace.session = WorkspaceSession(log, lambda data: None, language=language)
 
                 def operate():
+                    nonlocal updated_catalog
                     result = None
                     try:
                         with service.operation():
                             if action == "run":
-                                result = (run_native(tester, project_path, terminal) if tester.runtime == "native"
-                                          else service.prepare_and_run(tester, project_path, terminal, plan=plan))
+                                updated_catalog = (refresh_catalog(self.app.tester_catalog, terminal)
+                                                   if tester.update_key else self.app.tester_catalog)
+                                current = next((item for item in updated_catalog.testers if item.id == tester.id), tester)
+                                terminal.write(f"Tester revision: {current.ref}")
+                                result = (run_native(current, project_path, terminal) if current.runtime == "native"
+                                          else service.prepare_and_run(current, project_path, terminal, plan=plan))
                             elif action == "remove":
                                 service.remove(tester, terminal)
                             terminal.check_cancelled()
@@ -493,6 +500,8 @@ class ProjectTesters(Vertical):
             error_detail = str(error)
         finally:
             self._operating = False
+            if updated_catalog is not None:
+                self.app.tester_catalog = updated_catalog
             if error_detail:
                 result_details += ("\n" if result_details else "") + translate(error_detail, language)
             text = translate(message, language)

@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ft_tui.features.projects.adapters.tester_catalog import load_catalog
+from ft_tui.features.projects.adapters.tester_updates import apply_manifest
 from ft_tui.features.projects.adapters.tester_docker import TesterDocker
 from ft_tui.features.projects.adapters.tester_terminal import WorkspaceSession
 
@@ -18,7 +19,9 @@ with TemporaryDirectory(prefix="42tui-gnl-smoke-") as directory:
     project = root / "project with spaces"
     shutil.copytree(Path(__file__).parent / "fixtures/get_next_line space", project)
     before = snapshot(project)
-    tester = next(t for t in load_catalog(root / "absent").testers if t.id == "tripouille-gnl")
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "tester-updates/v1.json").read_text())
+    catalog = apply_manifest(load_catalog(root / "absent"), manifest)
+    tester = next(t for t in catalog.testers if t.id == "tripouille-gnl")
     service = TesterDocker(root / "testers")
     with (root / "transcript.log").open("wb") as log, service.operation():
         result = service.prepare_and_run(tester, str(project), WorkspaceSession(log, lambda data: None))

@@ -2,12 +2,39 @@
 
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
-Package version: **0.7.1**.
+Package version: **0.7.2** (prepared; not published).
 Suggested next release: **0.7.2 (patch)** for automatic printf/GNL bonus testing,
-project-specific results and clearer tester diagnostics.
+project-specific results, compatible tester updates and clearer tester diagnostics.
 Worth preparing; not ready to publish before review and PR CI.
 
 ## Changes since 0.7.1
+
+- 2026-11-05: Add independent compatible updates for bundled testers before runs.
+  A fixed HTTPS catalog on reviewed client `main` can approve exact commit SHAs
+  for fingerprints covering each bundled definition and its recipe/patch bytes.
+  It cannot change repositories, commands, execution modes or result readers.
+  Custom overrides remain pinned. Bound metadata size/time, cache valid checks
+  atomically for one hour and retain cached/bundled revisions on update-check
+  failures. Record the selected revision and retain the updated catalog for image
+  inspection/removal and later runs. Initial approvals match existing pins; no
+  new upstream revision is claimed validated. Wire the four manual smoke scripts
+  to the local candidate catalog, so existing amd64/ARM Docker PR CI validates
+  approved refs. Native validation remains an explicit platform workflow.
+  User-requested 0.7.2 patch preparation; no backend/API or dependency change.
+  Reference: `fix/printf-bonus-detection` (uncommitted). All 95 `testers-core`
+  checks pass, including 11 update tests for strict schema, compatibility, custom
+  pins, bounded HTTP, offline fallback, cache failures and approval coverage.
+  All 27 `testers-ui` checks and 11 focused release/scope/fixture checks pass.
+  Version/notes check, installer digests, installer shell syntax, regression scope
+  ownership and new French/Spanish messages pass. Built the 0.7.2 wheel/sdist
+  offline using cached build dependencies and a temporary uv cache. Package
+  contents, installed entry points/resources, exact updater source bytes and
+  installed compatibility fingerprints pass. New updater/test-module lint and
+  diff whitespace checks pass; Graphify code graph refreshed. Real Docker/native platform smoke
+  checks and hosted PR CI were not rerun here. Live GitHub/PyPI checks are
+  unavailable in this network-restricted environment; version availability,
+  reviewed-main catalog availability, PR CI and publication remain unverified.
+  Preserve all pending entries until a separately authorized release succeeds.
 
 - 2026-11-05: Finish project-specific tester results, retry state and log/output
   actions keyed by project, local folder and tester. Capture that identity through

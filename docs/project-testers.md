@@ -39,6 +39,18 @@ the workspace header. Copy failures include read-permission and temporary-disk
 guidance; full command output remains in the log.
 Full-screen terminal applications are not supported.
 
+Bundled testers check for compatible source updates before runs, independently of
+TUI releases. Successful checks are cached for one hour. Offline or invalid
+checks keep the last approved revisions, falling back to the bundled pins if no
+cache exists. The log records the exact revision used. A changed Docker revision
+builds a separate image on first use; downloading/building that image still needs
+network access. Existing images remain available until removed explicitly.
+Only approved revisions for the exact bundled definition and recipe can apply;
+arbitrary upstream commits are not followed. Explicit user catalog overrides stay
+pinned, including overrides identical to a bundled tester. See the
+[compatible-update maintenance guide](../tester-updates/README.md) for approval,
+validation and rollback.
+
 Custom definitions in `~/.config/42tui/testers.toml` (or
 `$XDG_CONFIG_HOME/42tui/testers.toml`) can opt into structured results by adding
 `result_file = "reports/result.json"` to their `[[testers]]` entry. The tester must

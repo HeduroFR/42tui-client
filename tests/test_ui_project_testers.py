@@ -36,6 +36,8 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             service.status = Mock(return_value=DockerStatus("ready"))
             service.installed = Mock(return_value=False)
             service.has_images = Mock(return_value=False)
+            updates = patch('ft_tui.features.projects.views.testers.refresh_catalog', side_effect=lambda catalog, terminal: catalog)
+            updates.start()
             try:
                 async with app.run_test(size=(140, 65)) as pilot:
                     await pilot.pause()
@@ -43,6 +45,7 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
                     projects = {project.slug: project for project in app.projects.values()}
                     yield app, widget, service, projects, pilot, root
             finally:
+                updates.stop()
                 factory.kw["bind"].dispose()
 
     async def select(self, widget, project, pilot):
@@ -218,6 +221,28 @@ class ProjectTesterUITests(unittest.IsolatedAsyncioTestCase):
             workspace.log_path.write_bytes(b"preserve pending output")
             workspace.refresh_output()
             self.assertEqual(workspace.output_offset, 0)
+
+    async def test_approved_revision_is_used_and_retained_for_docker_and_native_runs(self):
+        from dataclasses import replace
+        from ft_tui.features.projects.tester_results import TesterRunResult
+        async with self.workspace() as (app, widget, service, projects, pilot, root):
+            await self.select(widget, projects['libft'], pilot)
+            for runtime in ('docker', 'native'):
+                tester = replace(app.tester_catalog.testers[0], runtime=runtime)
+                app.tester_catalog = replace(app.tester_catalog, testers=(tester,))
+                latest = replace(tester, ref='a' * 40)
+                catalog = replace(app.tester_catalog, testers=(latest,))
+                service.prepare_and_run = Mock(return_value=TesterRunResult(0))
+                with (patch('ft_tui.features.projects.views.testers.refresh_catalog', return_value=catalog) as refresh,
+                      patch('ft_tui.features.projects.views.testers.run_native', return_value=TesterRunResult(0)) as native):
+                    await widget._perform('run', tester, str(root), None)
+                    refresh.assert_called_once()
+                    runner = native if runtime == 'native' else service.prepare_and_run
+                    self.assertEqual(runner.call_args.args[0], latest)
+                self.assertEqual(app.tester_catalog, catalog)
+                self.assertIn(f'Tester revision: {latest.ref}', widget._workspace.log_path.read_text())
+                await pilot.press('escape')
+                await pilot.pause()
 
     async def test_workspace_replays_output_written_while_closed(self):
         from ft_tui.features.projects.views.tester_workspace import TesterWorkspace
