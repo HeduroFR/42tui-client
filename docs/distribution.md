@@ -1,13 +1,13 @@
 # Distribution operations
 
 The Python package is `ft-tui`. The latest confirmed stable release is
-[0.6.2](https://github.com/HeduroFR/42tui-client/releases/tag/v0.6.2), published
-on GitHub and PyPI on 2026-10-30. This client repository owns publication
+[0.7.0](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.0), published
+on GitHub and PyPI on 2026-11-02. This client repository owns publication
 through `.github/workflows/release.yml`. Only explicitly authorized stable release
 tags publish packages; ordinary branch pushes do not publish.
 
 Client CI builds wheel/sdist, checks package contents, rebuilds from sdist, runs
-all 14 regression scopes and validates installers on supported platforms.
+all 18 regression scopes and validates installers on supported platforms.
 
 The installation website and shell/PowerShell/Python installers stay here.
 The hosted installer was updated from reviewed main `fb22488` on 2026-10-29.

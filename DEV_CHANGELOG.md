@@ -1,11 +1,12 @@
 # Development changelog
 
 Latest published release: **0.7.0** ([`v0.7.0`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.0)),
-verified as a published stable GitHub release on 2026-11-05.
-Package version: **0.7.0**.
+verified on GitHub and PyPI on 2026-11-05 (published on 2026-11-02).
+Package version: **0.7.1** (release preparation; not published).
 Suggested next release: **0.7.1** (patch), for direct editor launch, explicit Git
-recovery and automatic Neovim integration loading under Lazy.nvim. A release is
-worth preparing; release CI and live editor/version validation remain outstanding.
+recovery and automatic Neovim integration loading under Lazy.nvim. Local candidate
+checks pass; PR review, exact-candidate CI and interactive editor validation remain
+outstanding before publication.
 These fixes do not change the API or require a backend rollout.
 
 The historical entries below are retained until distribution verification and
@@ -14,6 +15,35 @@ Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 [distribution operations](docs/distribution.md#development-changelog).
 
 ## Changes since 0.7.0
+
+- 2026-11-05: Prepare stable patch 0.7.1 on `fix/release-0.7.1`, based on
+  reviewed main `32e3e92` (PRs #59 and #60). Set the package version and move
+  the included user-facing fixes into concise English 0.7.1 release notes,
+  including the Repair step for existing Neovim integrations. Keep CI/test
+  changes in this development log and retain all pending entries until verified
+  publication. Correct the distribution guide's verified stable baseline and
+  regression-scope count. Patch impact; no API change or backend rollout.
+  Checks: all 33 checks for merged PR #60 pass; GitHub and PyPI 0.7.0 publication
+  verified, and version/tag 0.7.1 is absent from PyPI/GitHub. In a disposable
+  Python 3.12.15 environment installed from the candidate wheel, all 416 focused
+  tests pass: editor-integrations 51, projects-core 128, projects-ui 62,
+  settings-navigation 25, accounts-ui 53 and release-tooling 97. Scope ownership
+  assigns all 1164 tests exactly once across 18 scopes. The six standalone
+  release tests also pass with the installed candidate; the existing development
+  environment has stale 0.5.2 editable metadata and was not used as release proof.
+  Neovim 0.12.6 standard and isolated Lazy.nvim startup pass with heartbeat
+  subprocesses stubbed (Lazy.nvim stable revision `85c7ff3`). Stable-version
+  validation, exact release-note extraction, wheel/sdist resource checks, strict
+  Twine metadata checks, an independent sdist rebuild with all 301 wheel members
+  matching, installed CLI/resource smoke checks, real uv fresh/repeat/exact-version
+  installation and uninstall with preserved local data, installer digests and
+  shell syntax checks pass. Build tooling reports existing setuptools license
+  metadata deprecations; no build failure. No full local suite was run: the
+  full suite and supported platforms passed in PR #60, and the new candidate
+  still requires PR CI. Commit, PR review, interactive editor checks (including
+  oldest supported Neovim and full LazyVim/SupraVIM setups), and separately
+  authorized tag/publication remain outstanding. No release has been published
+  by this preparation.
 
 - 2026-11-05: Defer Settings editor-status coroutine creation until its Textual
   worker starts at all three scheduling sites, preventing unawaited-coroutine
