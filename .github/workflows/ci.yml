@@ -83,7 +83,7 @@ jobs:
           name: ${{ needs.build.outputs.artifact-name }}
           path: dist
       - run: python -m pip install uv==0.13.3 dist/*.whl
-      - name: Run the complete feature scope, including its UI tests
+      - name: Run the complete regression scope
         env:
           REGRESSION_SCOPE: ${{ matrix.scope }}
         run: python release/regression_scopes.py --scope "$REGRESSION_SCOPE" --durations 20

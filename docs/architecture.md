@@ -68,7 +68,8 @@ Use Python >=3.12 with the project installed in an isolated editable environment
 ```sh
 python -m pip install -r requirements-dev.txt
 python release/regression_scopes.py --check
-python release/regression_scopes.py --scope accounts
+python release/regression_scopes.py --scope accounts-core
+python release/regression_scopes.py --scope accounts-ui
 python release/regression_scopes.py --scope catalog-curriculum
 python -m unittest discover -s tests
 ```

@@ -15,6 +15,18 @@ Keep published notes in [CHANGELOG.md](CHANGELOG.md). See
 
 ## Changes since 0.7.0
 
+- 2026-11-05: Split accounts, projects and testers into separate `-core` and
+  `-ui` regression scopes in PR #60. The existing validated CI matrix expands
+  from 15 to 18 jobs; scope execution and all test bodies remain unchanged.
+  Update contributor/architecture commands and the generic CI step label.
+  Checks: all 8 regression-runner tests pass; `--check` assigns all 1163 tests
+  exactly once, and a before/after comparison preserves every original test ID
+  in its corresponding split feature while leaving all other scopes unchanged.
+  Full feature runs remain in CI. The preceding CI run had an account UI failure
+  in the cancelled-connection/settings-flow test; this partition-only change
+  does not resolve it. CI must rerun. Internal CI/documentation change only;
+  no additional release impact and no change to the 0.7.1 recommendation.
+
 - 2026-11-05: Stabilize the onboarding editor-integration regression in PR #60.
   Activate Continue through `Button.press()` and assert both step transitions,
   avoiding Textual's suppression of a second mouse click during its press effect.

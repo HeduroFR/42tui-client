@@ -13,10 +13,13 @@ sys.path.insert(0, str(ROOT))
 # Assign by responsibility, not filename hash or test index. New modules require
 # an explicit owner; --check fails on omissions, duplicates and stale entries.
 SCOPES = {
-    'accounts': (
+    'accounts-core': (
         'test_api_error_diagnostics', 'test_api_settings', 'test_client_factory',
         'test_http_client', 'test_keychain', 'test_oauth_client', 'test_account_service', 'test_account_shell_service',
-        'test_oauth_session_simulation', 'test_oauth_ui_locales',
+        'test_oauth_session_simulation',
+    ),
+    'accounts-ui': (
+        'test_oauth_ui_locales',
         'test_onboarding_language', 'test_ui_account_connection', 'test_ui_campus_settings',
     ),
     'friends': (
@@ -37,14 +40,16 @@ SCOPES = {
         'test_curriculum_selection', 'test_project_curriculum',
         'test_ui_catalog_details', 'test_ui_curriculum_settings',
     ),
-    'projects': (
+    'projects-core': (
         'test_git_cli', 'test_project_git',
         'test_project_registration_feature_service', 'test_project_subject_feature_service',
         'test_project_subject_feature_boundaries', 'test_project_activity_feature_service',
         'test_project_activity_feature_boundaries', 'test_activity_presentation', 'test_activity_provider', 'test_project_kind',
         'test_registration_cache', 'test_registration_presentation',
-        'test_registration_provider', 'test_subject_sync', 'test_ui_fuzzy_projects',
-        'test_ui_project_activity', 'test_editor_launch', 'test_ui_project_browser', 'test_ui_project_details_layout',
+        'test_registration_provider', 'test_subject_sync', 'test_editor_launch',
+    ),
+    'projects-ui': (
+        'test_ui_fuzzy_projects', 'test_ui_project_activity', 'test_ui_project_browser', 'test_ui_project_details_layout',
         'test_ui_project_rank', 'test_ui_project_registration', 'test_ui_project_team',
         'test_ui_subject_refresh',
     ),
@@ -76,7 +81,8 @@ SCOPES = {
         'test_editor_integrations_nvim',
         'test_onboarding_editor_integration',
     ),
-    'testers': ('test_tester_terminal', 'test_testers', 'test_ui_project_testers'),
+    'testers-core': ('test_tester_terminal', 'test_testers'),
+    'testers-ui': ('test_ui_project_testers',),
     'installation-updates': (
         'test_installation_feature_service', 'test_installation_feature_boundaries', 'test_installer', 'test_installer_bootstrap', 'test_installer_lifecycle',
         'test_installer_uninstall', 'test_updates', 'test_ui_updates',
