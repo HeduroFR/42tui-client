@@ -9,6 +9,16 @@ Worth preparing; not ready to publish before review and PR CI.
 
 ## Changes since 0.7.1
 
+- 2026-11-05: Update all 14 Germinette catalog approvals to tester branch
+  `feat/legacy-json-report` commit `f42c6b769ac064ed35d67571ac203858cc9a048e`.
+  Preserve compatibility fingerprints and bundled offline fallback. Patch impact;
+  no backend or API change. All 95 testers-core tests pass. Real Linux arm64
+  Docker smoke checks pass for modules 00, 05 bis, 06 bis and A-Maze-ing, with
+  synthetic fixtures preserved. The original PR's accounts-ui job failed during
+  modal mounting; its failing test passes locally. Fresh PR CI and amd64 tester
+  validation remain required before merge. Future branch commits still require
+  catalog approval; the client does not automatically trust arbitrary branch heads.
+
 - 2026-11-05: Add independent compatible updates for bundled testers before runs.
   A fixed HTTPS catalog on reviewed client `main` can approve exact commit SHAs
   for fingerprints covering each bundled definition and its recipe/patch bytes.

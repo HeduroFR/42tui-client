@@ -6,6 +6,8 @@
 
 ### 🐛 Fixes
 
+- Update the approved Python tester to the latest validated `feat/legacy-json-report`
+  revision, including fixes for the supplied subjects.
 - Check for compatible updates to bundled testers before running them, independently
   of TUI releases. Reuse approved revisions offline and preserve custom tester pins.
 - Keep tester results, retry state and logs specific to each project and local
