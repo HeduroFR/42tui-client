@@ -348,6 +348,36 @@ class TesterDockerTests(unittest.TestCase):
             self.assertEqual(cleanup.call_args.args[0][:3], ["docker", "rm", "--force"])
         self.assertFalse((self.root / "nope").exists())
 
+    def test_printf_bonus_directory_enables_both_suites_in_the_disposable_copy(self):
+        for identifier, bonus, explicit in (("supra-printf", "missing", False),
+                                            ("supra-printf", "missing", True),
+                                            ("supra-printf", "file", False),
+                                            ("supra-printf", "directory", False),
+                                            ("supra-printf", "directory", True),
+                                            ("supra-libft", "directory", False)):
+            with self.subTest(tester=identifier, bonus=bonus, explicit=explicit), TemporaryDirectory(dir=self.root) as directory:
+                project = Path(directory)
+                if bonus == "directory":
+                    (project / "bonus").mkdir()
+                elif bonus == "file":
+                    (project / "bonus").touch()
+                tester = next(t for t in load_catalog(self.root / "absent").testers if t.id == identifier)
+                tester = replace(tester, result_file=None, command=(*tester.command, "--bonus") if explicit else tester.command)
+                terminal = Mock()
+                with patch.object(self.service, "_require_ready", return_value="docker"), \
+                        patch.object(self.service, "installed", return_value=True), \
+                        patch.object(self.service, "_user_arguments", return_value=[]), \
+                        patch.object(self.service, "_preflight"), \
+                        patch.object(self.service, "_cleanup"):
+                    self.service.run(tester, str(project), terminal)
+                args = terminal.run.call_args.args[0]
+                command = args[args.index(tester.image) + 1:]
+                expected = explicit or (identifier == "supra-printf" and bonus == "directory")
+                self.assertEqual(command, [*tester.command, *(["--bonus"] if expected and not explicit else [])])
+                self.assertEqual(command.count("--bonus"), int(expected))
+                fields = next(csv.reader([args[args.index("--mount") + 1]]))
+                self.assertNotIn(f"source={project}", fields)
+
     def test_missing_folder_fails_before_docker(self):
         with patch.object(self.service, "_require_ready") as ready:
             for path in (None, "", str(self.root / "missing")):

@@ -78,7 +78,12 @@ The printf fork writes a version-1 JSON report inside the disposable copy throug
 `--report`; the existing `result_file` reader validates it and displays counts.
 The fork compares binary stdout and return values in isolated sequential children,
 with a two-second case timeout and a ten-minute runner watchdog. Failed builds do
-not produce a report. libft still has no structured reader and stays unverified
+not produce a report. When the project root contains a `bonus/` directory, 42TUI
+adds `--bonus` to the Supra printf command: the tester runs `make bonus` and tests
+both mandatory and bonus behavior, with combined counts in the report. Without
+that directory, it runs only the mandatory suite. Other bonus layouts require
+`--bonus` in a custom catalog command; a file named `bonus` does not enable it.
+libft still has no structured reader and stays unverified
 even if its process exits zero. Missing and forbidden functions remain visible in the log. Supra is the bundled choice for printf/libft. No upstream code is vendored in the Python package.
 
 `python tests/manual/supra_tester_smoke.py ft_printf` (or `libft`) builds and runs

@@ -402,6 +402,9 @@ class TesterDocker:
         args = [docker, "run", "--rm", "--interactive", "--tty", "--name", container,
                 "--platform", f"linux/{architecture}", "--mount", f"type=bind,{source},target=/project",
                 "--workdir", "/project", *user, *self._runtime_arguments(tester), tester.image_for(architecture), *tester.command]
+        if tester.id == "supra-printf" and (path / "bonus").is_dir() and "--bonus" not in tester.command:
+            terminal.write("Detected bonus/; running mandatory and bonus tests…")
+            args.append("--bonus")
         try:
             terminal.write("Running the tester…")
             self._run(terminal, args)

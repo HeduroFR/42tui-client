@@ -3,11 +3,23 @@
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.1**.
-Suggested next release: **none**. No additional release is warranted.
+Suggested next release: **0.7.2 (patch)** for automatic printf bonus testing.
+Worth preparing; not ready to publish before review and PR CI.
 
 ## Changes since 0.7.1
 
-No unreleased changes.
+- 2026-11-05: Detect a root-level `bonus/` directory in the disposable Supra printf
+  project copy and append `--bonus`, so the existing tester builds and tests both
+  mandatory and bonus behavior. Preserve explicit `--bonus` without duplication;
+  missing directories, regular files and other testers keep their existing command.
+  Document detection and combined report counts. Patch impact; no backend/API,
+  tester image or package-version change. Reference: `fix/printf-bonus-detection`
+  (uncommitted). All 75 focused `test_testers.py` tests pass. Real Linux arm64
+  Docker checks pass with 503 mandatory and 1,629 mandatory-plus-bonus comparisons;
+  the synthetic wrapper's forbidden `vprintf` adds one expected failure per run.
+  Verified the bonus build marker, detection log and unchanged source fixture.
+  Diff whitespace checks pass; Graphify updated. Intel Docker and the real student
+  implementation were not run. Review and PR CI remain publication blockers.
 
 ## Release record
 

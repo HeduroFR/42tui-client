@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### 🐛 Fixes
+
+- Automatically run mandatory and bonus Supra printf tests when the local project
+  contains a root-level `bonus/` directory.
+
 ## 0.7.1
 
 ### 🐛 Fixes
