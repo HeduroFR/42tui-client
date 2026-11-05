@@ -56,6 +56,28 @@ class EditorLaunchTests(unittest.TestCase):
 
 
 class NavigationFlatpakTests(unittest.TestCase):
+    def test_terminal_editor_failure_reports_status_and_restores_ui(self):
+        from contextlib import nullcontext
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from ft_tui.features.projects.views import navigation
+
+        with TemporaryDirectory() as directory:
+            host = Mock()
+            host.favorite_editor = 'nvim'
+            host.suspend.return_value = nullcontext()
+            button = host.query_one.return_value
+            pointer = button.styles.pointer
+            with patch.object(navigation, 'editor_launch', return_value=(['/bin/nvim'], True, None)), \
+                 patch.object(navigation.subprocess, 'run', return_value=Mock(returncode=1)) as run:
+                navigation.ProjectNavigationMixin._open_path_in_editor(host, 'Synthetic', Path(directory))
+            run.assert_called_once_with(['/bin/nvim', '.'], cwd=Path(directory), check=False)
+            host.notify.assert_called_once_with('nvim exited with status 1.', severity='error')
+            host.activity_refresh_timer.pause.assert_called_once()
+            host.activity_refresh_timer.resume.assert_called_once()
+            self.assertEqual(button.styles.pointer, pointer)
+            host.refresh.assert_called_once_with(layout=True)
+
     def test_flatpak_prefix_is_used_for_the_launch(self):
         from contextlib import nullcontext
         from pathlib import Path

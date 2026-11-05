@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Fixes
+
+- Open the editor directly without Git recovery or remote checks. Find explicit
+  checkout recovery and the three push actions in a collapsed **Git** section
+  in the project Workspace panel. Recovery reports its result without opening
+  the editor automatically.
+- Keep the collapsed Git header on one line, make its full width clickable,
+  and leave space around its buttons when expanded.
+- Report failed Vim/Neovim exits without crashing the error notification.
+
 ## 0.7.0
 
 ### ✨ New features

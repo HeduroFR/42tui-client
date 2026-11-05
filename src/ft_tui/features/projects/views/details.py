@@ -182,7 +182,8 @@ class ProjectDetailsMixin(SubjectMixin):
         self.query_one("#project-notes-list").display = False
         self.query_one("#project-notes-empty").display = True
         for selector in ("#configure-project", "#show-project-details",
-                         "#open-project-folder", "#project-push-dev", "#project-push-vog", "#project-push-all"):
+                         "#open-project-editor", "#open-project-folder", "#project-recover-checkout",
+                         "#project-push-dev", "#project-push-vog", "#project-push-all"):
             self.query_one(selector, Button).disabled = True
 
     def action_project_team(self):
@@ -340,8 +341,8 @@ class ProjectDetailsMixin(SubjectMixin):
         editor_button.tooltip = f"Open in {editor_names.get(self.favorite_editor, 'editor')}"
         project = self.projects.get(self.selected_project_key or "")
         existing_folder = project is not None and has_local_folder(project.local_path)
-        editor_button.disabled = not (existing_folder or (project is not None and project.local_path
-                                     and (project.dev_repo_url or project.vogsphere_url)))
+        editor_button.disabled = not existing_folder
+        self.query_one("#project-recover-checkout", Button).disabled = not (project is not None and project.local_path)
         self.query_one("#open-project-folder", Button).disabled = not existing_folder
         for destination in ("dev", "vog", "all"):
             self.query_one(f"#project-push-{destination}", Button).disabled = not existing_folder

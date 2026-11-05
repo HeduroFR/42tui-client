@@ -38,7 +38,7 @@ class CheckoutReviewRequired(CheckoutSetupError):
 
 _VOGSPHERE_WARNING = (
     "Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. "
-    "Opening the existing local checkout."
+    "Keeping the existing local checkout."
 )
 
 

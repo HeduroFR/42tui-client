@@ -12,6 +12,7 @@ from ft_tui.ui.app import FortyTwoTuiApp
 
 class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
     async def test_checkout_completion_refreshes_editor_without_changing_view(self):
+        from unittest.mock import Mock
         from ft_tui.features.projects.adapters.checkout import CheckoutResult
 
         with TemporaryDirectory() as directory:
@@ -19,9 +20,15 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
             folder = Path(directory) / 'libft'
             with factory() as session:
                 save_settings(session, {'onboarding_completed': 'true'})
-                session.add(Project(slug='libft', name='Libft', local_path=str(folder)))
+                session.add(Project(slug='libft', name='Libft', local_path=str(folder),
+                                    dev_repo_url='/synthetic/origin.git'))
                 session.commit()
             app = FortyTwoTuiApp(factory, None)
+            app._open_project_in_editor = Mock()
+            def setup(path, **kwargs):
+                folder.mkdir()
+                return CheckoutResult(folder, True, False, (), (), 'Ready')
+            app.project_service.setup_checkout = Mock(side_effect=setup)
             try:
                 async with app.run_test(size=(160, 50)) as pilot:
                     app.query_one(TabbedContent).active = 'projects-tab'
@@ -29,24 +36,91 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                     project = next(iter(app.projects.values()))
                     app._show_project(project)
                     self.assertTrue(app.query_one('#open-project-editor').disabled)
-                    folder.mkdir()
-                    result = CheckoutResult(folder, True, False, (), (), 'Ready')
-                    app._report_checkout_setup(project.name, result,
-                                               project.ui_key, str(folder))
+                    self.assertFalse(app.query_one('#project-recover-checkout').disabled)
+                    app.query_one('#project-git-section').collapsed = False
+                    app.query_one('#project-recover-checkout').scroll_visible(immediate=True)
                     await pilot.pause()
+                    await pilot.click('#project-recover-checkout')
+                    await app.workers.wait_for_complete()
+                    await pilot.pause()
+                    app._open_project_in_editor.assert_not_called()
+                    app.project_service.setup_checkout.assert_called_once()
                     self.assertEqual(app.selected_project_key, project.ui_key)
                     self.assertFalse(app.query_one('#open-project-editor').disabled)
                     self.assertFalse(app.query_one('#open-project-folder').disabled)
                     for destination in ('dev', 'vog', 'all'):
                         self.assertFalse(app.query_one(f'#project-push-{destination}').disabled)
                     app._clear_project_details()
+                    self.assertTrue(app.query_one('#open-project-editor').disabled)
+                    self.assertTrue(app.query_one('#project-recover-checkout').disabled)
                     self.assertTrue(app.query_one('#open-project-folder').disabled)
                     for destination in ('dev', 'vog', 'all'):
                         self.assertTrue(app.query_one(f'#project-push-{destination}').disabled)
             finally:
                 factory.kw['bind'].dispose()
 
-    async def test_editor_recovery_mounts_review_in_full_app_with_catppuccin_theme(self):
+    async def test_git_actions_fit_narrow_and_wide_panels_in_supported_languages(self):
+        from unittest.mock import Mock
+        from ft_tui.i18n import translate
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "layout.sqlite"}')
+            with factory() as session:
+                save_settings(session, {'onboarding_completed': 'true'})
+                session.add(Project(slug='libft', name='Libft', local_path=directory))
+                session.commit()
+            app = FortyTwoTuiApp(factory, None)
+            app._open_project_push = Mock()
+            try:
+                async with app.run_test(size=(160, 50)) as pilot:
+                    app.query_one(TabbedContent).active = 'projects-tab'
+                    app._show_project(next(iter(app.projects.values())))
+                    section = app.query_one('#project-git-section')
+                    self.assertTrue(section.collapsed)
+                    await pilot.pause()
+                    self.assertEqual(section.region.height, 1)
+                    self.assertEqual(section.query_one('CollapsibleTitle').region.height, 1)
+                    section.collapsed = False
+                    for language in ('en', 'fr', 'es'):
+                        app.language = language
+                        app._apply_language()
+                        self.assertEqual(str(app.query_one('#project-recover-checkout').label),
+                                         translate('Recover Git', language))
+                        for size in ((80, 24), (160, 50)):
+                            await pilot.resize_terminal(*size)
+                            await pilot.pause()
+                            grid = app.query_one('#project-git-actions')
+                            title = section.query_one('CollapsibleTitle')
+                            title.scroll_visible(immediate=True, top=True)
+                            await pilot.pause()
+                            self.assertEqual(title.region.width, section.content_size.width)
+                            self.assertTrue(app.screen.region.contains_region(title.region), title.region)
+                            self.assertTrue(await pilot.click(title, offset=(title.region.width - 1, 0)), title.region)
+                            await pilot.pause()
+                            self.assertTrue(section.collapsed)
+                            await pilot.click(title, offset=(title.region.width - 1, 0))
+                            await pilot.pause()
+                            self.assertFalse(section.collapsed)
+                            self.assertEqual(title.region.height, 1)
+                            self.assertGreaterEqual(grid.region.y - title.region.bottom, 1)
+                            self.assertGreaterEqual(grid.region.x - section.content_region.x, 1)
+                            self.assertGreaterEqual(section.content_region.right - grid.region.right, 1)
+                            self.assertGreaterEqual(section.content_region.bottom - grid.region.bottom, 1)
+                            buttons = list(grid.query('AppButton'))
+                            self.assertEqual(len(buttons), 4)
+                            self.assertEqual(len({button.region.y for button in buttons}), 2)
+                            for button in buttons:
+                                self.assertTrue(grid.content_region.contains_region(button.region))
+                                self.assertGreaterEqual(button.content_size.width, len(str(button.label)))
+                    for destination in ('dev', 'vog', 'all'):
+                        button = app.query_one(f'#project-push-{destination}')
+                        button.scroll_visible(immediate=True)
+                        await pilot.pause()
+                        await pilot.click(button)
+                        app._open_project_push.assert_called_with(destination)
+            finally:
+                factory.kw['bind'].dispose()
+
+    async def test_editor_opens_directly_and_git_recovery_mounts_review_separately(self):
         from unittest.mock import Mock, patch
         from ft_tui.features.projects.adapters.checkout import CheckoutReviewRequired
         from ft_tui.features.projects.adapters.git import CheckoutReview
@@ -75,6 +149,23 @@ class ProjectDetailsLayoutTests(unittest.IsolatedAsyncioTestCase):
                         app._show_project(next(iter(app.projects.values())))
                         await pilot.pause()
                         await pilot.click('#open-project-editor')
+                        await pilot.pause()
+                        app._open_project_in_editor.assert_called_once_with('ft_printf', folder)
+                        app.project_service.setup_checkout.assert_not_called()
+                        await pilot.press('o')
+                        app._open_project_in_editor.assert_called_with('ft_printf', folder)
+                        self.assertEqual(app._open_project_in_editor.call_count, 2)
+                        app.project_service.setup_checkout.assert_not_called()
+                        app._open_project_in_editor.reset_mock()
+                        section = app.query_one('#project-git-section')
+                        self.assertTrue(section.collapsed)
+                        section.query_one('CollapsibleTitle').focus()
+                        await pilot.press('enter')
+                        await pilot.pause()
+                        self.assertFalse(section.collapsed)
+                        app.query_one('#project-recover-checkout').scroll_visible(immediate=True)
+                        await pilot.pause()
+                        await pilot.click('#project-recover-checkout')
                         await pilot.pause()
                         self.assertIsInstance(app.screen, ProjectGitReviewScreen)
                         await app.screen.workers.wait_for_complete()
@@ -282,7 +373,7 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 release.set()
 
-    async def test_editor_recovery_captures_path_and_blocks_overlap(self):
+    async def test_git_recovery_captures_path_blocks_overlap_and_never_auto_opens_editor(self):
         import asyncio
         from threading import Event
         from types import SimpleNamespace
@@ -301,6 +392,7 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
         harness.push_screen = Mock(return_value=asyncio.get_running_loop().create_future())
         harness.push_screen.return_value.set_result(None)
         harness._open_project_in_editor = Mock()
+        harness._report_checkout_setup = Mock()
         tasks = []
         harness.run_worker = lambda coro: tasks.append(asyncio.create_task(coro))
         started, release = Event(), Event()
@@ -308,14 +400,14 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             started.set()
             release.wait(5)
         harness.project_service = SimpleNamespace(setup_checkout=Mock(side_effect=setup))
-        harness._open_selected_project_in_editor()
+        harness._recover_selected_project_checkout()
         try:
             for _ in range(100):
                 if started.is_set():
                     break
                 await asyncio.sleep(.01)
             self.assertTrue(started.is_set())
-            harness._open_selected_project_in_editor()
+            harness._recover_selected_project_checkout()
             self.assertEqual(len(tasks), 1)
             harness.selected_project_key = 'other'
             original.local_path = '/disposable/changed'
@@ -323,39 +415,41 @@ class ProjectGitControlsTests(unittest.IsolatedAsyncioTestCase):
             await tasks[0]
             harness.project_service.setup_checkout.assert_called_once_with(
                 '/disposable/original', dev_remote_url='/disposable/dev.git', vogsphere_url='/disposable/vog.git', ssh_prompt=ANY)
-            harness._open_project_in_editor.assert_called_once_with('Original', Path('/disposable/original'))
+            harness._open_project_in_editor.assert_not_called()
+            harness._report_checkout_setup.assert_called_once_with(
+                'Original', None, 'one', '/disposable/original')
             self.assertFalse(harness._project_checkout_busy)
             original.local_path = '/disposable/original'
             harness.selected_project_key = 'one'
-            harness._open_selected_project_in_editor()
+            harness._recover_selected_project_checkout()
             await tasks[-1]
             self.assertEqual(len(tasks), 2)  # Local state is checked before reusing remote results.
             original.local_path = '/disposable/failure'
             harness.project_service.setup_checkout.side_effect = CheckoutSetupError('Divergent history')
             harness._open_project_in_editor.reset_mock()
-            harness._open_selected_project_in_editor()
+            harness._recover_selected_project_checkout()
             await tasks[-1]
             harness._open_project_in_editor.assert_not_called()
             self.assertIn('Divergent history', harness.notify.call_args.args[0])
             self.assertFalse(harness._project_checkout_busy)
             harness.project_service.setup_checkout.side_effect = None
-            warning = 'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Opening the existing local checkout.'
+            warning = 'Vogsphere could not be checked. Connect to the 42 campus network to recover remote work. Keeping the existing local checkout.'
             harness.project_service.setup_checkout.return_value = SimpleNamespace(warnings=(warning,))
             original.local_path = '/disposable/off-campus'
-            harness._open_selected_project_in_editor()
+            harness._recover_selected_project_checkout()
             await tasks[-1]
-            harness._open_project_in_editor.assert_called_once_with('Original', Path(original.local_path))
-            harness.notify.assert_called_with(warning, severity='warning', timeout=10)
-            self.assertFalse(any(key[0] == original.local_path for key in harness._editor_recovered_checkouts))
-            # An unverified remote is checked again on the next editor launch.
+            harness._open_project_in_editor.assert_not_called()
+            harness._report_checkout_setup.assert_called_with(
+                'Original', harness.project_service.setup_checkout.return_value, 'one', original.local_path)
+            # An unverified remote is checked again on the next recovery request.
             previous_count = len(tasks)
-            harness._open_selected_project_in_editor()
+            harness._recover_selected_project_checkout()
             await tasks[-1]
             self.assertEqual(len(tasks), previous_count + 1)
             harness._open_project_in_editor.reset_mock()
             harness.is_mounted = False
-            await harness._recover_project_for_editor('Original', Path(original.local_path),
-                                                      (original.local_path, original.dev_repo_url, original.vogsphere_url))
+            await harness._recover_project_checkout('Original', Path(original.local_path),
+                                                    (original.local_path, original.dev_repo_url, original.vogsphere_url), 'one')
             harness._open_project_in_editor.assert_not_called()
         finally:
             release.set()
@@ -498,12 +592,11 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
             host.push_screen = Mock(return_value=asyncio.get_running_loop().create_future())
             host.push_screen.return_value.set_result(None)
             host._open_project_in_editor = Mock()
-            await host._recover_project_for_editor('Original', path, (str(path), 'dev', None))
+            await host._recover_project_checkout('Original', path, (str(path), 'dev', None), 'one')
             host._open_project_in_editor.assert_not_called()
             self.assertTrue(host._project_git_operation_busy())
             host.push_screen.call_args.args[1](approved)
             self.assertFalse(host._project_git_operation_busy())
-            self.assertFalse(getattr(host, '_editor_recovered_checkouts', set()))
             if approved:
                 host._open_project_in_editor.assert_called_once_with('Original', path)
             else:
@@ -566,6 +659,7 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
         for submit in (True, False):
             app = Harness()
             app._open_project_in_editor = Mock()
+            app._report_checkout_setup = Mock()
             supplied = []
             def setup(path, *, ssh_prompt, **kwargs):
                 supplied.append(ssh_prompt('Enter passphrase for key [literal]:', False))
@@ -574,8 +668,8 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
             app.project_service = SimpleNamespace(setup_checkout=setup)
             async with app.run_test(size=(80, 24)) as pilot:
                 app._project_checkout_busy = True
-                worker = app.run_worker(app._recover_project_for_editor('Libft', Path('/synthetic'),
-                                                                        ('/synthetic', 'dev', None)))
+                worker = app.run_worker(app._recover_project_checkout('Libft', Path('/synthetic'),
+                                                                      ('/synthetic', 'dev', None), 'one'))
                 await pilot.pause()
                 self.assertIsInstance(app.screen, ProjectSshPromptScreen)
                 field = app.screen.query_one(Input)
@@ -591,10 +685,12 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(app._project_checkout_busy)
                 if submit:
                     self.assertEqual(supplied, ['synthetic-passphrase'])
-                    app._open_project_in_editor.assert_called_once_with('Libft', Path('/synthetic'))
+                    app._report_checkout_setup.assert_called_once()
                 else:
                     self.assertEqual(supplied, [None])
                     app._open_project_in_editor.assert_not_called()
+                    app._report_checkout_setup.assert_not_called()
+                app._open_project_in_editor.assert_not_called()
 
     async def test_slow_remote_shows_loading_and_cancel_ignores_late_success(self):
         from threading import Event
@@ -615,8 +711,8 @@ class ProjectGitReviewTests(unittest.IsolatedAsyncioTestCase):
         app._open_project_in_editor = Mock()
         async with app.run_test(size=(80, 24)) as pilot:
             app._project_checkout_busy = True
-            worker = app.run_worker(app._recover_project_for_editor('Libft', Path('/synthetic'),
-                                                                    ('/synthetic', 'dev', None)))
+            worker = app.run_worker(app._recover_project_checkout('Libft', Path('/synthetic'),
+                                                                  ('/synthetic', 'dev', None), 'one'))
             try:
                 await pilot.pause()
                 self.assertIsInstance(app.screen, ProjectCheckoutProgressScreen)

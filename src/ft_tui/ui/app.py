@@ -522,7 +522,7 @@ class FortyTwoTuiApp(
         self.query_one("#project-empty", Static).styles.display = "block"
         self.query_one("#details-content", Static).update("Select a project from the list.")
         self.query_one("#project-subject-status", Static).update("SUBJECT · no project selected")
-        for selector in ("#open-project-editor", "#open-project-folder", "#project-push-dev",
+        for selector in ("#open-project-editor", "#open-project-folder", "#project-recover-checkout", "#project-push-dev",
                          "#project-push-vog", "#project-push-all", "#project-timer-toggle",
                          "#open-subject", "#new-project-note"):
             self.query_one(selector, Button).disabled = True
@@ -728,6 +728,9 @@ class FortyTwoTuiApp(
             return
         if event.button.id == "open-project-editor":
             self._open_selected_project_in_editor()
+            return
+        if event.button.id == "project-recover-checkout":
+            self._recover_selected_project_checkout()
             return
         if event.button.id == "open-project-folder":
             self._open_selected_project_folder()

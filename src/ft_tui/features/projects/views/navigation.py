@@ -83,17 +83,25 @@ class ProjectNavigationMixin:
         if project is None or not project.local_path:
             self.notify("Configure this project's local folder first.", severity="warning")
             return
+        self._open_project_in_editor(project.name, Path(project.local_path).expanduser())
+
+    def _recover_selected_project_checkout(self) -> None:
+        if self._project_git_operation_busy():
+            self.notify("Wait for the current project Git operation to finish.", severity="warning")
+            return
+        project_key = self.selected_project_key
+        project = self.projects.get(project_key or "")
+        if project is None or not project.local_path:
+            self.notify("Configure this project's local folder first.", severity="warning")
+            return
         project_path = Path(project.local_path).expanduser()
         remotes = (project.dev_repo_url or None, project.vogsphere_url or None)
         recovery_key = (str(project_path), *remotes)
-        if any(remotes):
-            self._project_checkout_busy = True
-            self.notify("Recovering project Git history before opening the editor…")
-            self.run_worker(self._recover_project_for_editor(project.name, project_path, recovery_key))
-            return
-        self._open_project_in_editor(project.name, project_path)
+        self._project_checkout_busy = True
+        self.notify("Recovering project Git history…")
+        self.run_worker(self._recover_project_checkout(project.name, project_path, recovery_key, project_key))
 
-    async def _recover_project_for_editor(self, project_name, project_path, recovery_key) -> None:
+    async def _recover_project_checkout(self, project_name, project_path, recovery_key, project_key) -> None:
         if not self.is_mounted:
             self._project_checkout_busy = False
             return
@@ -125,7 +133,7 @@ class ProjectNavigationMixin:
             return
         except (CheckoutSetupError, OSError) as error:
             if self.is_mounted and not progress.cancelled and not prompts.was_cancelled:
-                self.notify(f"Editor was not opened: checkout recovery failed: {error}", severity="error", timeout=10)
+                self.notify(f"Checkout recovery failed: {error}", severity="error", timeout=10)
             return
         finally:
             self._project_checkout_busy = False
@@ -134,14 +142,7 @@ class ProjectNavigationMixin:
                 progress.dismiss()
         if not self.is_mounted or progress.cancelled or prompts.was_cancelled:
             return
-        warnings = getattr(result, "warnings", ())
-        for warning in warnings:
-            self.notify(warning, severity="warning", timeout=10)
-        if not warnings:
-            recovered = getattr(self, "_editor_recovered_checkouts", set())
-            recovered.add(recovery_key)
-            self._editor_recovered_checkouts = recovered
-        self._open_project_in_editor(project_name, project_path)
+        self._report_checkout_setup(project_name, result, project_key, str(project_path))
 
     def _open_project_in_editor(self, project_name: str, project_path: Path) -> None:
         if not project_path.is_dir():
@@ -195,7 +196,7 @@ class ProjectNavigationMixin:
                     # Force a full repaint after the child editor has used the terminal.
                     self.refresh(layout=True)
                 if result.returncode:
-                    self.notify(f"{command} exited with status {result.returncode}.", severity="error")
+                    self.notify(f"{self.favorite_editor} exited with status {result.returncode}.", severity="error")
             else:
                 subprocess.Popen(
                     args,

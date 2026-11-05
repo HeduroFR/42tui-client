@@ -17,6 +17,7 @@ from ft_tui.ui.components import (
     Vertical,
 )
 from textual.containers import VerticalScroll
+from textual.widgets import Collapsible
 from ft_tui.features.dashboard.views.progress import ProgressLegend, ProgressSegment
 from ft_tui.features.dashboard.views.heatmap import ActivityHeatmap
 from ft_tui.features.corrections.views import CorrectionSlotsWorkspace
@@ -216,10 +217,12 @@ class MainLayoutMixin:
                                     with Horizontal(id="project-workspace-actions"):
                                         yield Button("Configure", id="configure-project")
                                         yield Button("Details", id="show-project-details")
-                                    with Vertical(id="project-git-actions"):
-                                        yield Button("Push dev", id="project-push-dev", disabled=True)
-                                        yield Button("Push vog", id="project-push-vog", tooltip="Vogsphere → remote branch", disabled=True)
-                                        yield Button("Push all", id="project-push-all", disabled=True)
+                                    with Collapsible(title="Git", id="project-git-section"):
+                                        with Vertical(id="project-git-actions"):
+                                            yield Button("Recover Git", id="project-recover-checkout", disabled=True)
+                                            yield Button("Push all", id="project-push-all", disabled=True)
+                                            yield Button("Push dev", id="project-push-dev", disabled=True)
+                                            yield Button("Push vog", id="project-push-vog", tooltip="Vogsphere → remote branch", disabled=True)
                                     with Horizontal(id="project-timer-row"):
                                         with Vertical(id="project-timer-info"):
                                             yield Static("TOTAL TIME · 0h 00m", id="project-time-spent")
