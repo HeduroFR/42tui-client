@@ -103,19 +103,30 @@ It defaults to true for existing custom testers; the field is hidden after a run
 
 ## get_next_line
 
-The bundled Tripouille tester uses the pinned 42TUI fork's mandatory suite in
+The bundled Tripouille tester uses the pinned 42TUI fork's suites in
 native Linux amd64 or arm64 Docker containers, with GCC, Clang and Valgrind.
 It runs in a disposable project copy and never invokes upstream's `git pull`.
 The fork writes a version-1 JSON report: functional checks count as passed or
 failed, leaks count as failures, and test crashes/timeouts count as errors.
 Upstream allocation-size checks remain visible in the log but are not counted.
 The suite expects `get_next_line.c`, `get_next_line_utils.c` and
-`get_next_line.h` at the project root. Bonus tests are not run by this integration.
+`get_next_line.h` at the project root. If any standard bonus file or a root-level
+`bonus/` directory is present, it runs mandatory and bonus suites (`make a`). The
+bonus suite requires `get_next_line_bonus.c`, `get_next_line_utils_bonus.c` and
+`get_next_line_bonus.h`, either at the root or inside `bonus/`. Missing root files
+are copied from `bonus/` only in the disposable project; existing root files win.
+Incomplete bonus sources fail the run instead of silently testing mandatory only.
+Without bonus sources, it keeps running only mandatory tests (`make m`).
+The bundled `gnl-bonus.patch` is applied to the exact pinned fork during image
+build and included in the image identity. It enables detection and puts bonus
+checks under the same crash, early-exit and timeout reporting as mandatory tests.
+The first run builds the updated image automatically; no fork publication is needed.
 The report reflects this suite's
 checks; it does not prove complete correctness or memory safety.
 
 Run `python tests/manual/gnl_tester_smoke.py` from the client repository with a
-working Docker engine to exercise passing, failing and prematurely exiting synthetic
-projects through the real adapter; the originals are checked for changes. CI is
+working Docker engine to exercise both bonus layouts, passing/failing checks,
+early exits, crashes, timeouts and incomplete bonus sources through the real
+adapter; the originals are checked for changes. CI is
 configured for native amd64 and arm64 runners, but a workflow definition is not a
 successful run.

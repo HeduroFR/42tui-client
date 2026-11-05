@@ -14,7 +14,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
 
-RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh"), "gnl": ("gnl.Dockerfile", "gnl.sh"),
+RECIPE_FILES = {"supra": ("supra.Dockerfile", "supra.sh"), "gnl": ("gnl.Dockerfile", "gnl.sh", "gnl-bonus.patch"),
                 "germinette": ("germinette.Dockerfile",)}
 
 

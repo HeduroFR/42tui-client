@@ -6,6 +6,9 @@
 
 - Automatically run mandatory and bonus Supra printf tests when the local project
   contains a root-level `bonus/` directory.
+- Automatically run mandatory and bonus get_next_line tests when standard bonus
+  sources are present at the project root or inside `bonus/`, with combined results
+  and bonus crash/timeout reporting. Incomplete bonus files fail the run.
 
 ## 0.7.1
 

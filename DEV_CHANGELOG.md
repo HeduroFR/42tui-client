@@ -3,18 +3,36 @@
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.1**.
-Suggested next release: **0.7.2 (patch)** for automatic printf bonus testing.
+Suggested next release: **0.7.2 (patch)** for automatic printf and GNL bonus testing.
 Worth preparing; not ready to publish before review and PR CI.
 
 ## Changes since 0.7.1
+
+- 2026-11-05: Detect standard GNL bonus sources at the root or inside `bonus/` and
+  run the mandatory and bonus suites together, preserving original project files.
+  Apply a bundled patch to the exact pinned tester during image build, include it
+  in the image identity/package checks, and use the existing child crash/timeout
+  reporting for bonus tests. Incomplete bonus sources cannot produce a passing
+  mandatory-only report. Extend the real-container smoke checks for both layouts,
+  failures, early exits, hangs, crashes and missing bonus sources. Patch impact;
+  no backend/API, upstream pin or package-version change. Reference:
+  `fix/printf-bonus-detection` (uncommitted). All 82 `testers-core` regressions and
+  ten real Linux arm64 Docker smoke cases pass: 222 mandatory and 501 combined
+  checks for passing fixtures; wrong-output, early-exit, timeout, crash and missing
+  bonus sources cannot pass. Original fixture files remain unchanged. Wheel/sdist
+  resource checks (including exact patch bytes), installer digests, shell syntax
+  and diff whitespace checks pass; Graphify updated. Validation used temporary
+  Buildx/uv state because this sandbox cannot write their default cache folders.
+  Intel Docker and the real student implementation were not tested. Review and
+  PR CI remain publication blockers.
 
 - 2026-11-05: Detect a root-level `bonus/` directory in the disposable Supra printf
   project copy and append `--bonus`, so the existing tester builds and tests both
   mandatory and bonus behavior. Preserve explicit `--bonus` without duplication;
   missing directories, regular files and other testers keep their existing command.
   Document detection and combined report counts. Patch impact; no backend/API,
-  tester image or package-version change. Reference: `fix/printf-bonus-detection`
-  (uncommitted). All 75 focused `test_testers.py` tests pass. Real Linux arm64
+  tester image or package-version change. Reference: `952a12d`
+  (`fix/printf-bonus-detection`). All 75 focused `test_testers.py` tests pass. Real Linux arm64
   Docker checks pass with 503 mandatory and 1,629 mandatory-plus-bonus comparisons;
   the synthetic wrapper's forbidden `vprintf` adds one expected failure per run.
   Verified the bonus build marker, detection log and unchanged source fixture.

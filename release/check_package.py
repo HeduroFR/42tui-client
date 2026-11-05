@@ -5,7 +5,7 @@ import sys
 import tarfile
 import zipfile
 
-RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh', 'tester_images/gnl.Dockerfile', 'tester_images/gnl.sh',
+RESOURCES = ('locales/es.json', 'locales/fr.json', 'testers.toml', 'features/cluster_map/layout.json', 'tester_images/supra.Dockerfile', 'tester_images/supra.sh', 'tester_images/gnl.Dockerfile', 'tester_images/gnl.sh', 'tester_images/gnl-bonus.patch',
              'integrations/assets/vim/plugin/ft_tui.vim', 'integrations/assets/nvim/lua/ft_tui.lua',
              'integrations/assets/nvim/plugin/ft_tui_auto.lua', 'integrations/assets/vscode/extension.js',
              'integrations/assets/vscode/package.json', 'integrations/assets/zed/extension.toml',
