@@ -144,7 +144,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 release_event.set()
                 for _ in range(60):
                     await pilot.pause(.01)
-                    if ws.shown:
+                    if ws.shown and not cal.skeleton:
                         break
                 self.assertEqual([row['kind'] for row in ws.shown], ['event'])
                 self.assertTrue(ws.agenda_loading)

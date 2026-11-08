@@ -8,6 +8,11 @@ of the deployed backend remain release blockers.
 
 ## Changes since 0.7.2
 
+- 2026-11-08: Wait for completed agenda rendering and account-storage status
+  updates in UI tests, avoiding assertions against intermediate async states.
+  No additional release impact. Reference: `feat/backend-offline-mode`
+  (uncommitted); both affected focused tests and diff checks pass locally.
+
 - 2026-11-08: Wait for tabs and account screens to mount before applying the
   backend health result; isolate account tests from real health checks and
   register the new shared modules in architecture checks. Patch impact; no
