@@ -144,7 +144,7 @@ class AgendaTests(unittest.IsolatedAsyncioTestCase):
                 release_event.set()
                 for _ in range(60):
                     await pilot.pause(.01)
-                    if ws.shown:
+                    if ws.shown and not cal.skeleton:
                         break
                 self.assertEqual([row['kind'] for row in ws.shown], ['event'])
                 self.assertTrue(ws.agenda_loading)
@@ -862,6 +862,21 @@ async def wait_for(pilot, predicate, tries=50):
         if predicate(): return
 
 class AgendaSubscriptionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_offline_subscription_does_not_dispatch(self):
+        from ft_tui.ui.components import Button
+        app = Harness(); app.provider = SubscriptionProvider()
+        async with app.run_test(size=(120, 40)) as pilot:
+            ws = app.query_one(AgendaWorkspace)
+            await wait_for(pilot, lambda: ws.subscription_state is not None)
+            app.backend_available = False
+            ws.show_subscription(app.provider.status, 1, ws.identity())
+            self.assertTrue(ws.query_one('#agenda-subscribe', Button).disabled)
+            await ws.change_subscription(1, ws.subscription_epoch, ws.identity(), True)
+            self.assertEqual(app.provider.writes, [])
+            app.backend_available = True
+            ws.show_subscription(app.provider.status, 1, ws.identity())
+            self.assertFalse(ws.query_one('#agenda-subscribe', Button).disabled)
+
     async def test_event_subscription_status_controls_toggle(self):
         from ft_tui.ui.components import Button
         app = Harness(); app.provider = SubscriptionProvider()

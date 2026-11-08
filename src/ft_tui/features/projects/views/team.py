@@ -126,7 +126,8 @@ class ProjectTeamScreen(AppModal):
     def _controls(self):
         team = self._team()
         me = next((m for m in team['members'] if str(m['id']) == self.account_id), None) if team else None
-        ready = self._same_account() and not self.busy and not self.uncertain and bool(self.state and self.state['can_write'])
+        ready = (getattr(self.app, 'backend_available', None) is not False and self._same_account()
+                 and not self.busy and not self.uncertain and bool(self.state and self.state['can_write']))
         editable = ready and (not team or not team['locked'] and not team['closed'] and team['status'] == 'creating_group')
         leader = editable and (not team or me and me['leader'])
         self.query_one('#team-name', Input).disabled = not leader
@@ -150,18 +151,18 @@ class ProjectTeamScreen(AppModal):
         self.query_one('#team-accept', Button).disabled = not (editable and me and not me['accepted'])
         session = (self.state or {}).get('session') or {}
         self.query_one('#team-lock', Button).disabled = not (leader and team and len(team['members']) == session.get('max_people') and all(m['accepted'] for m in team['members']) and not self.pending)
-        self.query_one('#team-refresh', Button).disabled = self.busy or not self._same_account()
+        self.query_one('#team-refresh', Button).disabled = self.busy or not self._same_account() or getattr(self.app, 'backend_available', None) is False
         self.query_one('#team-choice', Select).disabled = self.busy or not self._same_account()
 
     def action_refresh(self):
-        if self.busy or not self._same_account():
+        if self.busy or not self._same_account() or getattr(self.app, 'backend_available', None) is False:
             return
         self.busy = True
         self._controls()
         self.run_worker(self._request(), group='project-team', exclusive=True)
 
     async def _request(self, action=None, key=None):
-        if not self._same_account():
+        if not self._same_account() or getattr(self.app, 'backend_available', None) is False:
             self.busy = False
             return
         try:
@@ -362,7 +363,7 @@ class ProjectTeamScreen(AppModal):
             self.pending.pop(next(reversed(self.pending)))
             self.search(SimpleNamespace(value=self.query_one('#team-login', Input).value))
             self._pending()
-        elif action in {'team-save', 'team-accept', 'team-lock'} and not self.busy and not self.uncertain and self._same_account():
+        elif action in {'team-save', 'team-accept', 'team-lock'} and not self.busy and not self.uncertain and self._same_account() and getattr(self.app, 'backend_available', None) is not False:
             request = {'action': {'team-save': 'save', 'team-accept': 'accept', 'team-lock': 'lock'}[action], 'team_id': self.selected}
             if action == 'team-save':
                 name = self.query_one('#team-name', Input).value.strip()

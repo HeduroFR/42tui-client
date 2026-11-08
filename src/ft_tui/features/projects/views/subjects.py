@@ -109,7 +109,7 @@ class SubjectMixin:
 
     def _start_due_subject_checks(self) -> None:
         """Schedule periodic checking and optional downloading outside the UI thread."""
-        if not self.is_mounted:
+        if not self.is_mounted or getattr(self, 'backend_available', None) is False:
             return
         if any(worker.group == "subject-pdf-check" and not worker.is_finished for worker in self.workers):
             return

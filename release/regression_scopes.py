@@ -16,7 +16,7 @@ SCOPES = {
     'accounts-core': (
         'test_api_error_diagnostics', 'test_api_settings', 'test_client_factory',
         'test_http_client', 'test_keychain', 'test_oauth_client', 'test_account_service', 'test_account_shell_service',
-        'test_oauth_session_simulation',
+        'test_oauth_session_simulation', 'test_backend_offline',
     ),
     'accounts-ui': (
         'test_oauth_ui_locales',

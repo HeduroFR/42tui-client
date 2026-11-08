@@ -71,7 +71,8 @@ class SettingsNavigationTests(unittest.IsolatedAsyncioTestCase):
                         app.query_one('#settings-storage-apply').press()
                         for _ in range(30):
                             await pilot.pause(.05)
-                            if isinstance(app.oauth_client.store, CredentialStore):
+                            if (isinstance(app.oauth_client.store, CredentialStore) and
+                                    'updated' in str(app.query_one('#settings-storage-status', Static).render())):
                                 break
                         self.assertIsInstance(app.oauth_client.store, CredentialStore)
                         self.assertEqual(app.oauth_client.store.load(), {'access_token': 'synthetic'})

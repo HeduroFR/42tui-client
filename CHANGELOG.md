@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.7.3
+
+### ✨ New features
+
+- Show a concise warning when the backend cannot be reached, keep saved data and local tools
+  accessible, and restore online actions when the server responds again. Check
+  availability during startup so the warning appears sooner.
+
+### 🐛 Fixes
+
+- Keep the TUI responsive while the Cluster Map waits for a slow server.
+- Prevent a startup crash when the backend check finishes while screens are loading.
+
+### 📦 Update
+
+- Run `42tui update` for a standard installation; update pinned or development
+  installations using their existing method. No backend update is required.
+
 ## 0.7.2
 
 ### 🐛 Fixes

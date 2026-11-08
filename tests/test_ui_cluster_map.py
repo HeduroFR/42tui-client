@@ -31,6 +31,44 @@ class MapHarness(App):
 
 
 class ClusterMapTests(unittest.IsolatedAsyncioTestCase):
+    async def test_slow_backend_does_not_block_tab_activation(self):
+        from types import SimpleNamespace
+        from ft_tui.features.friends.views.workspace import FriendsMixin
+        entered = threading.Event()
+        release = threading.Event()
+
+        class SlowProvider(Provider):
+            def get_cluster_map(self):
+                entered.set()
+                release.wait(3)
+                return super().get_cluster_map()
+
+        class NavigationHarness(FriendsMixin, MapHarness):
+            pass
+
+        app = NavigationHarness(); app.provider = SlowProvider()
+        try:
+            async with app.run_test(size=(120, 40)) as pilot:
+                await asyncio.wait_for(app.on_tabbed_content_tab_activated(
+                    SimpleNamespace(pane=SimpleNamespace(id='cluster-map'))), timeout=.5)
+                self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                await asyncio.wait_for(pilot.pause(), timeout=1)
+                release.set()
+        finally:
+            release.set()
+
+    async def test_backend_failure_keeps_the_map_responsive(self):
+        class UnavailableProvider(Provider):
+            def get_cluster_map(self):
+                raise ConnectionError('backend unavailable')
+        app = MapHarness(); app.provider = UnavailableProvider()
+        async with app.run_test(size=(120, 40)) as pilot:
+            workspace = app.query_one(ClusterMapWorkspace)
+            await workspace.reload()
+            await pilot.pause()
+            self.assertEqual(workspace.error, 'Presence unavailable.')
+            self.assertTrue(workspace.is_mounted)
+
     async def test_offline_seats_show_a_blocked_tile_instead_of_a_cached_portrait(self):
         from unittest.mock import patch
         from PIL import Image

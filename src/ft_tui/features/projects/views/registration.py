@@ -131,10 +131,10 @@ class ProjectRegistrationMixin:
         if busy:
             label='Registering…' if self._registration_busy[context][-1]=='register' else 'Checking…'
         action.set_source_label(label)
-        action.disabled=busy or not view.enabled
+        action.disabled=busy or not view.enabled or getattr(self,'backend_available',None) is False
         refresh=self.query_one('#registration-refresh',Button)
         refresh.display=view.action!='refresh'
-        refresh.disabled=busy or self.provider is None
+        refresh.disabled=busy or self.provider is None or getattr(self,'backend_available',None) is False
         link=self.query_one('#registration-intra-link',Button)
         link.display=bool(state.get('intra_url')) and (context in self._registration_uncertain or bool(state.get('operation') and state['operation']['outcome'] in {'pending','outcome_unknown'}))
         link.disabled=busy
@@ -152,6 +152,8 @@ class ProjectRegistrationMixin:
     async def _handle_registration_button(self,button_id:str|None)->bool:
         if button_id not in {'registration-action','registration-refresh','registration-intra-link'}:
             return False
+        if button_id != 'registration-intra-link' and getattr(self, 'backend_available', None) is False:
+            return True
         self._registration_storage()
         context=self._registration_context()
         if context in self._registration_busy:

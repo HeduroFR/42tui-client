@@ -584,7 +584,7 @@ class SettingsMixin:
                 else:
                     self.notify("Catalog refreshed.")
         finally:
-            button.disabled = False
+            button.disabled = getattr(self, 'backend_available', None) is False
 
     def set_cursus_choices(
         self,

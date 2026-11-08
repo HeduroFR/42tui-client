@@ -104,8 +104,8 @@ class ProjectCatalogControllerMixin:
             if getattr(self, '_catalog_request', None) == request:
                 self._catalog_request = None
             if current():
-                self.query_one('#catalog-more', Button).disabled = not getattr(self, '_catalog_next', [])
-                self.query_one('#catalog-more-branches', Button).disabled = not getattr(self, '_branch_cursor', None)
+                self.query_one('#catalog-more', Button).disabled = getattr(self, 'backend_available', None) is False or not getattr(self, '_catalog_next', [])
+                self.query_one('#catalog-more-branches', Button).disabled = getattr(self, 'backend_available', None) is False or not getattr(self, '_branch_cursor', None)
 
     def _set_branch_options(self, items, append=False):
         self._branch_items = list(getattr(self, '_branch_items', [])) + items if append else list(items)
@@ -124,7 +124,7 @@ class ProjectCatalogControllerMixin:
         track = self.project_curriculum.get('selected_track', {}).get('track')
         cursor = getattr(self, '_branch_cursor', None)
         account_generation, catalog_generation = self.account_generation, self._catalog_generation
-        if not scope or not track or not cursor or not self.provider:
+        if getattr(self, 'backend_available', None) is False or not scope or not track or not cursor or not self.provider:
             return
         provider = self.provider
         def current():
@@ -139,7 +139,7 @@ class ProjectCatalogControllerMixin:
                 return
             self._set_branch_options(page['items'])
             self._branch_cursor = page.get('next_cursor')
-            self.query_one('#catalog-more-branches', Button).disabled = not self._branch_cursor
+            self.query_one('#catalog-more-branches', Button).disabled = getattr(self, 'backend_available', None) is False or not self._branch_cursor
         except Exception:
             self.notify('Branches unavailable.', severity='warning')
 

@@ -583,10 +583,10 @@ class FriendsWorkspace(Vertical):
         ready = bool(account and cursus and self.app.account_connected and self.app.provider)
         candidate = self.query_one(FriendsSearchSuggestions).highlighted_candidate()
         included = candidate and (candidate['login'] == self.app.account_login or any(w.login == candidate['login'] for w in self.watches))
-        self.query_one('#friends-open-search', Button).disabled = not (account and self.app.account_connected and self.app.provider and candidate) or bool(included) or self.adding
+        self.query_one('#friends-open-search', Button).disabled = getattr(self.app, 'backend_available', None) is False or not (account and self.app.account_connected and self.app.provider and candidate) or bool(included) or self.adding
         if self.search_screen and self.search_screen.is_mounted:
             self.search_screen.set_busy(self.adding or self.busy)
-        self.query_one('#friends-refresh', Button).disabled = not ready or self.busy or self.adding
+        self.query_one('#friends-refresh', Button).disabled = getattr(self.app, 'backend_available', None) is False or not ready or self.busy or self.adding
         if not account:
             message = self.t('Connect your 42 account to use Friends.')
         elif not cursus:
@@ -730,8 +730,8 @@ class FriendsWorkspace(Vertical):
             data = self.detail_snapshots.get(self.selected_login, data)
         watch = next((w for w in self.watches if w.login == self.selected_login), None)
         self.query_one('#friend-view-profile', Button).disabled = data is None
-        self.query_one('#friend-remove', Button).disabled = watch is None or self.adding or not self.app.account_connected
-        self.query_one('#friend-poke', Button).disabled = watch is None or not self.app.account_connected
+        self.query_one('#friend-remove', Button).disabled = getattr(self.app, 'backend_available', None) is False or watch is None or self.adding or not self.app.account_connected
+        self.query_one('#friend-poke', Button).disabled = getattr(self.app, 'backend_available', None) is False or watch is None or not self.app.account_connected
         self.query_one('#friend-view-compare', Button).disabled = not data or data['user_id'] == self.context[1]
         table = self.query_one('#friend-projects', DataTable)
         rows_key = (self.app.language, self.selected_login, (data or {}).get('items'))
@@ -1030,7 +1030,7 @@ class FriendsWorkspace(Vertical):
                 await self.reload()
 
     def add_friend(self, entered, suggested_friend=None):
-        if self.adding or not self.app.account_connected or not self.context or self.context != self._scope() or not self.context[1]:
+        if getattr(self.app, 'backend_available', None) is False or self.adding or not self.app.account_connected or not self.context or self.context != self._scope() or not self.context[1]:
             return
         login = entered if suggested_friend and suggested_friend[0] == entered else entered.strip()
         if not LOGIN.fullmatch(login):
@@ -1078,7 +1078,7 @@ class FriendsMixin:
         await self.query_one(FriendsWorkspace).reload()
         from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
         for workspace in self.query(ClusterMapWorkspace):
-            await workspace.reload()
+            workspace.run_worker(workspace.reload(), group='cluster-refresh', exclusive=False)
 
     async def _handle_friend_button(self, button_id):
         # FriendsWorkspace handles and stops its own button messages.
@@ -1089,4 +1089,5 @@ class FriendsMixin:
             await self.query_one(FriendsWorkspace).activate()
         elif event.pane.id == 'cluster-map':
             from ft_tui.features.cluster_map.views.cluster_map import ClusterMapWorkspace
-            await self.query_one(ClusterMapWorkspace).reload()
+            workspace = self.query_one(ClusterMapWorkspace)
+            workspace.run_worker(workspace.reload(), group='cluster-refresh', exclusive=False)

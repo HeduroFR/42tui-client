@@ -56,6 +56,12 @@ class FakeOAuthClient:
 
 
 class AccountConnectionUiTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        self.health = patch('ft_tui.ui.offline.backend_available', return_value=True)
+        self.health.start()
+        self.addCleanup(self.health.stop)
+
     async def test_keyring_selection_restores_store_after_session_pairing_failure(self):
         from textual.app import App
         from ft_tui.features.accounts.views.connection import AccountConnectionScreen
