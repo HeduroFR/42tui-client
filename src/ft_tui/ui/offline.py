@@ -17,8 +17,9 @@ OFFLINE_TABS = ('cluster-map',)
 class OfflineScreen(AppModal):
     BINDINGS = [("escape", "close", "Close")]
     DEFAULT_CSS = """
-    OfflineScreen > Vertical { width: 72; max-width: 95%; height: auto;
+    OfflineScreen > Vertical { width: 58; max-width: 95%; height: auto;
         border: round $accent; background: $surface; padding: 1 2; }
+    OfflineScreen #offline-title { text-style: bold; margin-bottom: 1; }
     OfflineScreen Button { margin-top: 1; }
     """
 
@@ -30,11 +31,9 @@ class OfflineScreen(AppModal):
         def tr(message):
             return translate(message, self.language)
         with Vertical():
-            yield Static(tr("Backend unavailable"))
-            yield Static(tr("The server cannot be reached. Check your connection or try again later."))
-            yield Static(tr("Cluster Map, subscriptions, correction slots, registration "
-                            "and social actions require the server."))
-            yield Static(tr("Online features may be unavailable. Saved data and local tools remain available."))
+            yield Static(tr("Backend unavailable"), id="offline-title")
+            yield Static(tr("Check your connection or try again later."))
+            yield Static(tr("Cluster Map and other online features are unavailable. Local data remains accessible."))
             yield Button(tr("Close"), id="close-offline")
 
     def on_button_pressed(self, event):
@@ -55,6 +54,9 @@ class OfflineMixin:
         client = self.oauth_client
         origin = getattr(client, "base_url", None) or oauth_api_url()
         available = await asyncio.to_thread(backend_available, origin)
+        ready = getattr(self, '_backend_ui_ready', None)
+        if ready is not None:
+            await ready.wait()
         if client is not self.oauth_client:
             return
         self._set_backend_available(available)

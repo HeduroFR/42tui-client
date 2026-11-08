@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +18,7 @@ class HealthTests(unittest.TestCase):
             get.return_value = httpx.Response(200, json={'status': 'ok'})
             self.assertTrue(backend_available('https://example.test/'))
             self.assertEqual(get.call_args.args[0], 'https://example.test/health')
+            self.assertEqual(get.call_args.kwargs['timeout'], 2.0)
             get.return_value = httpx.Response(503, json={'status': 'ok'})
             self.assertFalse(backend_available('https://example.test'))
             get.return_value = httpx.Response(200, text='not json')
@@ -40,6 +43,44 @@ class Harness(OfflineMixin, App):
 
 
 class OfflineTests(unittest.IsolatedAsyncioTestCase):
+    async def test_health_probe_runs_while_initial_dashboard_is_loading(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from types import SimpleNamespace
+        from ft_tui.db.database import make_session_factory
+        from ft_tui.ui.app import FortyTwoTuiApp
+
+        with TemporaryDirectory() as directory:
+            factory = make_session_factory(f'sqlite:///{Path(directory) / "startup.sqlite"}')
+            app = FortyTwoTuiApp(factory, None)
+            app.oauth_client = SimpleNamespace(base_url='https://example.test')
+            entered = threading.Event()
+            release = asyncio.Event()
+
+            async def slow_dashboard():
+                await release.wait()
+
+            def offline(_origin):
+                entered.set()
+                return False
+
+            async def run_app():
+                async with app.run_test(size=(120, 40)) as pilot:
+                    await pilot.pause()
+
+            try:
+                with patch.object(app, '_refresh_dashboard', slow_dashboard), \
+                     patch('ft_tui.ui.offline.backend_available', offline):
+                    task = asyncio.create_task(run_app())
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 3))
+                    self.assertIsNone(app.backend_available)
+                    release.set()
+                    await asyncio.wait_for(task, 10)
+                    self.assertIs(app.backend_available, False)
+            finally:
+                release.set()
+                factory.kw['bind'].dispose()
+
     async def test_outage_warning_and_recovery_preserve_navigation(self):
         app = Harness()
         async with app.run_test() as pilot:

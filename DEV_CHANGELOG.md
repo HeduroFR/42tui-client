@@ -3,15 +3,28 @@
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.2** (prepared; not published).
-Suggested next release: **0.8.0 (minor)** for offline availability handling,
-alongside the accumulated tester improvements. The earlier 0.7.2 candidate does
-not include the offline feature; review, PR CI and publication verification remain required.
+Target release for offline availability handling: **0.7.3 (patch)**, as requested
+for an urgent fix. The prepared 0.7.2 candidate does not include this feature and
+is not yet published. Review, PR CI and publication verification remain required.
 
 ## Changes since 0.7.1
 
+- 2026-11-08: Start the backend availability probe during initial view loading
+  and reduce its network timeout to two seconds so the warning appears sooner.
+  User-requested 0.7.3 patch target; no backend change. Reference:
+  `feat/backend-offline-mode` (uncommitted). Five offline and five dashboard
+  cache tests, focused lint and diff whitespace checks pass. Real-server timing
+  and PR CI remain unverified.
+
+- 2026-11-08: Shorten and compact the localized backend-unavailable dialog.
+  User-requested 0.7.3 patch target; no backend change. Reference:
+  `feat/backend-offline-mode` (uncommitted). Four focused offline checks, lint
+  and diff whitespace checks pass. Visual review and PR CI remain pending.
+
 - 2026-11-08: Detect backend liveness loss, warn on startup, preserve local
   data, gate remote actions and resume them after recovery. Allow first-run
-  setup offline and keep map loading out of the tab event handler. Minor impact;
+  setup offline and keep map loading out of the tab event handler. User-requested
+  0.7.3 patch target;
   no backend change. Reference: `feat/backend-offline-mode` (uncommitted).
   Focused offline, account, onboarding, agenda, club, social, correction,
   registration and team tests pass; the reported real-world map freeze and

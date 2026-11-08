@@ -1,5 +1,6 @@
 """Application composition root and cross-screen event routing."""
 
+import asyncio
 import logging
 from datetime import datetime
 from dataclasses import replace
@@ -194,6 +195,7 @@ class FortyTwoTuiApp(
         self.sub_title = version('ft-tui')
         self._normal_sub_title = self.sub_title
         self.backend_available = None
+        self._backend_ui_ready = asyncio.Event()
         self.project_state = ProjectState()
         self.settings_state = SettingsState()
         self.account_state = AccountState()
@@ -294,6 +296,7 @@ class FortyTwoTuiApp(
         self.shortcuts_visible = False
 
     async def on_mount(self) -> None:
+        self._start_backend_check()
         project_list = self.query_one("#project-list-view", ListView)
         preferences = self.startup_service.mount_preferences(
             self.language, self.projects_root, self.favorite_editor, self.theme,
@@ -404,7 +407,7 @@ class FortyTwoTuiApp(
         if not self.account_connected and (locked_vault or not onboarding_pending):
             self.call_after_refresh(lambda: self.open_account_connection(start_vault=locked_vault, required=not onboarding_pending))
         self.call_after_refresh(self._start_updates)
-        self.call_after_refresh(self._start_backend_check)
+        self.call_after_refresh(self._backend_ui_ready.set)
         self.set_interval(30, self._start_backend_check)
         if self.account_connected and not onboarding_pending:
             self._schedule_community_reminders()

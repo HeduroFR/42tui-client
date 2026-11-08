@@ -1,10 +1,10 @@
 {
   "You can continue offline and connect your 42 account later in Settings.": "Vous pouvez continuer hors ligne et connecter votre compte 42 plus tard dans les paramètres.",
-  "Cluster Map, subscriptions, correction slots, registration and social actions require the server.": "La carte des clusters, les inscriptions, les créneaux de correction et les actions sociales nécessitent le serveur.",
+  "Check your connection or try again later.": "Vérifiez votre connexion ou réessayez plus tard.",
+  "Cluster Map and other online features are unavailable. Local data remains accessible.": "La carte des clusters et les autres fonctions en ligne sont indisponibles. Les données locales restent accessibles.",
   "Continue offline": "Continuer hors ligne",
   "Backend unavailable": "Serveur indisponible",
   "The server cannot be reached. Check your connection or try again later.": "Le serveur est inaccessible. Vérifiez votre connexion ou réessayez plus tard.",
-  "Online features may be unavailable. Saved data and local tools remain available.": "Certaines fonctions en ligne sont indisponibles. Les données enregistrées et les outils locaux restent accessibles.",
   "Subscribe": "S’abonner",
   "Unsubscribe": "Se désabonner",
   "Reconnect your 42 account to enable subscriptions.": "Reconnectez votre compte 42 pour activer les abonnements.",
