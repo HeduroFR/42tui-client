@@ -1,7 +1,7 @@
 # Distribution operations
 
 The Python package is `ft-tui`. The latest confirmed stable release is
-[0.7.1](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1), published
+[0.7.2](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.2), published
 on GitHub and PyPI on 2026-11-05. This client repository owns publication
 through `.github/workflows/release.yml`. Only explicitly authorized stable release
 tags publish packages; ordinary branch pushes do not publish.
