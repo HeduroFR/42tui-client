@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import httpx
 from textual.app import App
-from textual.widgets import TabbedContent, TabPane
+from textual.widgets import TabbedContent, TabPane, Tabs
 
 from ft_tui.api.health import backend_available
 from ft_tui.ui.button import Button
@@ -43,6 +43,27 @@ class Harness(OfflineMixin, App):
 
 
 class OfflineTests(unittest.IsolatedAsyncioTestCase):
+    def test_probe_waits_for_tabs_and_account_dialog_children(self):
+        from types import SimpleNamespace
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+
+        class Results(list):
+            def first(self):
+                return self[0]
+
+        tab_widgets = []
+        tabs = SimpleNamespace(query=lambda _: tab_widgets)
+        main = SimpleNamespace(query=lambda selector: Results([tabs]) if selector is Tabs
+                               else [object()] if selector == '#dashboard-cluster-map' else [])
+        screen = AccountConnectionScreen(SimpleNamespace(), required=True)
+        app = SimpleNamespace(screen_stack=[main, screen])
+        with patch.object(screen, 'query', return_value=[]) as query:
+            self.assertFalse(OfflineMixin._backend_views_ready(app))
+            tab_widgets.append(SimpleNamespace(id='--content-tab-cluster-map'))
+            self.assertFalse(OfflineMixin._backend_views_ready(app))
+            query.return_value = [object()]
+            self.assertTrue(OfflineMixin._backend_views_ready(app))
+
     async def test_health_probe_runs_while_initial_dashboard_is_loading(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory

@@ -3,7 +3,7 @@
 import asyncio
 
 from textual.containers import Vertical
-from textual.widgets import Static, TabbedContent
+from textual.widgets import Static, TabbedContent, Tabs
 
 from ft_tui.api.health import backend_available
 from ft_tui.config.settings import oauth_api_url
@@ -57,9 +57,45 @@ class OfflineMixin:
         ready = getattr(self, '_backend_ui_ready', None)
         if ready is not None:
             await ready.wait()
+        while not self._backend_views_ready():
+            await asyncio.sleep(.05)
         if client is not self.oauth_client:
             return
         self._set_backend_available(available)
+
+    def _backend_views_ready(self):
+        if not self.screen_stack:
+            return False
+        main = self.screen_stack[0]
+        tabs = main.query(Tabs)
+        if not main.query('#dashboard-cluster-map') or not tabs:
+            return False
+        if not any(tab.id == '--content-tab-cluster-map' for tab in tabs.first().query('ContentTab')):
+            return False
+        from ft_tui.features.agenda.views import AgendaWorkspace
+        from ft_tui.features.clubs.views.workspace import ClubsWorkspace
+        from ft_tui.features.corrections.views import CorrectionSlotsWorkspace
+        from ft_tui.features.friends.views.workspace import FriendsWorkspace
+        from ft_tui.features.social.views.inbox import SocialInbox
+        for kind, selector in ((ClubsWorkspace, '#clubs-create'),
+                               (CorrectionSlotsWorkspace, '#slots-add'),
+                               (FriendsWorkspace, '#friends-open-search'),
+                               (SocialInbox, '#social-detail')):
+            if any(not widget.query(selector) for widget in main.query(kind)):
+                return False
+        if any(workspace.timeline and not workspace.query('#agenda-subscribe')
+               for workspace in main.query(AgendaWorkspace)):
+            return False
+        from ft_tui.features.accounts.views.connection import AccountConnectionScreen
+        from ft_tui.features.projects.views.team import ProjectTeamScreen
+        from ft_tui.ui.onboarding import OnboardingScreen
+        for screen in self.screen_stack[1:]:
+            selector = ('#account-connection-cancel' if isinstance(screen, AccountConnectionScreen) else
+                        '#onboarding-account-state' if isinstance(screen, OnboardingScreen) else
+                        '#team-dialog' if isinstance(screen, ProjectTeamScreen) else None)
+            if selector and not screen.query(selector):
+                return False
+        return True
 
     def _set_backend_available(self, available):
         previous = getattr(self, "backend_available", None)
@@ -127,7 +163,7 @@ class OfflineMixin:
                                   self.language))
             elif isinstance(screen, OnboardingScreen):
                 screen.query_one('#onboarding-account-state', Static).update(
-                    screen._account_state() if available else translate(
+                    screen._account_state() if available else screen._account_state() + '\n' + translate(
                         'The server cannot be reached. Check your connection or try again later.', self.language))
                 screen.query_one('#onboarding-account-help', Static).update(translate(
                     ('Required · connect in your browser. Your password and OAuth code stay with 42.' if available

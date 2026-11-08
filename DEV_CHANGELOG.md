@@ -8,6 +8,13 @@ of the deployed backend remain release blockers.
 
 ## Changes since 0.7.2
 
+- 2026-11-08: Wait for tabs and account screens to mount before applying the
+  backend health result; isolate account tests from real health checks and
+  register the new shared modules in architecture checks. Patch impact; no
+  backend change. Reference: `feat/backend-offline-mode` (uncommitted).
+  All 53 account UI and 97 release-tooling checks pass locally; six offline
+  tests and focused lint pass. PR CI and release review remain required.
+
 - 2026-11-08: Prepare version 0.7.3 and its release notes for the offline-mode
   changes. User-requested patch impact; no backend update. Reference:
   `feat/backend-offline-mode` (uncommitted). Version/notes, focused offline

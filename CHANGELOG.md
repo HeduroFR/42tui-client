@@ -13,6 +13,7 @@
 ### 🐛 Fixes
 
 - Keep the TUI responsive while the Cluster Map waits for a slow server.
+- Prevent a startup crash when the backend check finishes while screens are loading.
 
 ### 📦 Update
 
