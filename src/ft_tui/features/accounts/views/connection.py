@@ -161,7 +161,7 @@ class AccountConnectionScreen(AppModal[str | None]):
         elif event.button.id == "account-connection-cancel":
             self._stop_polling()
             await self._restore_previous_store()
-            if self.required:
+            if self.required and getattr(self.app, 'backend_available', None) is not False:
                 self.app.exit()
             else:
                 self.dismiss(None)

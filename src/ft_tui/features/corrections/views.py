@@ -265,7 +265,7 @@ class CorrectionSlotsWorkspace(Vertical):
         return self.is_mounted and epoch == self.epoch and context == self.scope()
 
     def controls(self):
-        writable = bool(self.connected() and self.trusted and self.can_write and not self.busy and not self.slots_loading)
+        writable = bool(getattr(self.app, 'backend_available', None) is not False and self.connected() and self.trusted and self.can_write and not self.busy and not self.slots_loading)
         cal = self.query_one(SlotsCalendar); cal.writable = writable; cal.refresh()
         self.query_one('#slots-add', Button).disabled = not writable
         for key in ('prev', 'next', 'today', 'refresh'):
@@ -330,6 +330,8 @@ class CorrectionSlotsWorkspace(Vertical):
                 self.slots_loading = False; self.query_one(SlotsCalendar).set_skeleton(False); self.controls()
 
     async def change(self, slot, begin=None, end=None, *, delete=False, delete_slots=None):
+        if getattr(self.app, 'backend_available', None) is False:
+            return
         if self.context != self.scope():
             self.tick()
             return

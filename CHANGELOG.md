@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Warn when the backend cannot be reached, keep saved data and local tools
+  accessible, and restore online actions when the server responds again.
+- Keep the TUI responsive while the Cluster Map waits for a slow server.
+
 ## 0.7.2
 
 ### 🐛 Fixes

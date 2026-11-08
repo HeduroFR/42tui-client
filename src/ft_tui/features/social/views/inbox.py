@@ -120,7 +120,8 @@ class PokeComposer(AppModal):
         if event.button.id == 'poke-cancel':
             self.action_cancel()
             return
-        if event.button.id != 'poke-send' or self.busy or self.context != self.inbox.scope():
+        if (event.button.id != 'poke-send' or self.busy or self.context != self.inbox.scope()
+                or getattr(self.app, 'backend_available', None) is False):
             return
         recipient = self.query_one('#poke-recipient', Select).value
         message = self.query_one('#poke-message', Input).value.strip()
@@ -410,9 +411,10 @@ class SocialInbox(Vertical):
         else:
             detail = ('Friend request: ' + item['login']) if kind else 'No pending requests or pokes.'
         self.query_one('#social-detail', Static).update(detail)
+        unavailable = getattr(self.app, 'backend_available', None) is False
         for button in self.query('#social-actions Button'):
-            button.disabled = self.mutating or not self.scope()[3]
-        self.query_one('#social-compose', Button).disabled = self.mutating or not self.scope()[3] or not self.snapshot.get('friends')
+            button.disabled = self.mutating or not self.scope()[3] or unavailable
+        self.query_one('#social-compose', Button).disabled = self.mutating or not self.scope()[3] or unavailable or not self.snapshot.get('friends')
 
     @on(DataTable.RowHighlighted, '#social-table')
     @on(DataTable.RowSelected, '#social-table')
@@ -422,7 +424,7 @@ class SocialInbox(Vertical):
         self.update_controls()
 
     async def mutate(self, draft):
-        if (self.mutating or not self.scope()[3] or self.context != self.scope()
+        if (getattr(self.app, 'backend_available', None) is False or self.mutating or not self.scope()[3] or self.context != self.scope()
                 or self.snapshot.get('account_id') != self.scope()[1]):
             return False
         context = self.scope()

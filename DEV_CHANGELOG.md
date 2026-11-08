@@ -3,12 +3,20 @@
 Latest published release: **0.7.1** ([`v0.7.1`](https://github.com/HeduroFR/42tui-client/releases/tag/v0.7.1)),
 published and verified on GitHub and PyPI on 2026-11-05.
 Package version: **0.7.2** (prepared; not published).
-Suggested next release: **0.7.2 (patch)** for automatic printf/GNL bonus testing,
-project-specific results, compatible tester updates and clearer tester diagnostics.
-Release candidate prepared from reviewed main `ca13c60`; release PR CI and
-publication verification remain required.
+Suggested next release: **0.8.0 (minor)** for offline availability handling,
+alongside the accumulated tester improvements. The earlier 0.7.2 candidate does
+not include the offline feature; review, PR CI and publication verification remain required.
 
 ## Changes since 0.7.1
+
+- 2026-11-08: Detect backend liveness loss, warn on startup, preserve local
+  data, gate remote actions and resume them after recovery. Allow first-run
+  setup offline and keep map loading out of the tab event handler. Minor impact;
+  no backend change. Reference: `feat/backend-offline-mode` (uncommitted).
+  Focused offline, account, onboarding, agenda, club, social, correction,
+  registration and team tests pass; the reported real-world map freeze and
+  integration with the deployed backend remain unverified. Review and PR CI
+  remain release blockers.
 
 - 2026-11-06: Document English-only project content and Jotty Kanban and
   checklist tracking for client work. No release required; no API or runtime

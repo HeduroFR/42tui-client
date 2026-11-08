@@ -91,6 +91,23 @@ class Harness(App):
 
 
 class ClubsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_offline_blocks_mutation_without_discarding_view(self):
+        app = Harness()
+        async with app.run_test(size=(140, 45)) as pilot:
+            ws = app.query_one(ClubsWorkspace)
+            await ws.reload()
+            await pilot.pause()
+            snapshot = deepcopy(ws.snapshot)
+            app.backend_available = False
+            ws.update_controls()
+            ws.mutate({'action': 'join', 'activity_id': ACTIVITY}, club_id=CLUB)
+            self.assertEqual(ws.snapshot, snapshot)
+            self.assertEqual(app.provider.calls, [])
+            self.assertTrue(ws.query_one('#clubs-create', Button).disabled)
+            app.backend_available = True
+            ws.update_controls()
+            self.assertFalse(ws.query_one('#clubs-create', Button).disabled)
+
     async def test_old_campus_failure_does_not_report_error_for_new_campus(self):
         started, release, next_started, next_release = (threading.Event() for _ in range(4))
 

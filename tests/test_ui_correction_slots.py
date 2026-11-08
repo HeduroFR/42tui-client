@@ -35,6 +35,28 @@ class Harness(App):
         yield CorrectionSlotsWorkspace()
 
 class WorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_outage_blocks_changes_and_retains_slots(self):
+        app = Harness()
+        app.provider.rows = (SLOT,)
+        async with app.run_test(size=(110, 35)) as pilot:
+            ws = app.query_one(CorrectionSlotsWorkspace)
+            for _ in range(50):
+                await pilot.pause(.01)
+                if ws.trusted:
+                    break
+            cal = app.query_one(SlotsCalendar)
+            self.assertTrue(cal.writable)
+            before = cal.slots
+            app.backend_available = False
+            ws.controls()
+            await ws.change(SLOT, delete=True)
+            self.assertFalse(cal.writable)
+            self.assertEqual(cal.slots, before)
+            self.assertEqual(app.provider.calls, [])
+            app.backend_available = True
+            ws.controls()
+            self.assertTrue(cal.writable)
+
     async def test_invalidated_startup_read_retries_without_waiting_for_timeout(self):
         from ft_tui.shared.read_cache import ReadCache, ReadInvalidated
         original = ReadCache.read

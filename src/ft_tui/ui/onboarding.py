@@ -120,7 +120,7 @@ class OnboardingScreen(AppModal[dict[str, str]]):
                     )
                     yield Static(
                         self._t("Required · connect in your browser. Your password and OAuth code stay with 42."),
-                        classes="onboarding-help",
+                        classes="onboarding-help", id="onboarding-account-help",
                     )
                 with Vertical(id="onboarding-form-workspace", classes="onboarding-form"):
                     yield Static(self._t("PROJECTS FOLDER"), classes="onboarding-field-label")
@@ -337,7 +337,7 @@ class OnboardingScreen(AppModal[dict[str, str]]):
         return True
 
     def _valid_account(self) -> bool:
-        if not self.app.account_connected:
+        if not self.app.account_connected and getattr(self.app, 'backend_available', None) is not False:
             self.step = 0
             self._show_step()
             self._focus_current_step()

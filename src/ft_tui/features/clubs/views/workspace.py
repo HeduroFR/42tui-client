@@ -250,6 +250,8 @@ class ClubsInvitations(Vertical):
         event.stop()
         if not self.items:
             return
+        if event.button.id == 'clubs-invitation-join' and getattr(self.app, 'backend_available', None) is False:
+            return
         workspace = self.app.query_one(ClubsWorkspace)
         item = self.items.pop(0)
         self.update_card()
@@ -747,7 +749,7 @@ class ClubsWorkspace(VerticalScroll):
 
     def update_controls(self):
         c = self.current()
-        connected = bool(self.connected()) and not self.mutating
+        connected = bool(self.connected()) and not self.mutating and getattr(self.app, 'backend_available', None) is not False
         manager = bool(c and c['my_role'] in ('creator', 'delegate'))
         creator = bool(c and c['my_role'] == 'creator')
         ordinary = bool(c and not c['system'])
@@ -889,7 +891,7 @@ class ClubsWorkspace(VerticalScroll):
             ('minutes', 'Recruitment duration (minutes)', 'number'))]
 
     def mutate(self, draft, *, club_id=None, create=False, preference=False):
-        if self.mutating or not self.connected():
+        if self.mutating or not self.connected() or getattr(self.app, 'backend_available', None) is False:
             return
         self.mutating = True
         self.revision += 1

@@ -556,7 +556,8 @@ class AgendaWorkspace(Vertical):
             raise ValueError('Invalid event subscription')
         self.subscription_state = value.get('subscribed')
         toggle = self.query_one('#agenda-subscribe', Button)
-        toggle.disabled = not value['can_write'] or self.subscription_state is None
+        toggle.disabled = (not value['can_write'] or self.subscription_state is None
+                           or getattr(self.app, 'backend_available', None) is False)
         toggle.set_source_label('Unsubscribe' if self.subscription_state else 'Subscribe')
         toggle.variant = 'danger' if self.subscription_state else 'primary'
         toggle.set_source_tooltip('Reconnect your 42 account to enable subscriptions.'
@@ -575,6 +576,9 @@ class AgendaWorkspace(Vertical):
                 self.query_one('#agenda-subscribe', Button).set_source_tooltip('Subscription status unavailable.')
 
     async def change_subscription(self, event_id, epoch, context, desired):
+        if getattr(self.app, 'backend_available', None) is False:
+            self.subscription_writing = False
+            return
         toggle = self.query_one('#agenda-subscribe', Button)
         toggle.disabled = True
         try:
@@ -628,7 +632,8 @@ class AgendaWorkspace(Vertical):
             event.button.set_source_label('List view' if self.calendar else 'Weekly calendar')
             self.query_one(ListView).display = not self.calendar
         elif key == 'agenda-subscribe':
-            if (self.selected and self.subscription_state is not None and not self.subscription_writing
+            if (getattr(self.app, 'backend_available', None) is not False
+                    and self.selected and self.subscription_state is not None and not self.subscription_writing
                     and callable(getattr(self.identity()[0], 'change_event_subscription', None))):
                 self.subscription_writing = True
                 self.query_one('#agenda-subscribe', Button).disabled = True
