@@ -10,6 +10,12 @@ publication verification remain required.
 
 ## Changes since 0.7.1
 
+- 2026-11-16: Retry only subject PDFs still pending instead of rechecking every
+  configured project every two seconds. Patch impact; no backend or API change.
+  Seven focused subject-service and subject-refresh UI checks pass. Reference: `fix/subject-refresh-retries`.
+
+
+
 - 2026-11-05: Prepare 0.7.2 after squash-merging [PR #63](https://github.com/HeduroFR/42tui-client/pull/63)
   at `ca13c60`. Its complete CI passed on retry; the Python tester's approved
   `f42c6b7` revision passed GitHub Docker checks on Linux amd64 and arm64.

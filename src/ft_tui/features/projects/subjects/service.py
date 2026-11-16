@@ -13,13 +13,14 @@ class SubjectService:
     def run_tdf(self,executable,path):return self.files.run_tdf(executable,path)
     def open_system(self,path):return self.files.open_system(path)
 
-    def sync_due(self,provider: SubjectProvider,interval,pending,*,current=lambda:True):
+    def sync_due(self,provider: SubjectProvider,interval,pending,*,slugs=None,current=lambda:True):
         now=datetime.now(timezone.utc).replace(tzinfo=None)
         results=[];errors=[]
         downloader=getattr(provider,'download_subject_pdf',None)
         reference_getter=getattr(provider,'get_subject_reference_sha256',None)
         for project_id,slug,local_path,previous_digest,previous_reference,checked_at in self.repository.subjects():
             if not current():break
+            if slugs is not None and slug not in slugs:continue
             root=self.files.root(local_path)
             if root is None:continue
             path=self.files.subject(root)

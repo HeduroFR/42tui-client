@@ -37,6 +37,13 @@ class SubjectFeatureTests(unittest.TestCase):
         result=SubjectService(repository,Files()).sync_due(Provider(),21600,lambda *args:states.append(args))
         self.assertEqual(result,([],[]));self.assertEqual(states,[('libft','pending')]);self.assertEqual(repository.saved,[])
 
+    def test_pending_retry_checks_only_the_queued_subjects(self):
+        repository=Repository();repository.rows.append((2,'ft_printf','/tmp/fake',None,None,None));checked=[]
+        class Provider:
+            def get_subject_reference_sha256(self,slug):checked.append(slug);return 'a'*64
+        SubjectService(repository,Files()).sync_due(Provider(),21600,lambda *args:None,slugs={'libft'})
+        self.assertEqual(checked,['libft'])
+
     def test_account_change_during_reference_prevents_download_and_metadata_write(self):
         repository=Repository();files=Files();active=True
         def reference(slug):
@@ -58,7 +65,7 @@ class SubjectFeatureTests(unittest.TestCase):
         from ft_tui.features.projects.views.subjects import SubjectMixin
         callbacks=[];published=[]
         class Operations:
-            def sync_due(self,provider,interval,pending,*,current):
+            def sync_due(self,provider,interval,pending,*,slugs,current):
                 pending('libft','pending')
                 return ['old result'],['old error']
         app=SimpleNamespace(subject_service=Operations(),account_generation=1,account_id='42',

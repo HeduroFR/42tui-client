@@ -107,14 +107,14 @@ class SubjectMixin:
             self.notify(f"Could not open the subject PDF: {error}", severity="error")
 
 
-    def _start_due_subject_checks(self) -> None:
+    def _start_due_subject_checks(self, pending_only=False) -> None:
         """Schedule periodic checking and optional downloading outside the UI thread."""
         if not self.is_mounted:
             return
         if any(worker.group == "subject-pdf-check" and not worker.is_finished for worker in self.workers):
             return
         self.run_worker(
-            self._check_due_subjects_in_background,
+            lambda: self._check_due_subjects_in_background(pending_only),
             name="periodic-subject-check",
             group="subject-pdf-check",
             exclusive=True,
@@ -122,7 +122,7 @@ class SubjectMixin:
         )
 
 
-    def _check_due_subjects_in_background(self) -> None:
+    def _check_due_subjects_in_background(self, pending_only=False) -> None:
         operations=SubjectMixin._subject_operations(self)
         context=(getattr(self,'account_generation',None),getattr(self,'account_id',None),id(self.provider))
         def current():
@@ -133,11 +133,18 @@ class SubjectMixin:
             if current():callback(*args)
         def pending(slug,state):
             if current():self.call_from_thread(publish,self._report_subject_worker_state,slug,state)
-        results,errors=operations.sync_due(self.provider,self.subject_check_interval_seconds,pending,current=current)
+        slugs=frozenset(getattr(self, '_pending_subject_slugs', set())) if pending_only else None
+        results,errors=operations.sync_due(self.provider,self.subject_check_interval_seconds,pending,slugs=slugs,current=current)
         if current():self.call_from_thread(publish,self._report_automatic_subject_checks,results,errors)
 
 
     def _report_subject_worker_state(self, slug: str, state: str) -> None:
+        pending_slugs = getattr(self, '_pending_subject_slugs', set())
+        if state == "pending":
+            pending_slugs.add(slug)
+        else:
+            pending_slugs.discard(slug)
+        self._pending_subject_slugs = pending_slugs
         for project in self.projects.values():
             if project.slug == slug:
                 project._subject_worker_state = state
@@ -150,7 +157,8 @@ class SubjectMixin:
             if retry is not None:
                 retry.stop()
             self._subject_pending_timer = self.set_timer(
-                self.SUBJECT_PENDING_POLL_SECONDS, self._start_due_subject_checks,
+                self.SUBJECT_PENDING_POLL_SECONDS,
+                lambda: self._start_due_subject_checks(pending_only=True),
             )
 
 
@@ -161,6 +169,7 @@ class SubjectMixin:
     ) -> None:
         """Update visible project status and surface only changes/errors."""
         for project_id, slug, path, digest, reference, checked, changed in results:
+            getattr(self, '_pending_subject_slugs', set()).discard(slug)
             project = next((p for p in self.projects.values() if p.id == project_id), None)
             if project is None:
                 continue

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### 🐛 Fixes
+
+- Stop pending subject downloads from repeatedly refreshing unrelated projects.
+
 ## 0.7.2
 
 ### 🐛 Fixes
